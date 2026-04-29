@@ -1,0 +1,72 @@
+/* ===== ESTILOS PARA LA TABLA ===== */
+.custom-table {
+    color: #5a5c69;
+    font-size: 0.95rem;
+}
+
+.custom-table thead th {
+    color: #858796;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e3e6f0;
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.custom-table tbody td {
+    padding: 15px 10px;
+    border-bottom: 1px solid #eaecf4;
+    vertical-align: middle;
+}
+
+.custom-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.custom-table tbody tr:hover {
+    background-color: #f8f9fc !important;
+}
+
+/* ===== BADGES DE ACCIÓN (COMPRAR / OK) ===== */
+.action-buy {
+    background-color: #e74a3b;
+    color: white;
+    font-size: 0.85rem;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #e74a3b;
+}
+
+.action-ok {
+    background-color: #e3fbed; /* Fondo verde muy clarito */
+    color: #1cc88a; /* Texto verde corporativo */
+    font-size: 0.85rem;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #1cc88a;
+}
+
+/* ===== ESTADO VACÍO ===== */
+.empty-state {
+    padding: 20px 0;
+    opacity: 0.6;
+}
+
+.empty-state i {
+    color: #d1d3e2;
+}
+
+/* ===== TEXTOS DE ALERTA ===== */
+.text-danger {
+    color: #e74a3b !important;
+}

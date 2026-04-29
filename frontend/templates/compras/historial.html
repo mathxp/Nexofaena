@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Historial de Compras - HDA{% endblock %}
+
+{% block content %}
+
+<!-- ======================
+     ESTILOS MÓDULO
+====================== -->
+<link rel="stylesheet" href="{% static 'css/compras.css' %}">
+
+
+<!-- ======================
+     CONTENEDOR PRINCIPAL
+====================== -->
+<div class="container-fluid px-0">
+
+
+    <!-- ======================
+         HEADER
+    ====================== -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+            <h2 class="h3 text-gray-800 m-0">
+                <i class="fas fa-shopping-cart text-primary me-2"></i>
+                Historial de Compras
+            </h2>
+
+            <p class="text-muted">
+                Registro completo de adquisiciones del hospital.
+            </p>
+        </div>
+
+        <a href="{% url 'crear_compra' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Nueva Compra
+        </a>
+
+    </div>
+
+
+    <!-- ======================
+         FILTROS
+    ====================== -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body">
+
+            <form method="GET" class="row g-3">
+
+                <!-- FECHA INICIO -->
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Inicio</label>
+                    <input type="date" name="fecha_inicio"
+                           class="form-control"
+                           value="{{ filtros.fecha_inicio }}">
+                </div>
+
+                <!-- FECHA FIN -->
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Fin</label>
+                    <input type="date" name="fecha_fin"
+                           class="form-control"
+                           value="{{ filtros.fecha_fin }}">
+                </div>
+
+                <!-- PROVEEDOR -->
+                <div class="col-md-4">
+                    <label class="form-label">Proveedor</label>
+
+                    <select name="proveedor" class="form-select">
+
+                        <option value="">Todos</option>
+
+                        {% for p in proveedores %}
+                            <option value="{{ p.id }}"
+                                {% if filtros.proveedor == p.id|stringformat:"s" %}selected{% endif %}>
+                                {{ p.nombre }}
+                            </option>
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <!-- BOTÓN FILTRAR -->
+                <div class="col-md-2 d-flex align-items-end">
+
+                    <button class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+
+    <!-- ======================
+         TABLA DE COMPRAS
+    ====================== -->
+    <div class="card shadow-sm border-0">
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+
+                <!-- HEADER TABLA -->
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Proveedor</th>
+                        <th>Usuario</th>
+                        <th class="text-center">Fecha</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Comprobante</th>
+                        <th class="text-center pe-4">Acciones</th>
+                    </tr>
+                </thead>
+
+
+                <!-- BODY TABLA -->
+                <tbody>
+
+                    {% for c in compras %}
+                    <tr>
+
+                        <!-- ID -->
+                        <td class="ps-4 fw-bold">
+                            #{{ c.id }}
+                        </td>
+
+                        <!-- PROVEEDOR -->
+                        <td>
+                            {{ c.proveedor.nombre|default:"—" }}
+                        </td>
+
+                        <!-- USUARIO -->
+                        <td>
+                            {{ c.usuario.username }}
+                        </td>
+
+                        <!-- FECHA -->
+                        <td class="text-center">
+                            {{ c.fecha|date:"d/m/Y" }}
+                        </td>
+
+                        <!-- TOTAL -->
+                        <td class="text-end text-success fw-bold">
+                            ${{ c.total }}
+                        </td>
+
+                        <!-- COMPROBANTE -->
+                        <td class="text-center">
+
+                            {% if c.comprobante %}
+
+                                <a href="{{ c.comprobante.url }}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-outline-info">
+
+                                    <i class="fas fa-file"></i>
+
+                                </a>
+
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+
+                        </td>
+
+                        <!-- ACCIONES -->
+                        <td class="text-center pe-4">
+
+                            <a href="{% url 'agregar_detalle' c.id %}"
+                               class="btn btn-sm btn-outline-primary">
+
+                                <i class="fas fa-eye"></i>
+
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+
+                            <i class="fas fa-inbox fs-1 mb-3"></i>
+                            <p>No hay compras registradas</p>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

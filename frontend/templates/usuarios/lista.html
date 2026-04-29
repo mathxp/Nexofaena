@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Usuarios - HDA{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/usuarios.css' %}">
+
+<div class="users-wrapper fade-in">
+
+    <div class="users-overlay"></div>
+
+    <div class="container-fluid px-0 position-relative">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="title-main m-0">
+                    <i class="fas fa-users text-primary me-2"></i> Gestión de Usuarios
+                </h2>
+                <p class="subtitle m-0 mt-1">
+                    Administración de cuentas y permisos del personal.
+                </p>
+            </div>
+            
+            <a href="{% url 'crear_usuario' %}" class="btn btn-add-pro shadow-sm">
+                <i class="fas fa-user-plus me-1"></i> Nuevo Usuario
+            </a>
+        </div>
+
+        <div class="glass-card">
+
+            <div class="card-header-pro">
+                <h6 class="m-0">Listado del Personal</h6>
+            </div>
+            
+            <div class="table-responsive p-3">
+                <table class="table custom-table align-middle mb-0">
+
+                    <thead>
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Usuario</th>
+                            <th>Nombre</th>
+                            <th>RUT</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th class="text-center">Rol</th>
+                            <th class="text-center pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td class="ps-4 text-white fw-medium small">#{{ u.id }}</td>
+                            
+                            <td class="fw-bold text-white">{{ u.username }}</td>
+                            
+                            <td class="text-white">{{ u.first_name }} {{ u.last_name }}</td>
+                            
+                            <td class="text-white">{{ u.perfil.rut|default:"—" }}</td>
+                            
+                            <td class="text-white">{{ u.perfil.telefono|default:"—" }}</td>
+                            
+                            <td class="text-white">{{ u.email }}</td>
+                            
+                            <td class="text-center">
+                                <span class="role-badge shadow-sm">
+                                    {{ u.groups.first.name|default:"Sin Rol" }}
+                                </span>
+                            </td>
+                            
+                            <td class="text-center pe-4">
+                                <a href="{% url 'editar_usuario' u.id %}" class="btn-action btn-edit" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                <a href="{% url 'eliminar_usuario' u.id %}" class="btn-action btn-delete" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="fas fa-users-slash"></i>
+                                    <p class="mt-2">No hay usuarios registrados en el sistema.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

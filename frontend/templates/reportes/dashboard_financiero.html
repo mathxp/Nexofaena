@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Financiero - HDA{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/financiero.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid fade-in">
+
+    <!-- HEADER -->
+    <div class="header-financiero">
+        <h2>
+            <i class="fas fa-chart-line text-primary me-2"></i>
+            Dashboard Financiero
+        </h2>
+        <p class="text-muted">Análisis de gastos del hospital</p>
+    </div>
+
+    <!-- KPI -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="kpi-card">
+                <div class="kpi-title">Total Gastado</div>
+                <div class="kpi-value">${{ total_gastado }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div class="row">
+
+        <!-- GASTO POR MES -->
+        <div class="col-lg-6 mb-4">
+            <div class="chart-card">
+                <div class="card-header">Gasto por Mes</div>
+                <div class="card-body">
+                    <canvas id="chartMes"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROVEEDORES -->
+        <div class="col-lg-6 mb-4">
+            <div class="chart-card">
+                <div class="card-header">Gasto por Proveedor</div>
+                <div class="card-body">
+                    <canvas id="chartProveedor"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- INSUMOS -->
+        <div class="col-lg-12 mb-4">
+            <div class="chart-card">
+                <div class="card-header">Top Insumos Más Costosos</div>
+                <div class="card-body">
+                    <canvas id="chartInsumo"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+/* ======================
+   CONFIG GLOBAL DARK MODE
+====================== */
+Chart.defaults.color = "#e2e8f0";
+Chart.defaults.borderColor = "rgba(255,255,255,0.1)";
+
+/* ======================
+   GASTO POR MES
+====================== */
+new Chart(document.getElementById('chartMes'), {
+    type: 'line',
+    data: {
+        labels: {{ meses|safe }},
+        datasets: [{
+            label: 'Gasto mensual',
+            data: {{ totales_mes|safe }},
+            fill: true,
+            tension: 0.4,
+            backgroundColor: "rgba(59,130,246,0.2)",
+            borderColor: "#3b82f6",
+            pointBackgroundColor: "#3b82f6"
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                labels: { color: "#e2e8f0" }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: "#94a3b8" }
+            },
+            y: {
+                ticks: { color: "#94a3b8" }
+            }
+        }
+    }
+});
+
+/* ======================
+   PROVEEDORES
+====================== */
+new Chart(document.getElementById('chartProveedor'), {
+    type: 'bar',
+    data: {
+        labels: {{ proveedores|safe }},
+        datasets: [{
+            label: 'Gasto',
+            data: {{ totales_proveedor|safe }},
+            backgroundColor: "#10b981"
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                labels: { color: "#e2e8f0" }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: "#94a3b8" }
+            },
+            y: {
+                ticks: { color: "#94a3b8" }
+            }
+        }
+    }
+});
+
+/* ======================
+   INSUMOS
+====================== */
+new Chart(document.getElementById('chartInsumo'), {
+    type: 'bar',
+    data: {
+        labels: {{ insumos|safe }},
+        datasets: [{
+            label: 'Costo',
+            data: {{ totales_insumo|safe }},
+            backgroundColor: "#f59e0b"
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                labels: { color: "#e2e8f0" }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: "#94a3b8" }
+            },
+            y: {
+                ticks: { color: "#94a3b8" }
+            }
+        }
+    }
+});
+</script>
+
+{% endblock %}

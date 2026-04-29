@@ -1,0 +1,216 @@
+/* ===== RESET ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ===== FONDO ULTRA PRO ===== */
+body {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    background: radial-gradient(circle at 20% 30%, #1e3a8a, transparent 40%),
+                radial-gradient(circle at 80% 70%, #0f172a, transparent 40%),
+                linear-gradient(135deg, #020617, #0f172a);
+
+    overflow: hidden;
+}
+
+/* ===== EFECTO LUZ AMBIENTE ===== */
+body::before {
+    content: "";
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.25), transparent 70%);
+    top: -100px;
+    left: -100px;
+    filter: blur(80px);
+}
+
+/* ===== CONTENEDOR ===== */
+.login-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+    z-index: 2;
+}
+
+/* ===== TARJETA GLASS ===== */
+.login-card {
+    border-radius: 20px;
+    padding: 40px 30px;
+
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+
+    border: 1px solid rgba(255,255,255,0.1);
+
+    box-shadow: 
+        0 20px 60px rgba(0,0,0,0.6),
+        inset 0 0 20px rgba(255,255,255,0.05);
+
+    animation: fadeIn 0.8s ease;
+}
+
+/* ===== LOGO ===== */
+.logo {
+    font-size: 60px;
+    color: #3b82f6;
+    text-shadow: 0 0 20px rgba(59,130,246,0.6);
+}
+
+/* ===== TITULOS ===== */
+.login-card h5 {
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.login-card small {
+    color: #ffffff;
+}
+
+.login-card h4 {
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+/* ===== INPUTS ===== */
+.form-control {
+    height: 50px;
+    border-radius: 14px;
+
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #f1f5f9;
+
+    transition: all 0.3s ease;
+}
+
+.form-control::placeholder {
+    color: #94a3b8;
+}
+
+.form-control:focus {
+    border-color: #3b82f6;
+    background: rgba(255,255,255,0.08);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+    color: white;
+}
+
+/* ICONOS */
+.input-group-text {
+    border-radius: 14px 0 0 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #cbd5f5;
+}
+
+/* ===== BOTÓN ULTRA PRO ===== */
+.btn-login {
+    height: 50px;
+    border-radius: 14px;
+
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: none;
+    color: white;
+
+    font-weight: 600;
+    letter-spacing: 0.5px;
+
+    position: relative;
+    overflow: hidden;
+
+    transition: all 0.3s ease;
+}
+
+/* EFECTO BRILLO */
+.btn-login::before {
+    content: "";
+    position: absolute;
+    width: 120%;
+    height: 100%;
+    top: 0;
+    left: -120%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.4),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.btn-login:hover::before {
+    left: 100%;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(59,130,246,0.5);
+}
+
+/* ===== CHECKBOX ===== */
+.form-check-label {
+    color: #cbd5f5;
+    font-size: 0.9rem;
+}
+
+/* ===== ERROR ===== */
+.alert-login {
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: #fecaca;
+
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.9rem;
+    text-align: center;
+
+    animation: shake 0.4s ease;
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(25px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-4px); }
+    100% { transform: translateX(0); }
+}
+
+/* ===== EFECTO HOVER TARJETA ===== */
+.login-card:hover {
+    box-shadow: 
+        0 25px 70px rgba(0,0,0,0.8),
+        inset 0 0 25px rgba(255,255,255,0.08);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 500px) {
+    .login-card {
+        padding: 30px 20px;
+    }
+}
+
+/* LABELS BLANCOS */
+.form-label {
+    color: #e2e8f0; /* blanco suave */
+    font-weight: 500;
+}

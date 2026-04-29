@@ -1,0 +1,3 @@
+
+3.aca en la prediccion preguntarle a la IA como funciona la prediccion osea si es necesario tener el knime abierto para poder ejecutar la prediccion y si no es asi q deberiamos arreglar para que funcione
+4.cuando creemos un super usuario preguntarle tambien telefono rut nombre apellido y escojer el rol y aparte ya que en auth tenemos los roles darle los privilegios automaticmanete no tener que darlos nosotros en el django

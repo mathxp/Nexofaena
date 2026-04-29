@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Crear Solicitud{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/solicitud.css' %}">
+<div class="container mt-4">
+
+    <h2 class="mb-4">
+        <i class="fas fa-file-medical text-primary"></i> Nueva Solicitud
+    </h2>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <!-- 🔥 SELECT AREA -->
+        <div class="mb-4">
+            <label class="form-label fw-bold">Área solicitante</label>
+            <select name="area" class="form-select" required>
+                <option value="">Seleccione área</option>
+                {% for a in areas %}
+                    <option value="{{ a.id }}">{{ a.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <hr>
+
+        <!-- 🔥 ITEMS -->
+        <div id="items">
+
+            <div class="row mb-3 item align-items-center">
+                
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Insumo</label>
+                    <select name="insumo[]" class="form-select" required>
+                        <option value="">Seleccione insumo</option>
+                        {% for i in insumos %}
+                            <option value="{{ i.id }}">
+                                {{ i.nombre }} (Stock: {{ i.stock_actual }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label small text-muted">Cantidad</label>
+                    <input type="number" name="cantidad[]" class="form-control" placeholder="Ej: 10" min="1" required>
+                </div>
+
+                <div class="col-md-2 mt-4">
+                    <button type="button" class="btn btn-danger w-100" onclick="eliminarItem(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- BOTONES -->
+        <div class="mb-3">
+            <button type="button" class="btn btn-outline-secondary" onclick="agregarItem()">
+                <i class="fas fa-plus"></i> Agregar otro insumo
+            </button>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Guardar Solicitud
+        </button>
+
+    </form>
+
+</div>
+
+<!-- 🔥 JS -->
+<script>
+function agregarItem() {
+    const container = document.getElementById('items');
+    const item = container.children[0].cloneNode(true);
+
+    // limpiar valores
+    item.querySelector('select').value = "";
+    item.querySelector('input').value = "";
+
+    container.appendChild(item);
+}
+
+function eliminarItem(btn) {
+    const items = document.getElementById('items');
+
+    if (items.children.length > 1) {
+        btn.closest('.item').remove();
+    }
+}
+</script>
+
+{% endblock %}

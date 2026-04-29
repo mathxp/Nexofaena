@@ -1,0 +1,139 @@
+/* ===== WRAPPER ===== */
+.compras-wrapper {
+    position: relative;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* FONDO */
+.compras-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #020617, #0f172a);
+    z-index: -1;
+}
+
+/* ===== TEXTOS ===== */
+.title-main {
+    color: #f1f5f9;
+}
+
+.subtitle {
+    color: #94a3b8;
+}
+
+/* ===== BOTÓN VOLVER ===== */
+.btn-back {
+    border: 1px solid #64748b;
+    color: #94a3b8;
+    border-radius: 10px;
+    padding: 8px 14px;
+    transition: 0.3s;
+    text-decoration: none;
+}
+
+.btn-back:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* ===== CARD ===== */
+.glass-card {
+    max-width: 800px;
+    margin: 0 auto;
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(15px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+/* HEADER */
+.card-header-pro {
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+/* ===== LABEL ===== */
+.form-label {
+    color: #cbd5e1;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* ===== SELECT ===== */
+.select-wrapper {
+    position: relative;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 8px;
+    color: #f8fafc !important;
+    appearance: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* 🔥 SOLUCIÓN PARA LAS OPCIONES DESPLEGADAS */
+.custom-select option {
+    background-color: #0f172a; /* Fondo azul muy oscuro */
+    color: #f8fafc; /* Letra blanca */
+}
+
+/* flecha */
+.select-wrapper::after {
+    content: '\f107';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none; /* Para que no bloquee el click */
+}
+
+/* focus */
+.custom-select:focus {
+    outline: none;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.2) !important;
+    background: rgba(15, 23, 42, 0.9) !important;
+}
+
+/* ===== HELP ===== */
+.help-text {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 6px;
+    display: block;
+}
+
+/* ===== DIVIDER ===== */
+.divider {
+    border-color: rgba(255,255,255,0.1);
+    margin: 24px 0;
+}
+
+/* ===== BOTÓN GUARDAR ===== */
+.btn-save-pro {
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-save-pro:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59,130,246,0.5);
+}

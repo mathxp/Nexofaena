@@ -1,0 +1,128 @@
+/* ===== WRAPPER ===== */
+.form-user-wrapper {
+    position: relative;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* FONDO DARK */
+.form-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #020617, #0f172a);
+    z-index: -1;
+}
+
+/* ===== TEXTOS ===== */
+.title-main {
+    color: #f1f5f9;
+}
+
+.subtitle {
+    color: #94a3b8;
+}
+
+/* ===== BOTÓN VOLVER ===== */
+.btn-back {
+    border: 1px solid #64748b;
+    color: #94a3b8;
+    border-radius: 10px;
+    padding: 8px 14px;
+    transition: 0.3s;
+}
+
+.btn-back:hover {
+    background: #1e293b;
+    color: #fff;
+}
+
+/* ===== CARD ===== */
+.glass-card {
+    max-width: 900px;
+    margin: 0 auto;
+
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+/* HEADER */
+.card-header-pro {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+/* ===== INPUTS ===== */
+.custom-form input,
+.custom-form select {
+    width: 100%;
+    padding: 10px 12px;
+
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+
+    border-radius: 8px;
+    color: #e2e8f0;
+
+    transition: 0.25s;
+}
+
+/* focus */
+.custom-form input:focus,
+.custom-form select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.3);
+    background: rgba(255,255,255,0.08);
+}
+
+/* labels */
+.form-label {
+    color: #cbd5f5;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* ===== HELP ===== */
+.help-text {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    display: block;
+    margin-top: 5px;
+}
+
+/* ===== ERROR ===== */
+.error-text {
+    color: #ef4444;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+/* ===== DIVIDER ===== */
+.divider {
+    border-color: rgba(255,255,255,0.1);
+}
+
+/* ===== BOTÓN GUARDAR ===== */
+.btn-save-pro {
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
+    border: none;
+
+    color: white;
+    padding: 10px 20px;
+
+    border-radius: 10px;
+    font-weight: 600;
+
+    transition: 0.3s;
+}
+
+.btn-save-pro:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(59,130,246,0.4);
+}
