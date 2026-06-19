@@ -1,0 +1,260 @@
+/* =========================================
+   SGI RENTAMAQ - MOVIMIENTOS DARK PREMIUM
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --bg: #001529;
+    --card: #002244;
+    --input: #001a33;
+    --orange: #ea580c;
+    --orange-light: #fb923c;
+    --text: #ffffff;
+    --text-soft: #94a3b8;
+    --border: rgba(255, 255, 255, 0.08);
+}
+
+.movimientos-wrapper {
+    font-family: 'Inter', sans-serif;
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* --- HEADER Y TÍTULO --- */
+.page-title {
+    color: white !important;
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0 0 25px 0;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title svg {
+    color: var(--orange);
+}
+
+/* --- MENSAJES DE ALERTA --- */
+.alert-msg {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.alert-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* --- FORMULARIO --- */
+.form-container {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.form-header {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 15px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input, .custom-select { 
+    padding: 12px 15px; 
+    background: var(--input);
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    width: 100%; 
+    font-size: 0.95rem; 
+    color: white;
+    outline: none; 
+    transition: all 0.2s;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+}
+
+.custom-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px top 50%;
+    background-size: 10px auto;
+}
+
+.custom-select option {
+    background: var(--bg);
+    color: white;
+}
+
+.form-input:focus, .custom-select:focus { 
+    border-color: var(--orange); 
+    box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.15);
+}
+
+.form-input::placeholder { color: var(--text-soft); }
+
+.full-width { grid-column: span 2; }
+
+.btn-guardar { 
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    color: white; 
+    padding: 15px 25px; 
+    border: none; 
+    border-radius: 8px; 
+    font-weight: 900; 
+    font-size: 1rem;
+    cursor: pointer; 
+    width: 100%;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+}
+
+.btn-guardar:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4); 
+}
+
+/* --- BADGES DE MOVIMIENTO --- */
+.badge-mov {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    display: inline-block;
+    text-align: center;
+    min-width: 90px;
+    letter-spacing: 0.5px;
+}
+
+.badge-ingreso { background: rgba(16, 185, 129, 0.15); color: #4ade80; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-salida { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-ajuste { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+/* --- TABLA HISTORIAL --- */
+.table-section {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.table-header {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.styled-table thead tr {
+    background-color: transparent !important;
+    border-bottom: 2px solid var(--border);
+}
+
+.styled-table th { 
+    padding: 16px 20px; 
+    text-transform: uppercase; 
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    color: var(--text-soft);
+    text-align: left;
+}
+
+.styled-table td { 
+    padding: 16px 20px; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04); 
+    font-size: 0.9rem; 
+    color: white; 
+    vertical-align: middle;
+    font-weight: 500;
+}
+
+.styled-table tbody tr:hover { 
+    background-color: rgba(255, 255, 255, 0.02) !important; 
+}
+
+/* Forzador de Dark Mode para la tabla */
+.movimientos-wrapper table,
+.movimientos-wrapper th,
+.movimientos-wrapper td {
+    background-color: transparent !important;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .movimientos-wrapper { padding: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .full-width { grid-column: span 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

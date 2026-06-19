@@ -1,0 +1,472 @@
+/* =========================================
+   SGI RENTAMAQ - REPORTES DARK PREMIUM
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --bg: #001529;
+    --card: #002244;
+    --input: #001a33;
+    --orange: #ea580c;
+    --orange-light: #fb923c;
+    --text: #ffffff;
+    --text-soft: #94a3b8;
+    --border: rgba(255, 255, 255, 0.08);
+}
+.reportes-wrapper {
+    width: 100%;
+}
+
+.reportes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.reportes-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #002244; /* Dark Premium Card */
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filters-container {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    background-color: #001a33; /* Inputs Oscuros */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0 15px;
+    height: 45px;
+}
+
+.filter-icon {
+    color: #ea580c; /* Acento Naranja */
+    margin-right: 10px;
+}
+
+.filter-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    height: 100%;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.filter-input::placeholder {
+    color: #64748b;
+}
+
+/* Para que el input de tipo date/month sea oscuro en Chrome */
+.filter-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+.btn-export-pdf {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(90deg, #dc2626, #ef4444); /* Rojo PDF */
+    color: white;
+    border: none;
+    padding: 0 20px;
+    height: 45px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
+    transition: filter 0.3s ease;
+}
+
+.btn-export-pdf:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+.btn-export-pdf:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tarjeta y Tabla */
+.reportes-card {
+    background-color: #002244;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.reportes-card-header {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 15px 20px;
+    color: #94a3b8;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.reportes-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reportes-table th {
+    background-color: #001a33;
+    color: #94a3b8;
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.reportes-table td {
+    padding: 15px 20px;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+}
+
+.reportes-table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.estado-etiqueta {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.estado-ok {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.estado-pendiente {
+    background-color: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+}
+
+.loading-state, .empty-state, .error-state {
+    padding: 40px;
+    text-align: center;
+    color: #64748b;
+}
+
+.error-state {
+    color: #dc3545;
+}
+.reportes-wrapper {
+    font-family: 'Inter', sans-serif;
+    padding: 30px;
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+    animation: fadeIn 0.3s ease-out;
+    padding-bottom: 100px;
+}
+
+/* --- TÍTULO PRINCIPAL --- */
+.page-title {
+    color: white !important;
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0 0 25px 0;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title svg {
+    color: var(--orange);
+}
+
+/* --- SECCIÓN DE FILTROS --- */
+.filters-section {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.filter-label {
+    font-weight: 700;
+    color: var(--text-soft);
+    white-space: nowrap;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    width: 100px; /* Para alinear labels */
+}
+
+/* INPUTS Y SELECTS CON ICONO */
+.input-with-icon {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--input);
+    flex: 1;
+    height: 48px;
+    transition: all 0.2s ease;
+}
+
+.input-with-icon:focus-within {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.input-icon {
+    padding: 0 15px;
+    color: var(--text-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-with-icon select,
+.input-with-icon input {
+    border: none;
+    background: transparent;
+    padding: 0 15px 0 0;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    font-size: 0.95rem;
+    color: white;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+}
+
+.input-with-icon select option {
+    background: var(--bg);
+    color: white;
+}
+
+/* GRID DE FECHAS */
+.date-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.date-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+/* Chrome/Edge Date Picker Icon Color Inversion */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+/* --- TARJETAS DE REPORTES --- */
+.report-card {
+    background: var(--card);
+    border-radius: 12px;
+    margin-bottom: 25px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.report-card:hover {
+    border-color: rgba(234, 88, 12, 0.4);
+    transform: translateY(-2px);
+}
+
+.report-header-orange {
+    background: rgba(234, 88, 12, 0.1);
+    color: var(--orange-light);
+    padding: 15px 20px;
+    font-weight: 900;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(234, 88, 12, 0.2);
+}
+
+.report-body {
+    padding: 20px;
+}
+
+.report-desc {
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.metric-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    background: var(--input);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+}
+
+.metric-icon {
+    color: var(--orange);
+    font-size: 1.3rem;
+    margin-top: 2px;
+}
+
+.metric-text {
+    font-size: 0.95rem;
+    color: white;
+    font-weight: 500;
+}
+
+.metric-highlight {
+    font-weight: 900;
+    color: var(--orange-light);
+    font-size: 1.05rem;
+    margin-left: 5px;
+}
+
+.critical-items {
+    font-size: 0.85rem;
+    color: var(--text-soft);
+    margin-top: 8px;
+    font-weight: normal;
+}
+
+/* --- BOTONES DE EXPORTACIÓN --- */
+.export-buttons-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+}
+
+.btn-export {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 30px;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 250px;
+}
+
+.btn-pdf {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 6px 15px rgba(220, 38, 38, 0.25);
+}
+
+.btn-pdf:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4); }
+
+.btn-excel {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
+}
+
+.btn-excel:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); }
+
+.export-icon { font-size: 1.3rem; }
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .reportes-wrapper { padding: 15px; }
+    .filter-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .filter-label { width: 100%; }
+    .input-with-icon { width: 100%; }
+    .date-grid { grid-template-columns: 1fr; }
+    .export-buttons-container { flex-direction: column; align-items: stretch; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.export-buttons-group {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-export-excel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(90deg, #16a34a, #22c55e); /* Verde Corporativo */
+    color: white;
+    border: none;
+    padding: 0 20px;
+    height: 45px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
+    transition: filter 0.3s ease;
+}
+
+.btn-export-excel:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+.btn-export-excel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

@@ -1,0 +1,241 @@
+/* =========================================
+   SGI RENTAMAQ - SIDEBAR ULTRA PREMIUM
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+
+/* Estructura Base Global */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f4f7f9;
+}
+
+/* --- SIDEBAR LATERAL (DESKTOP) --- */
+.sidebar {
+    width: 250px; /* Reducido para mayor elegancia */
+    background: #001529; /* Azul corporativo muy profundo y elegante */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Inter', sans-serif;
+}
+
+/* --- CABECERA BRAND --- */
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 25px 20px;
+    background: rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.brand-icon {
+    font-size: 1.8rem;
+    color: #ea580c;
+    filter: drop-shadow(0 2px 4px rgba(234, 88, 12, 0.4));
+}
+
+.brand-text {
+    font-size: 1.3rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+}
+
+.brand-text span {
+    color: #ea580c;
+}
+
+/* --- MENÚ --- */
+.sidebar-menu {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 0;
+}
+
+/* Ocultar barra de scroll para limpieza visual */
+.sidebar-menu::-webkit-scrollbar { width: 4px; }
+.sidebar-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+.menu-label {
+    padding: 0 20px;
+    font-size: 0.7rem;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+
+/* Diseño UI tipo "Píldora" */
+.menu-item {
+    width: calc(100% - 30px); /* Deja márgenes a los lados */
+    margin: 4px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 10px; /* Bordes muy redondeados */
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    transform: translateX(4px); /* Pequeño empuje a la derecha al pasar el mouse */
+}
+
+.menu-item.active {
+    background: #ea580c; /* Naranja corporativo sólido */
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3); /* Resplandor naranja */
+}
+
+.menu-icon {
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.menu-item:hover .menu-icon {
+    color: white;
+}
+
+/* --- FOOTER DEL SIDEBAR --- */
+.sidebar-footer {
+    padding: 20px;
+    background: #000c17; /* Más oscuro para cerrar el diseño */
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    padding: 0 5px;
+}
+
+.user-icon {
+    font-size: 2rem;
+    color: #cbd5e1;
+}
+
+.user-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: white;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: #10b981;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.user-role::before {
+    content: '●';
+    font-size: 8px;
+}
+
+.btn-logout {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+}
+
+/* --- CONTENIDO PRINCIPAL --- */
+/* Sidebar.css */
+.main-content {
+    flex: 1;
+    margin-left: 250px; 
+    min-height: 100vh;
+    background-color: #001529; /* ¡ASEGÚRATE QUE ESTO SEA IGUAL AL DASHBOARD! */
+    transition: margin-left 0.3s;
+}
+
+/* --- HEADER MÓVIL --- */
+.mobile-header {
+    display: none;
+    background: #001529;
+    padding: 15px 20px;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    top: 0; left: 0; width: 100%;
+    z-index: 998;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-brand {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.mobile-brand span { color: #ea580c; }
+
+.mobile-toggle {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 12, 23, 0.6);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+}
+
+/* --- RESPONSIVIDAD --- */
+@media (max-width: 992px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main-content { margin-left: 0; padding-top: 65px; }
+    .mobile-header { display: flex; }
+    .sidebar-overlay { display: block; }
+}

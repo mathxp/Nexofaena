@@ -1,0 +1,242 @@
+/* =========================================
+   SGI RENTAMAQ - BODEGAS DARK PREMIUM
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --bg: #001529;
+    --card: #002244;
+    --input: #001a33;
+    --orange: #ea580c;
+    --orange-light: #fb923c;
+    --text: #ffffff;
+    --text-soft: #94a3b8;
+    --border: rgba(255, 255, 255, 0.08);
+}
+
+.bodegas-wrapper {
+    font-family: 'Inter', sans-serif;
+    padding: 30px;
+    max-width: 1000px; /* Un poco más centrado y elegante */
+    margin: 0 auto;
+    background-color: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* --- HEADER Y TÍTULO --- */
+.page-title {
+    color: white !important;
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0 0 25px 0;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title svg {
+    color: var(--orange);
+}
+
+.error-message {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 700;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* --- FORMULARIO DESPLEGABLE --- */
+.form-container {
+    background: #001e38;
+    border: 1px solid var(--border);
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    transition: all 0.3s ease;
+}
+
+.form-container.edit-mode { 
+    border-color: var(--orange); 
+    background: rgba(234, 88, 12, 0.03); 
+    box-shadow: 0 0 20px rgba(234, 88, 12, 0.05);
+}
+
+.form-header {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 15px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input { 
+    padding: 12px 15px; 
+    background: var(--input);
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    width: 100%; 
+    font-size: 0.95rem; 
+    color: white;
+    outline: none; 
+    transition: all 0.2s;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+}
+
+.form-input:focus { 
+    border-color: var(--orange); 
+    box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.15);
+}
+
+.form-input::placeholder { color: var(--text-soft); }
+
+.full-width { grid-column: span 2; }
+
+.form-actions { 
+    display: flex; 
+    gap: 12px; 
+}
+
+.btn-guardar { 
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    color: white; 
+    padding: 14px 25px; 
+    border: none; 
+    border-radius: 8px; 
+    font-weight: 800; 
+    cursor: pointer; 
+    flex: 2; 
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.btn-guardar:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(234, 88, 12, 0.3); }
+
+.btn-cancelar { 
+    background: rgba(255, 255, 255, 0.1); 
+    color: white; 
+    padding: 14px 25px; 
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    font-weight: 700; 
+    cursor: pointer; 
+    flex: 1;
+    transition: all 0.2s;
+}
+
+.btn-cancelar:hover { background: rgba(255, 255, 255, 0.15); }
+
+/* --- TABLAS DE BODEGAS --- */
+.table-section {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.styled-table thead tr {
+    background-color: transparent !important;
+    color: var(--text-soft);
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+}
+
+.styled-table th { 
+    padding: 16px 20px; 
+    text-transform: uppercase; 
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.styled-table td { 
+    padding: 16px 20px; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04); 
+    font-size: 0.9rem; 
+    color: white; 
+    vertical-align: middle;
+    font-weight: 500;
+}
+
+.styled-table tbody tr:hover { 
+    background-color: rgba(255, 255, 255, 0.02) !important; 
+}
+
+/* --- BOTONES DE ACCIÓN EN TABLA --- */
+.action-buttons { display: flex; gap: 8px; }
+
+.btn-icon { 
+    width: 36px; 
+    height: 36px; 
+    border: none; 
+    border-radius: 8px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    font-size: 1rem; 
+    transition: all 0.2s; 
+}
+
+.btn-edit { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.btn-edit:hover { background: #3b82f6; color: white; transform: translateY(-2px); }
+
+.btn-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.btn-delete:hover { background: #ef4444; color: white; transform: translateY(-2px); }
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .bodegas-wrapper { padding: 15px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .full-width { grid-column: span 1; }
+    .form-actions { flex-direction: column; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

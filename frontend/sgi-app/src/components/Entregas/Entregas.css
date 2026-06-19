@@ -1,0 +1,469 @@
+/* =========================================
+   NEXOFAENA - ENTREGAS PRO
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+    --bg:#001529;
+    --card:#002244;
+    --card-hover:#002c59;
+    --input:#001a33;
+    --orange:#ea580c;
+    --orange-light:#fb923c;
+    --text:#ffffff;
+    --text-soft:#94a3b8;
+    --border:rgba(255,255,255,0.08);
+}
+
+.entregas-wrapper{
+    font-family:'Inter',sans-serif;
+    background:var(--bg);
+    min-height:100vh;
+    padding:30px;
+    max-width:1400px;
+    margin:auto;
+    color:var(--text);
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* =====================================
+   HEADER
+===================================== */
+
+.page-header{
+    margin-bottom:30px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 15px;
+}
+
+.page-title{
+    margin:0;
+    font-size:1.8rem;
+    font-weight:900;
+    letter-spacing:-0.5px;
+    color: white !important; /* CORRECCIÓN: Título en blanco puro */
+    text-transform: uppercase;
+}
+
+.page-subtitle{
+    margin-top:5px;
+    color:var(--text-soft);
+    font-size:.9rem;
+    font-weight: 500;
+}
+
+/* =====================================
+   CARDS
+===================================== */
+
+.step-card{
+    background:var(--card);
+    border-radius:12px;
+    margin-bottom:20px;
+    border:1px solid var(--border);
+    overflow:hidden;
+    transition:.2s;
+}
+
+.step-card:hover{
+    border-color:rgba(234,88,12,.4);
+    transform:translateY(-2px);
+}
+
+.step-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px 20px;
+    font-size:.95rem;
+    font-weight:800;
+    background:rgba(255,255,255,.03);
+    border-bottom:1px solid var(--border);
+    color: white;
+}
+
+.step-body{
+    padding:20px;
+}
+
+/* =====================================
+   INPUTS GENERALES
+===================================== */
+
+.custom-select,
+.epp-qty-input{
+    width:100%;
+    height:44px;
+    background:var(--input);
+    border:1px solid var(--border);
+    color:white;
+    border-radius:10px;
+    padding:0 14px;
+    font-size:.9rem;
+    outline:none;
+    transition:.2s;
+}
+
+.custom-select:focus,
+.epp-qty-input:focus{
+    border-color:var(--orange);
+    box-shadow:0 0 0 3px rgba(234,88,12,.15);
+}
+
+.custom-select option{
+    background:var(--bg);
+    color: white;
+}
+
+/* =====================================
+   BUSCADOR DE RUT (CORREGIDO)
+===================================== */
+
+.search-input-wrapper{
+    display:flex;
+    align-items:center;
+    height:44px;
+    background:var(--input) !important; /* CORRECCIÓN: Fondo oscuro */
+    border-radius:10px;
+    border:1px solid var(--border);
+    overflow:hidden;
+    transition: .2s;
+}
+
+.search-input-wrapper:focus-within{
+    border-color:var(--orange);
+    box-shadow:0 0 0 3px rgba(234,88,12,.15);
+}
+
+.search-icon-box{
+    padding:0 15px;
+    color:var(--text-soft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.search-input-wrapper input {
+    border:none;
+    background:transparent !important; /* CORRECCIÓN: Evita el blanco del navegador */
+    color:white !important; /* CORRECCIÓN: Texto blanco al escribir */
+    height:100%;
+    width: 100%;
+    outline:none;
+    font-size:.95rem;
+    font-weight: 500;
+}
+
+.search-input-wrapper input::placeholder {
+    color: var(--text-soft); /* CORRECCIÓN: Placeholder gris sutil */
+}
+
+.btn-buscar-rut{
+    width:120px;
+    height:100%;
+    border:none;
+    background:var(--orange);
+    color:white;
+    font-size:.9rem;
+    font-weight:800;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.btn-buscar-rut:hover{
+    background:var(--orange-light);
+}
+
+/* =====================================
+   DATOS TRABAJADOR
+===================================== */
+
+.worker-data-grid{
+    display:grid;
+    grid-template-columns:140px 1fr;
+    gap:10px;
+    background:var(--input);
+    border-radius:10px;
+    padding:20px;
+    border: 1px dashed var(--border);
+}
+
+.data-label{
+    color:var(--text-soft);
+    font-size:.85rem;
+    font-weight:700;
+}
+
+.data-value{
+    color:white;
+    font-size:.9rem;
+    font-weight:800;
+}
+
+/* =====================================
+   EPP
+===================================== */
+
+.epp-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+    gap:12px;
+}
+
+.epp-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 15px;
+    background:var(--input);
+    border:1px solid var(--border);
+    border-radius:10px;
+    transition:.2s;
+}
+
+.epp-item:hover{
+    border-color:rgba(234,88,12,.4);
+}
+
+.epp-item.selected{
+    background:rgba(234,88,12,.08);
+    border-color:var(--orange);
+}
+
+.epp-item-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex:1;
+    cursor: pointer;
+}
+
+.epp-checkbox{
+    width:18px;
+    height:18px;
+    accent-color:var(--orange);
+    cursor: pointer;
+}
+
+.epp-name{
+    color:white;
+    font-size:.85rem;
+    font-weight:600;
+}
+
+.epp-qty-input{
+    width:60px;
+    text-align:center;
+    font-weight: 700;
+}
+
+/* =====================================
+   FIRMA DIGITAL
+===================================== */
+
+.signature-container{
+    background:var(--input);
+    border-radius:12px;
+    overflow:hidden;
+    border:1px dashed rgba(255,255,255,.15);
+}
+
+.signature-instructions{
+    text-align:center;
+    padding:12px;
+    color:var(--text-soft);
+    font-size:.8rem;
+    font-weight: 600;
+    border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.signature-pad-wrapper{
+    height:180px;
+    background:white; /* La firma debe ser blanca para leerse bien */
+    position: relative;
+}
+
+.btn-clear-sig{
+    width:100%;
+    border:none;
+    padding:12px;
+    background:#dc2626;
+    color:white;
+    font-weight:800;
+    font-size: 0.9rem;
+    cursor:pointer;
+    transition: 0.2s;
+}
+
+.btn-clear-sig:hover{
+    background:#b91c1c;
+}
+
+/* =====================================
+   BOTON PRINCIPAL
+===================================== */
+
+.btn-confirmar-main{
+    display:block;
+    width:100%;
+    margin:20px 0 40px 0;
+    height:55px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg, #ea580c, #fb923c);
+    color:white;
+    font-size:1rem;
+    font-weight:900;
+    letter-spacing:1px;
+    cursor:pointer;
+    transition:.2s;
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+}
+
+.btn-confirmar-main:hover{
+    transform:translateY(-2px);
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4);
+}
+
+/* =====================================
+   HISTORIAL
+===================================== */
+
+.history-title{
+    margin:0 0 15px 0;
+    font-size:1.2rem;
+    font-weight:900;
+    color: white;
+}
+
+.history-table-wrapper{
+    background:var(--card);
+    border-radius:12px;
+    overflow-x: auto;
+    border:1px solid var(--border);
+}
+
+.history-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.history-table th{
+    background:rgba(255,255,255,.03);
+    color:var(--text-soft);
+    padding:15px;
+    text-align:left;
+    font-size:.8rem;
+    font-weight:800;
+    text-transform:uppercase;
+    border-bottom: 2px solid var(--border);
+}
+
+.history-table td{
+    padding:15px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    font-size:.9rem;
+    color:white;
+    font-weight: 500;
+}
+
+.history-table tbody tr:hover{
+    background:rgba(255,255,255,.02);
+}
+
+/* Miniaturas de firma */
+.history-table img{
+    height:40px;
+    object-fit:contain;
+    background:white;
+    border-radius:6px;
+    padding:2px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media(max-width:768px){
+    .entregas-wrapper{ padding:15px; }
+    .worker-data-grid{ grid-template-columns:1fr; }
+    .epp-list{ grid-template-columns:1fr; }
+    .page-title{ font-size:1.5rem; }
+}
+/* Estados de Red */
+.header-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.network-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.badge-online {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+.badge-offline {
+    background-color: rgba(234, 88, 12, 0.15);
+    color: #ea580c;
+}
+
+/* Alertas extraídas de los estilos en línea */
+.alert {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    font-weight: bold;
+}
+.alert-error {
+    background: #fef2f2;
+    color: #dc3545;
+    border-left: 4px solid #dc3545;
+}
+.alert-success {
+    background: #ecfdf5;
+    color: #059669;
+    border-left: 4px solid #10b981;
+}
+
+/* Tipografía e imágenes extraídas */
+.epp-stock-info {
+    color: #64748b;
+    font-weight: 500;
+}
+.step-body-padded {
+    padding: 20px;
+}
+.text-center-padded {
+    text-align: center;
+    padding: 20px;
+}
+.fw-bold {
+    font-weight: 700;
+}
+.history-signature-img {
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Dark Premium Border */
+    background-color: #002244;
+    padding: 2px;
+}
+
+/* Signature Canvas */
+.sigCanvas {
+    width: 100%;
+    height: 100%;
+}

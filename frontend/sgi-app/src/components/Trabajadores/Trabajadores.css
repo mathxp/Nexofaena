@@ -1,0 +1,396 @@
+/* =========================================
+   SGI RENTAMAQ - TRABAJADORES DARK PREMIUM
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --bg: #001529;
+    --card: #002244;
+    --input: #001a33;
+    --orange: #ea580c;
+    --orange-light: #fb923c;
+    --text: #ffffff;
+    --text-soft: #94a3b8;
+    --border: rgba(255, 255, 255, 0.08);
+}
+
+.trabajadores-wrapper {
+    font-family: 'Inter', sans-serif;
+    padding: 30px;
+    max-width: 1300px;
+    margin: 0 auto;
+    background-color: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* --- HEADER Y TÍTULO --- */
+.page-title {
+    color: white !important;
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0 0 25px 0;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title svg {
+    color: var(--orange);
+}
+
+/* --- PANEL DE ACCIÓN Y BÚSQUEDA --- */
+.action-panel {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 35px;
+    border: 1px solid var(--border);
+}
+
+.panel-header {
+    color: white;
+    font-weight: 800;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 15px;
+}
+
+.search-add-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* CORRECCIÓN DEL BUSCADOR */
+.search-group {
+    flex: 1;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column; /* Fuerza a que el texto quede ARRIBA del buscador */
+    gap: 8px; /* Espacio entre el texto y el buscador */
+}
+
+.search-group label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    background: var(--input);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.search-input-wrapper:focus-within {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.search-icon-box {
+    padding: 0 15px;
+    color: var(--text-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-input-wrapper input {
+    border: none;
+    background: transparent;
+    color: white;
+    height: 100%;
+    width: 100%;
+    outline: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+}
+
+.search-input-wrapper input::placeholder {
+    color: var(--text-soft);
+}
+
+.btn-agregar-main {
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    color: white;
+    border: none;
+    height: 48px;
+    padding: 0 30px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-agregar-main:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4); 
+}
+
+/* --- FORMULARIO DESPLEGABLE --- */
+.form-container {
+    background: #001e38;
+    border: 1px solid var(--border);
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 35px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.form-container.edit-mode { 
+    border-color: var(--orange); 
+    background: rgba(234, 88, 12, 0.03); 
+    box-shadow: 0 0 20px rgba(234, 88, 12, 0.05);
+}
+
+.form-title {
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 15px;
+}
+
+/* CORRECCIÓN DEL ESPACIADO DEL FORMULARIO */
+.grid-form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px 30px; /* 25px vertical, 30px horizontal */
+    margin-bottom: 30px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Espacio entre label e input */
+}
+
+.input-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input { 
+    padding: 14px 16px; 
+    background: var(--input);
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    width: 100%; 
+    font-size: 0.95rem; 
+    color: white;
+    outline: none; 
+    transition: all 0.2s;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+}
+
+.form-input:disabled {
+    background: rgba(255, 255, 255, 0.02);
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.form-input:focus { 
+    border-color: var(--orange); 
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.form-input::placeholder { color: var(--text-soft); }
+
+.full-width { grid-column: span 2; }
+
+/* Quitar flechas de inputs numéricos por si acaso */
+.form-input[type="number"]::-webkit-inner-spin-button,
+.form-input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+.form-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Botones del formulario */
+.form-actions { 
+    display: flex; 
+    gap: 15px; 
+}
+
+.btn-guardar { 
+    background: linear-gradient(135deg, #10b981, #059669); 
+    color: white; 
+    padding: 16px 25px; 
+    border: none; 
+    border-radius: 8px; 
+    font-weight: 800; 
+    font-size: 1rem;
+    cursor: pointer; 
+    flex: 2; 
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.btn-guardar:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3); }
+
+.btn-cancelar { 
+    background: rgba(255, 255, 255, 0.1); 
+    color: white; 
+    padding: 16px 25px; 
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    font-weight: 700; 
+    font-size: 1rem;
+    cursor: pointer; 
+    flex: 1;
+    transition: all 0.2s;
+}
+
+.btn-cancelar:hover { background: rgba(255, 255, 255, 0.15); }
+
+/* --- TABLA DE TRABAJADORES --- */
+.table-responsive {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.styled-table thead tr {
+    background-color: transparent !important;
+    border-bottom: 2px solid var(--border);
+}
+
+.styled-table th { 
+    padding: 18px 20px; 
+    text-transform: uppercase; 
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    color: var(--text-soft);
+    text-align: left;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.styled-table td { 
+    padding: 16px 20px; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04); 
+    font-size: 0.9rem; 
+    color: white; 
+    vertical-align: middle;
+    font-weight: 500;
+}
+
+.styled-table tbody tr:hover { 
+    background-color: rgba(255, 255, 255, 0.02) !important; 
+}
+
+/* Estado del trabajador */
+.estado-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: white;
+}
+
+.dot-activo { color: #10b981; font-size: 10px; }
+.dot-inactivo { color: #ef4444; font-size: 10px; }
+
+/* Botones de Acción de la Tabla */
+.action-buttons { display: flex; gap: 8px; }
+
+.btn-icon { 
+    width: 36px; 
+    height: 36px; 
+    border: none; 
+    border-radius: 8px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    font-size: 1rem; 
+    transition: all 0.2s; 
+}
+
+.btn-edit { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.btn-edit:hover { background: #3b82f6; color: white; transform: translateY(-2px); }
+
+.btn-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.btn-delete:hover { background: #ef4444; color: white; transform: translateY(-2px); }
+
+/* --- MENSAJES DE ERROR --- */
+.error-msg {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    font-weight: 700;
+}
+
+/* CAZADOR DE FONDOS BLANCOS */
+.trabajadores-wrapper table,
+.trabajadores-wrapper th,
+.trabajadores-wrapper td {
+    background-color: transparent !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .trabajadores-wrapper { padding: 15px; }
+    .search-add-container { flex-direction: column; align-items: stretch; }
+    .btn-agregar-main { height: auto; padding: 15px; justify-content: center; }
+    .grid-form { grid-template-columns: 1fr; gap: 20px; }
+    .form-actions { flex-direction: column; }
+}
