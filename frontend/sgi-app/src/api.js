@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// Creamos una instancia de Axios con la URL de tu backend
+// Usamos import.meta.env.VITE_API_URL para flexibilidad en producción
+// Si no existe (estás en local), usará por defecto tu localhost
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api',
+    baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
 });
 
 // Interceptor: Antes de que salga cualquier petición, le pegamos el Token si existe
