@@ -26,7 +26,7 @@ const Login = () => {
         try {
 
             // Login JWT
-            const response = await api.post('/login/', {
+            const response = await api.post('/token/', {
                 username,
                 password
             });
