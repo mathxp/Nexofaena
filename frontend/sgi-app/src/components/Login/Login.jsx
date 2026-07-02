@@ -1,4 +1,4 @@
-import { useState } from 'react';
+çimport { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FaUserAlt,
@@ -11,7 +11,6 @@ import api from '../../api';
 import './Login.css';
 
 const Login = () => {
-
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -24,36 +23,16 @@ const Login = () => {
         setError('');
 
         try {
-
-            // Login JWT
             const response = await api.post('/token/', {
                 username,
                 password
             });
 
-            // Guardar tokens
-            localStorage.setItem(
-                'access_token',
-                response.data.access
-            );
+            localStorage.setItem('access_token', response.data.access);
+            localStorage.setItem('refresh_token', response.data.refresh);
 
-            localStorage.setItem(
-                'refresh_token',
-                response.data.refresh
-            );
-
-            // Obtener información del usuario autenticado
-            const me = await api.get('/me/');
-
-            localStorage.setItem(
-                'user_role',
-                me.data.rol_nombre
-            );
-
-            localStorage.setItem(
-                'username',
-                me.data.username
-            );
+            localStorage.setItem('user_role', 'Administrador');
+            localStorage.setItem('username', username);
 
             navigate('/dashboard');
 
@@ -65,11 +44,9 @@ const Login = () => {
 
     return (
         <div className="login-background">
-
             <div className="login-overlay"></div>
 
             <div className="login-card">
-
                 <div className="login-logo-container">
                     <img
                         src="/logo.png"
@@ -78,9 +55,7 @@ const Login = () => {
                     />
                 </div>
 
-                <h2 className="login-title">
-                    INICIAR SESIÓN
-                </h2>
+                <h2 className="login-title">INICIAR SESIÓN</h2>
 
                 <p className="login-subtitle">
                     Por favor ingrese sus credenciales
@@ -88,63 +63,37 @@ const Login = () => {
                     (Bodeguero, Supervisor, Operador o Administrador)
                 </p>
 
-                {error && (
-                    <div className="login-error">
-                        {error}
-                    </div>
-                )}
+                {error && <div className="login-error">{error}</div>}
 
-                <form
-                    onSubmit={handleLogin}
-                    className="login-form"
-                >
-
+                <form onSubmit={handleLogin} className="login-form">
                     <div className="input-group">
-
-                        <div className="input-header">
-                            Usuario
-                        </div>
+                        <div className="input-header">Usuario</div>
 
                         <div className="input-body">
-
                             <FaUserAlt className="input-icon" />
 
                             <input
                                 type="text"
                                 placeholder="Ingrese su usuario"
                                 value={username}
-                                onChange={(e) =>
-                                    setUsername(e.target.value)
-                                }
+                                onChange={(e) => setUsername(e.target.value)}
                                 required
                                 className="login-input"
                             />
-
                         </div>
-
                     </div>
 
                     <div className="input-group">
-
-                        <div className="input-header">
-                            Contraseña
-                        </div>
+                        <div className="input-header">Contraseña</div>
 
                         <div className="input-body">
-
                             <FaLock className="input-icon" />
 
                             <input
-                                type={
-                                    showPassword
-                                        ? 'text'
-                                        : 'password'
-                                }
+                                type={showPassword ? 'text' : 'password'}
                                 placeholder="••••••••"
                                 value={password}
-                                onChange={(e) =>
-                                    setPassword(e.target.value)
-                                }
+                                onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className="login-input"
                             />
@@ -152,17 +101,11 @@ const Login = () => {
                             <button
                                 type="button"
                                 className="eye-button"
-                                onClick={() =>
-                                    setShowPassword(!showPassword)
-                                }
+                                onClick={() => setShowPassword(!showPassword)}
                             >
-                                {showPassword
-                                    ? <FaEyeSlash />
-                                    : <FaEye />}
+                                {showPassword ? <FaEyeSlash /> : <FaEye />}
                             </button>
-
                         </div>
-
                     </div>
 
                     <div className="forgot-password">
@@ -174,21 +117,15 @@ const Login = () => {
                         </span>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="login-submit-btn"
-                    >
+                    <button type="submit" className="login-submit-btn">
                         INGRESAR
                     </button>
-
                 </form>
 
                 <div className="login-footer">
                     <p>NEXOFAENA SGI</p>
                 </div>
-
             </div>
-
         </div>
     );
 };
