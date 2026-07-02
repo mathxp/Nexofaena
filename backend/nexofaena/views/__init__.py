@@ -1,7 +1,8 @@
-# views/__init__.py
-from .auth_views import RolViewSet, UsuarioViewSet
+from .auth_views import RolViewSet, UsuarioViewSet,RegistroConInvitacionView
 from .trabajador_views import TrabajadorViewSet
-from .inventario_views import BodegaViewSet, InventarioViewSet, MovimientoInventarioViewSet
-from .epp_views import EPPViewSet, EntregaEPPViewSet, DetalleEntregaEPPViewSet
-from .dashboard_views import DashboardViewSet
-# ... tus otras importaciones ...
+from .bodega_views import BodegaViewSet
+from .inventario_views import InventarioViewSet
+from .dashboard_views import AlertaViewSet, DashboardResumenView
+from .movimiento_views import MovimientoInventarioViewSet
+from .alerta_views import AlertaViewSet
+from .entrega_views import EntregaEPPViewSet

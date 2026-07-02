@@ -174,3 +174,13 @@
     font-weight: bold;
     letter-spacing: 1px;
 }
+.forgot-link{
+    color:#ea580c;
+    cursor:pointer;
+    font-weight:700;
+    transition:.2s;
+}
+
+.forgot-link:hover{
+    text-decoration:underline;
+}

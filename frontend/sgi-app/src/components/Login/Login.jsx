@@ -1,96 +1,194 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUserAlt, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
-import api from '../../api'; // CORRECCIÓN: Subimos dos niveles
-import './Login.css'; // Mantenemos el CSS separado
+import {
+    FaUserAlt,
+    FaLock,
+    FaEye,
+    FaEyeSlash
+} from 'react-icons/fa';
+
+import api from '../../api';
+import './Login.css';
 
 const Login = () => {
+
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    
+
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         setError('');
 
         try {
-            const response = await api.post('/login/', { username, password });
-            localStorage.setItem('access_token', response.data.access);
-            localStorage.setItem('refresh_token', response.data.refresh);
+
+            // Login JWT
+            const response = await api.post('/login/', {
+                username,
+                password
+            });
+
+            // Guardar tokens
+            localStorage.setItem(
+                'access_token',
+                response.data.access
+            );
+
+            localStorage.setItem(
+                'refresh_token',
+                response.data.refresh
+            );
+
+            // Obtener información del usuario autenticado
+            const me = await api.get('/me/');
+
+            localStorage.setItem(
+                'user_role',
+                me.data.rol_nombre
+            );
+
+            localStorage.setItem(
+                'username',
+                me.data.username
+            );
+
             navigate('/dashboard');
+
         } catch (err) {
+            console.error(err);
             setError('Credenciales incorrectas. Intenta nuevamente.');
         }
     };
 
     return (
         <div className="login-background">
+
             <div className="login-overlay"></div>
-            
+
             <div className="login-card">
+
                 <div className="login-logo-container">
-                    <img src="/logo.png" alt="NexoFaena Logo" className="login-logo" />
+                    <img
+                        src="/logo.png"
+                        alt="NexoFaena Logo"
+                        className="login-logo"
+                    />
                 </div>
 
-                <h2 className="login-title">INICIAR SESIÓN</h2>
+                <h2 className="login-title">
+                    INICIAR SESIÓN
+                </h2>
+
                 <p className="login-subtitle">
-                    Por favor ingrese sus credenciales<br/>
-                    (Bodeguero, Rigger, Supervisor, Administrador)
+                    Por favor ingrese sus credenciales
+                    <br />
+                    (Bodeguero, Supervisor, Operador o Administrador)
                 </p>
 
-                {error && <div className="login-error">{error}</div>}
+                {error && (
+                    <div className="login-error">
+                        {error}
+                    </div>
+                )}
 
-                <form onSubmit={handleLogin} className="login-form">
-                    
+                <form
+                    onSubmit={handleLogin}
+                    className="login-form"
+                >
+
                     <div className="input-group">
-                        <div className="input-header">RUT</div>
+
+                        <div className="input-header">
+                            Usuario
+                        </div>
+
                         <div className="input-body">
+
                             <FaUserAlt className="input-icon" />
-                            <input 
-                                type="text" 
-                                placeholder="Ej: 12.345.678-k"
-                                value={username} 
-                                onChange={(e) => setUsername(e.target.value)} 
-                                required 
+
+                            <input
+                                type="text"
+                                placeholder="Ingrese su usuario"
+                                value={username}
+                                onChange={(e) =>
+                                    setUsername(e.target.value)
+                                }
+                                required
                                 className="login-input"
                             />
+
                         </div>
+
                     </div>
 
                     <div className="input-group">
-                        <div className="input-header">CONTRASEÑA</div>
+
+                        <div className="input-header">
+                            Contraseña
+                        </div>
+
                         <div className="input-body">
+
                             <FaLock className="input-icon" />
-                            <input 
-                                type={showPassword ? "text" : "password"} 
+
+                            <input
+                                type={
+                                    showPassword
+                                        ? 'text'
+                                        : 'password'
+                                }
                                 placeholder="••••••••"
-                                value={password} 
-                                onChange={(e) => setPassword(e.target.value)} 
-                                required 
+                                value={password}
+                                onChange={(e) =>
+                                    setPassword(e.target.value)
+                                }
+                                required
                                 className="login-input"
                             />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="eye-button">
-                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+
+                            <button
+                                type="button"
+                                className="eye-button"
+                                onClick={() =>
+                                    setShowPassword(!showPassword)
+                                }
+                            >
+                                {showPassword
+                                    ? <FaEyeSlash />
+                                    : <FaEye />}
                             </button>
+
                         </div>
+
                     </div>
 
                     <div className="forgot-password">
-                        ¿Olvidaste tu contraseña? <a href="#" className="forgot-link">Haz clic aquí</a>
+                        <span
+                            className="forgot-link"
+                            onClick={() => navigate('/forgot-password')}
+                        >
+                            ¿Olvidaste tu contraseña?
+                        </span>
                     </div>
 
-                    <button type="submit" className="login-submit-btn">
+                    <button
+                        type="submit"
+                        className="login-submit-btn"
+                    >
                         INGRESAR
                     </button>
+
                 </form>
 
                 <div className="login-footer">
                     <p>NEXOFAENA SGI</p>
                 </div>
+
             </div>
+
         </div>
     );
 };

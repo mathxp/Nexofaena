@@ -1,6 +1,8 @@
-# serializers/__init__.py
 from .auth_serializer import RolSerializer, UsuarioSerializer
 from .trabajador_serializer import TrabajadorSerializer
-from .inventario_serializer import BodegaSerializer, InventarioSerializer, MovimientoInventarioSerializer
-from .epp_serializer import EPPSerializer, EntregaEPPSerializer, DetalleEntregaEPPSerializer
+from .bodega_serializer import BodegaSerializer
+from .inventario_serializer import InventarioSerializer
 from .alerta_serializer import AlertaSerializer
+from .movimiento_inventario_serializer import MovimientoInventarioSerializer
+from .entrega_serializer import EntregaEPPSerializer, DetalleEntregaEPPSerializer
+from .auditoria_serializer import *

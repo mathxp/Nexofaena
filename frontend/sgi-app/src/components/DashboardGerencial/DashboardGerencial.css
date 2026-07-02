@@ -166,3 +166,34 @@
 @media (max-width: 768px) {
     .kpi-gerencial-grid { grid-template-columns: 1fr; }
 }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-export-dashboard {
+  background: linear-gradient(135deg, #ea580c, #fb923c);
+  color: white;
+  border: none;
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-transform: uppercase;
+  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.3);
+}
+
+.btn-export-dashboard:hover {
+  transform: translateY(-2px);
+}
+
+.btn-export-dashboard:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -3,7 +3,8 @@ from .usuario import Usuario
 from .trabajador import Trabajador
 from .bodega import Bodega
 from .inventario import Inventario
+from .entrega import EntregaEPP, DetalleEntregaEPP
 from .movimiento_inventario import MovimientoInventario
-from .epp import EPP
-from .entrega_epp import EntregaEPP, DetalleEntregaEPP
 from .alerta import Alerta
+from .invitacion import InvitacionRegistro
+from .auditoria_inventario import AuditoriaInventario, DetalleAuditoriaInventario

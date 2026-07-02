@@ -372,3 +372,78 @@
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* =====================================
+   FORMULARIO CRUD INVENTARIO PREMIUM
+===================================== */
+
+.inventario-wrapper .form-container h3 {
+    color: white;
+    font-size: 1.35rem;
+    font-weight: 900;
+    margin-bottom: 22px;
+}
+
+.inventario-wrapper .form-grid select,
+.inventario-wrapper .form-grid input,
+.inventario-wrapper .form-grid textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    background: var(--input) !important;
+    color: white !important;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    box-sizing: border-box;
+}
+
+.inventario-wrapper .form-grid textarea {
+    min-height: 95px;
+    resize: vertical;
+    grid-column: 1 / -1;
+}
+
+.inventario-wrapper .form-grid select:focus,
+.inventario-wrapper .form-grid input:focus,
+.inventario-wrapper .form-grid textarea:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.18);
+}
+
+.inventario-wrapper .form-grid input::placeholder,
+.inventario-wrapper .form-grid textarea::placeholder {
+    color: var(--text-soft);
+}
+
+.inventario-wrapper .form-actions.full-width {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.inventario-wrapper .btn-guardar {
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    min-height: 56px;
+    font-size: 1rem;
+}
+
+.inventario-wrapper .btn-cancelar {
+    min-height: 56px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.field-error {
+    color: #f87171;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+.inventario-wrapper input:invalid,
+.inventario-wrapper select:invalid {
+    border-color: rgba(239, 68, 68, 0.6);
+}
