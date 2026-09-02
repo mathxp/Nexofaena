@@ -37,6 +37,21 @@ class AuditoriaInventario(models.Model):
 
     observacion = models.TextField(blank=True, null=True)
 
+    # Autorización de supervisor exigida cuando el ajuste involucra activos
+    # críticos o un descuadre que supera el umbral estadístico normal.
+    firma_autorizacion = models.TextField(
+        blank=True, null=True,
+        verbose_name="Firma de Autorización",
+        help_text="Firma digital (base64) del supervisor que autorizó un ajuste con descuadre crítico."
+    )
+    autorizado_por = models.ForeignKey(
+        Usuario,
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name="auditorias_autorizadas",
+        verbose_name="Autorizado por",
+    )
+
     class Meta:
         db_table = "auditoria_inventario"
         ordering = ["-fecha_inicio"]

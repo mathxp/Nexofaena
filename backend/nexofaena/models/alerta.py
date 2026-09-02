@@ -2,12 +2,16 @@ from django.db import models
 
 from .inventario import Inventario
 from .bodega import Bodega
+from .entrega import DetalleEntregaEPP
 
 
 class TipoAlerta(models.TextChoices):
     STOCK_BAJO = "STOCK_BAJO", "Stock Bajo"
     STOCK_CRITICO = "STOCK_CRITICO", "Stock Crítico"
     VENCIMIENTO = "VENCIMIENTO", "Vencimiento"
+    ANOMALIA_CONSUMO = "ANOMALIA_CONSUMO", "Anomalía de Consumo"
+    MANTENIMIENTO = "MANTENIMIENTO", "Mantenimiento"
+    CIERRE_TURNO = "CIERRE_TURNO", "Cierre de Turno"
     SISTEMA = "SISTEMA", "Sistema"
 
 
@@ -19,6 +23,16 @@ class Alerta(models.Model):
         null=True,
         blank=True,
         verbose_name="Producto"
+    )
+
+    detalle_entrega = models.ForeignKey(
+        DetalleEntregaEPP,
+        on_delete=models.CASCADE,
+        related_name="alertas",
+        null=True,
+        blank=True,
+        verbose_name="Entrega Asociada",
+        help_text="Vincula la alerta de vencimiento con la entrega específica que la originó."
     )
 
     bodega = models.ForeignKey(

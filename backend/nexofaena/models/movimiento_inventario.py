@@ -14,6 +14,7 @@ class MovimientoInventario(models.Model):
         ('INGRESO', 'Ingreso'),
         ('SALIDA', 'Salida'),
         ('AJUSTE', 'Ajuste'),
+        ('DEVOLUCION', 'Devolución'),
     )
 
     # Relaciones obligatorias

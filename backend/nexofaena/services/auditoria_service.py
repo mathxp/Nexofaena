@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -10,9 +10,29 @@ from nexofaena.models.auditoria_inventario import (
 )
 from nexofaena.models.inventario import Inventario
 from nexofaena.models.movimiento_inventario import MovimientoInventario
+from nexofaena.services.alerta_service import AlertaService
+from nexofaena.services.dashboard_service import DashboardService
+
+# Un faltante se considera "crítico" (exige firma de supervisor y genera
+# alerta de posible pérdida) si supera este porcentaje del stock del sistema,
+# o si el producto está marcado como activo de alto valor.
+UMBRAL_DESCUADRE_PORCENTAJE = Decimal("0.2")
 
 
 class AuditoriaInventarioService:
+
+    @staticmethod
+    def _es_descuadre_critico(detalle):
+        if detalle.diferencia >= 0:
+            return False
+
+        if detalle.inventario.es_activo_critico:
+            return True
+
+        if detalle.stock_sistema > 0:
+            return abs(detalle.diferencia) / detalle.stock_sistema > UMBRAL_DESCUADRE_PORCENTAJE
+
+        return False
 
     @staticmethod
     @transaction.atomic
@@ -63,7 +83,17 @@ class AuditoriaInventarioService:
                 "El producto no pertenece a esta bodega."
             )
 
-        stock_fisico_decimal = Decimal(str(stock_fisico))
+        if stock_fisico in (None, ""):
+            raise ValidationError(
+                "El stock físico es requerido."
+            )
+
+        try:
+            stock_fisico_decimal = Decimal(str(stock_fisico))
+        except InvalidOperation:
+            raise ValidationError(
+                f"El stock físico '{stock_fisico}' no es un número válido."
+            )
 
         if stock_fisico_decimal < 0:
             raise ValidationError(
@@ -107,7 +137,32 @@ class AuditoriaInventarioService:
 
     @staticmethod
     @transaction.atomic
-    def ajustar_stock(auditoria_id, usuario):
+    def anular_auditoria(auditoria_id):
+        """
+        Descarta una auditoría abierta sin tocar stock (ej. se abrió por error,
+        quedó abandonada, o es un registro de prueba). Libera la bodega para
+        poder abrir una auditoría nueva, ya que solo se permite una ABIERTA
+        por bodega a la vez.
+        """
+        try:
+            auditoria = AuditoriaInventario.objects.get(
+                id=auditoria_id,
+                estado="ABIERTA",
+            )
+        except AuditoriaInventario.DoesNotExist:
+            raise ValidationError(
+                "La auditoría no existe o ya no está abierta."
+            )
+
+        auditoria.estado = "ANULADA"
+        auditoria.fecha_cierre = timezone.now()
+        auditoria.save(update_fields=["estado", "fecha_cierre"])
+
+        return auditoria
+
+    @staticmethod
+    @transaction.atomic
+    def ajustar_stock(auditoria_id, usuario, firma_autorizacion=None):
         try:
             auditoria = AuditoriaInventario.objects.get(
                 id=auditoria_id,
@@ -118,11 +173,19 @@ class AuditoriaInventarioService:
                 "Solo se puede ajustar stock de una auditoría cerrada."
             )
 
-        detalles = (
+        detalles = list(
             DetalleAuditoriaInventario.objects
             .filter(auditoria=auditoria)
             .select_related("inventario")
         )
+
+        detalles_criticos = [d for d in detalles if AuditoriaInventarioService._es_descuadre_critico(d)]
+
+        if detalles_criticos and not firma_autorizacion:
+            raise ValidationError(
+                "Esta auditoría tiene descuadres críticos (faltantes en activos de alto valor o "
+                "sobre el umbral normal). Se requiere firma de autorización de un supervisor para ajustar el stock."
+            )
 
         for detalle in detalles:
             if detalle.diferencia == 0:
@@ -148,5 +211,20 @@ class AuditoriaInventarioService:
                 stock_actual=nuevo_stock,
                 observacion=f"Ajuste por conteo cíclico auditoría #{auditoria.pk}",
             )
+
+            if detalle in detalles_criticos:
+                AlertaService.generar_alerta_descuadre(
+                    producto=producto,
+                    bodega=auditoria.bodega,
+                    diferencia=detalle.diferencia,
+                    auditoria_id=auditoria.pk,
+                )
+
+        if detalles_criticos:
+            auditoria.firma_autorizacion = firma_autorizacion
+            auditoria.autorizado_por = usuario
+            auditoria.save(update_fields=["firma_autorizacion", "autorizado_por"])
+
+        DashboardService.invalidar_cache()
 
         return auditoria

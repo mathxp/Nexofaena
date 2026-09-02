@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
@@ -7,20 +8,90 @@ from nexofaena.models.inventario import Inventario
 from nexofaena.models.movimiento_inventario import MovimientoInventario
 from nexofaena.models.entrega import EntregaEPP
 from nexofaena.models.alerta import Alerta
+from nexofaena.services.ml_service import MLService
+
+CACHE_KEY_DASHBOARD = "nexofaena:dashboard:resumen"
+CACHE_KEY_ML_AVANZADO = "nexofaena:dashboard:ml_avanzado"
+CACHE_TTL_SEGUNDOS = 60
 
 
 class DashboardService:
 
     @staticmethod
+    def invalidar_cache():
+        """
+        Se llama desde cualquier operación que cambie stock, entregas o
+        alertas (entregas, devoluciones, movimientos, ajustes de auditoría,
+        altas/bajas de unidades) para que el próximo GET del dashboard no
+        sirva datos de antes del cambio durante los CACHE_TTL_SEGUNDOS
+        restantes.
+        """
+        cache.delete(CACHE_KEY_DASHBOARD)
+        cache.delete(CACHE_KEY_ML_AVANZADO)
+
+    @staticmethod
     def obtener_dashboard():
-        return {
+        """
+        Entrena Random Forest, Regresión Logística y K-Means en cada llamada,
+        así que se cachea brevemente: sin esto, cada carga del Dashboard
+        Gerencial (o refresco de varios usuarios a la vez) reentrena los tres
+        modelos desde cero.
+        """
+        cacheado = cache.get(CACHE_KEY_DASHBOARD)
+        if cacheado is not None:
+            return cacheado
+
+        analitica_stock = MLService.analitica_stock()
+
+        data = {
             "kpis": DashboardService.obtener_kpis(),
             "entregas_mensuales": DashboardService.obtener_entregas_mensuales(),
             "top_productos": DashboardService.obtener_top_productos(),
             "consumo_bodega": DashboardService.obtener_consumo_por_bodega(),
             "alertas": DashboardService.obtener_alertas(),
             "stock_estado": DashboardService.obtener_stock_estado(),
+            "prediccion_consumo": MLService.predecir_consumo_semanal(),
+            "prediccion_consumo_producto": analitica_stock["prediccion_consumo_producto"],
+            "anomalias_consumo": MLService.detectar_anomalias(),
+            "quiebre_stock": analitica_stock["quiebre_stock"],
+            "recomendaciones_reposicion": analitica_stock["recomendaciones_reposicion"],
         }
+
+        cache.set(CACHE_KEY_DASHBOARD, data, CACHE_TTL_SEGUNDOS)
+
+        return data
+
+    @staticmethod
+    def obtener_ml_avanzado():
+        """
+        Bloque de IA "extendido" del Dashboard Gerencial: reglas de
+        asociación de EPP y perfil de riesgo operativo por trabajador.
+        Se cachea por la misma razón que obtener_dashboard() — entrenar el
+        Random Forest de riesgo en cada request sería trabajo perdido si
+        nadie cambió datos desde la última carga.
+        """
+        cacheado = cache.get(CACHE_KEY_ML_AVANZADO)
+        if cacheado is not None:
+            return cacheado
+
+        perfil_riesgo = MLService.perfil_riesgo_operativo()
+        entrenado = any(p["algoritmo"] == "Random Forest Classifier" for p in perfil_riesgo)
+
+        data = {
+            "recomendaciones_epp": MLService.top_reglas_asociacion(),
+            "perfil_riesgo": {
+                "trabajadores": perfil_riesgo,
+                "confiable": entrenado,
+                "motivo": None if entrenado else (
+                    "Historial insuficiente para entrenar el clasificador; se muestra el "
+                    "cálculo base por regla de negocio."
+                ),
+            },
+        }
+
+        cache.set(CACHE_KEY_ML_AVANZADO, data, CACHE_TTL_SEGUNDOS)
+
+        return data
 
     @staticmethod
     def obtener_kpis():

@@ -11,6 +11,7 @@ from nexofaena.models.movimiento_inventario import MovimientoInventario
 from nexofaena.permissions import IsBodeguero
 from nexofaena.serializers.movimiento_inventario_serializer import MovimientoInventarioSerializer
 from nexofaena.services.alerta_service import AlertaService
+from nexofaena.services.dashboard_service import DashboardService
 
 
 logger = logging.getLogger("nexofaena")
@@ -57,13 +58,13 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
             )
 
         inventario_id = request.data.get("inventario")
-        usuario_id = request.data.get("usuario")
+        usuario_id = request.user.id
         bodega_id = request.data.get("bodega")
         tipo = request.data.get("tipo_movimiento")
         cantidad = request.data.get("cantidad")
         observacion = request.data.get("observacion", "")
 
-        if not inventario_id or not usuario_id or not bodega_id or not tipo or cantidad in ["", None]:
+        if not inventario_id or not bodega_id or not tipo or cantidad in ["", None]:
             logger.warning(
                 "Movimiento rechazado por campos incompletos | usuario=%s | data=%s",
                 request.user.username,
@@ -158,6 +159,8 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
             stock_anterior,
             nuevo_stock,
         )
+
+        DashboardService.invalidar_cache()
 
         serializer = self.get_serializer(movimiento)
 

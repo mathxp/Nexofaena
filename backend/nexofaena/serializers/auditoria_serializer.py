@@ -44,6 +44,12 @@ class AuditoriaSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    autorizado_por_nombre = serializers.CharField(
+        source="autorizado_por.username",
+        read_only=True,
+        default=None,
+    )
+
     detalles = DetalleAuditoriaSerializer(
         many=True,
         read_only=True,
@@ -62,5 +68,9 @@ class AuditoriaSerializer(serializers.ModelSerializer):
             "fecha_cierre",
             "estado",
             "observacion",
+            "firma_autorizacion",
+            "autorizado_por",
+            "autorizado_por_nombre",
             "detalles",
         ]
+        read_only_fields = ["firma_autorizacion", "autorizado_por"]

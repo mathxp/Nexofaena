@@ -14,6 +14,9 @@ class InventarioSerializer(serializers.ModelSerializer):
             "descripcion", "marca", "modelo", "unidad_medida",
             "stock_actual", "stock_minimo", "stock_maximo",
             "ubicacion", "estado", "necesita_reposicion", "exceso_stock",
+            "vida_util_dias", "es_devolutivo", "tiempo_reposicion_dias",
+            "es_activo_critico",
+            "es_despacho_rapido",
         ]
         read_only_fields = ["fecha_creacion", "fecha_actualizacion"]
 
@@ -41,6 +44,13 @@ class InventarioSerializer(serializers.ModelSerializer):
         if not value.strip():
             raise serializers.ValidationError("El nombre del producto es obligatorio.")
         return value.strip()
+
+    def validate_vida_util_dias(self, value):
+        if value is not None and value < 1:
+            raise serializers.ValidationError(
+                "La vida útil debe ser de al menos 1 día, o vacía si no aplica control de vencimiento."
+            )
+        return value
 
     def validate(self, data):
         stock_actual = data.get("stock_actual", getattr(self.instance, "stock_actual", 0))

@@ -43,6 +43,33 @@ class Inventario(models.Model):
     # Ubicación Física
     ubicacion = models.CharField(max_length=100, blank=True, null=True, verbose_name="Ubicación Física (Rack/Pasillo)")
 
+    # Control de vida útil y devolución (Regla Minera Teck / Activos Diarios)
+    vida_util_dias = models.PositiveIntegerField(
+        blank=True, null=True,
+        verbose_name="Vida Útil (días)",
+        help_text="Días de uso permitidos antes de exigir recambio (ej. 365 para cascos/zapatos). Vacío = sin control de vencimiento."
+    )
+    es_devolutivo = models.BooleanField(
+        default=False,
+        verbose_name="¿Es un activo devolutivo?",
+        help_text="Ej. radios de comunicación: se entregan al inicio del turno y deben devolverse al final."
+    )
+    tiempo_reposicion_dias = models.PositiveIntegerField(
+        default=7,
+        verbose_name="Tiempo de Reposición (días)",
+        help_text="Días estimados que demora el proveedor en reponer stock una vez generado el pedido."
+    )
+    es_activo_critico = models.BooleanField(
+        default=False,
+        verbose_name="¿Activo crítico / de alto valor?",
+        help_text="Si un conteo cíclico detecta faltante en este producto, se exige firma de autorización de un supervisor para ajustar el stock."
+    )
+    es_despacho_rapido = models.BooleanField(
+        default=False,
+        verbose_name="¿Despacho rápido?",
+        help_text="Consumibles de alta rotación (ej. agua) que se descuentan con un clic, sin RUT ni firma, y quedan fuera de las alertas de anomalía de consumo."
+    )
+
     # Auditoría y Estado
     estado = models.BooleanField(default=True, verbose_name="¿Activo?")
     fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")

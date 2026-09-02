@@ -3,8 +3,6 @@ from django.core.exceptions import ValidationError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.response import Response
 from nexofaena.models.auditoria_inventario import AuditoriaInventario
 from nexofaena.permissions import IsBodeguero
 from nexofaena.serializers.auditoria_serializer import AuditoriaSerializer
@@ -90,6 +88,14 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        except Exception as e:
+            # Cualquier excepción no prevista debe llegar al frontend como JSON
+            # interpretable (con detail) en vez de un 500 sin cuerpo, para que
+            # la sincronización offline pueda mostrar el motivo real del fallo.
+            return Response(
+                {"detail": f"Error inesperado al registrar el conteo: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=True, methods=["post"])
     def cerrar(self, request, pk=None):
@@ -113,6 +119,27 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=True, methods=["post"])
+    def anular(self, request, pk=None):
+        try:
+            auditoria = AuditoriaInventarioService.anular_auditoria(pk)
+            serializer = self.get_serializer(auditoria)
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Auditoría anulada correctamente.",
+                    "data": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except ValidationError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @action(detail=True, methods=["post"])
     def ajustar_stock(self, request, pk=None):
         if request.user.rol.nombre not in ["Administrador", "Supervisor"]:
             return Response(
@@ -124,6 +151,7 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
             auditoria = AuditoriaInventarioService.ajustar_stock(
                 auditoria_id=pk,
                 usuario=request.user,
+                firma_autorizacion=request.data.get("firma_autorizacion"),
             )
 
             serializer = self.get_serializer(auditoria)
@@ -173,6 +201,8 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
                 "estado": auditoria.estado,
                 "fecha_inicio": auditoria.fecha_inicio,
                 "fecha_cierre": auditoria.fecha_cierre,
+                "firma_autorizacion": auditoria.firma_autorizacion,
+                "autorizado_por_nombre": auditoria.autorizado_por.username if auditoria.autorizado_por else None,
                 "detalle": data,
             }
         )

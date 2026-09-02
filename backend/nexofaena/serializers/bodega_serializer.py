@@ -10,6 +10,8 @@ class BodegaSerializer(serializers.ModelSerializer):
             "nombre",
             "ubicacion",
             "responsable",
+            "descripcion",
+            "telefono",
             "estado",
         ]
 

@@ -20,8 +20,9 @@ class AlertaSerializer(serializers.ModelSerializer):
             "inventario",
             "inventario_nombre",
             "inventario_codigo",
+            "detalle_entrega",
         ]
-        read_only_fields = ["fecha_alerta"]
+        read_only_fields = ["fecha_alerta", "detalle_entrega"]
 
     def validate_tipo_alerta(self, value):
         tipos_validos = [choice[0] for choice in TipoAlerta.choices]

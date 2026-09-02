@@ -3,6 +3,7 @@ from .trabajador import Trabajador
 from .usuario import Usuario
 from .bodega import Bodega
 from .inventario import Inventario  # Importamos Inventario en lugar de EPP directo
+from .unidad_activo import UnidadActivo
 
 class EntregaEPP(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -47,6 +48,39 @@ class DetalleEntregaEPP(models.Model):
     cantidad = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Cantidad Entregada")
     talla = models.CharField(max_length=20, blank=True, null=True, verbose_name="Talla")
     observacion = models.TextField(blank=True, null=True, verbose_name="Observaciones del Ítem")
+
+    # Regla Minera Teck: caducidad de EPP críticos (cascos, zapatos, etc.)
+    fecha_vencimiento_vida_util = models.DateField(
+        blank=True, null=True,
+        verbose_name="Vencimiento vida útil",
+        help_text="Calculado automáticamente al entregar según la vida útil del producto."
+    )
+
+    # Módulo de Devoluciones: activos diarios (radios, etc.)
+    ESTADOS_DEVOLUCION = (
+        ('OPERATIVA', 'Operativa'),
+        ('DAÑADA', 'Dañada'),
+    )
+
+    devuelto = models.BooleanField(default=False, verbose_name="¿Devuelto?")
+    fecha_devolucion = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de Devolución")
+    estado_devolucion = models.CharField(
+        max_length=20,
+        choices=ESTADOS_DEVOLUCION,
+        blank=True, null=True,
+        verbose_name="Estado al Devolver",
+        help_text="Condición reportada por el pañolero al recibir de vuelta el activo devolutivo.",
+    )
+
+    # Trazabilidad individual: qué unidad física específica se entregó
+    # (obligatorio para productos devolutivos, ej. RADIO-S001).
+    unidad_activo = models.ForeignKey(
+        UnidadActivo,
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name="entregas_detalle",
+        verbose_name="Unidad Entregada",
+    )
 
     class Meta:
         db_table = "detalle_entrega_epp"
