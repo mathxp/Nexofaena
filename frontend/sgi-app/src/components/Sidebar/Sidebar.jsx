@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FaTachometerAlt, FaChartPie, FaTools, FaBoxes,
-  FaBuilding, FaExchangeAlt, FaUserFriends, FaBell,
-  FaFileAlt, FaSignOutAlt, FaUserCircle, FaBars, FaTimes
+  FaTachometerAlt, FaChartPie, FaTools, FaBoxes, FaBuilding,
+  FaExchangeAlt, FaUserFriends, FaBell,
+  FaFileAlt, FaSignOutAlt, FaUserCircle, FaBars, FaTimes, FaUndo, FaBolt
 } from 'react-icons/fa';
 
 import api from '../../api';
@@ -44,6 +44,7 @@ const Sidebar = () => {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_role');
     localStorage.removeItem('username');
+    localStorage.removeItem('user_id');
     navigate('/');
   };
 
@@ -64,6 +65,18 @@ const Sidebar = () => {
       path: '/entregas',
       icon: <FaTools />,
       label: 'Entregas Pañol',
+      roles: ['Administrador', 'Bodeguero'],
+    },
+    {
+      path: '/devoluciones',
+      icon: <FaUndo />,
+      label: 'Devoluciones',
+      roles: ['Administrador', 'Bodeguero'],
+    },
+    {
+      path: '/despacho-rapido',
+      icon: <FaBolt />,
+      label: 'Despacho Rápido',
       roles: ['Administrador', 'Bodeguero'],
     },
     {
@@ -123,9 +136,7 @@ const Sidebar = () => {
   return (
     <>
       <div className="mobile-header">
-        <div className="mobile-brand">
-          <FaBuilding style={{ color: '#ea580c' }} /> NEXO<span>FAENA</span>
-        </div>
+        <img src="/logo.png" alt="NexoFaena" className="mobile-brand-logo" />
 
         <button className="mobile-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)}>
           {isMobileOpen ? <FaTimes /> : <FaBars />}
@@ -138,8 +149,9 @@ const Sidebar = () => {
 
       <aside className={`sidebar ${isMobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
-          <FaBuilding className="brand-icon" />
-          <div className="brand-text">NEXO<span>FAENA</span></div>
+          <div className="brand-logo-wrap">
+            <img src="/logo.png" alt="NexoFaena" className="brand-logo" />
+          </div>
         </div>
 
         <div className="sidebar-menu">

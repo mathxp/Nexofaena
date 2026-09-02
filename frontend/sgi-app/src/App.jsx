@@ -12,6 +12,8 @@ import Bodegas from './components/Bodegas/Bodegas';
 import Inventario from './components/Inventario/Inventario';
 import Movimientos from './components/Movimientos/Movimientos';
 import Entregas from './components/Entregas/Entregas';
+import Devoluciones from './components/Devoluciones/Devoluciones';
+import DespachoRapido from './components/DespachoRapido/DespachoRapido';
 import Alertas from './components/Alertas/Alertas';
 import Reportes from './components/Reportes/Reportes';
 import AuditoriasInventario from './components/AuditoriasInventario/AuditoriasInventario';
@@ -109,6 +111,24 @@ function App() {
               element={
                 <RoleProtectedRoute allowedRoles={['Administrador', 'Bodeguero']}>
                   <Entregas />
+                </RoleProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/devoluciones"
+              element={
+                <RoleProtectedRoute allowedRoles={['Administrador', 'Bodeguero']}>
+                  <Devoluciones />
+                </RoleProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/despacho-rapido"
+              element={
+                <RoleProtectedRoute allowedRoles={['Administrador', 'Bodeguero']}>
+                  <DespachoRapido />
                 </RoleProtectedRoute>
               }
             />

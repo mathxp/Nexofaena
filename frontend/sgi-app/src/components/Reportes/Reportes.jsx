@@ -5,6 +5,11 @@ import {
   FaSearch,
   FaFilter,
   FaCalendarAlt,
+  FaMapMarkerAlt,
+  FaChevronLeft,
+  FaChevronRight,
+  FaSyncAlt,
+  FaHourglassHalf,
 } from 'react-icons/fa';
 
 import { jsPDF } from 'jspdf';
@@ -15,25 +20,40 @@ import { saveAs } from 'file-saver';
 import api from '../../api';
 import './Reportes.css';
 
+const REGISTROS_POR_PAGINA = 15;
+
 const Reportes = () => {
   const [entregas, setEntregas] = useState([]);
+  const [bodegas, setBodegas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
   const [filtroMes, setFiltroMes] = useState('');
   const [filtroTexto, setFiltroTexto] = useState('');
+  const [filtroBodega, setFiltroBodega] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
 
   useEffect(() => {
-    cargarEntregas();
+    cargarDatos();
   }, []);
 
-  const cargarEntregas = async () => {
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [filtroMes, filtroTexto, filtroBodega, filtroEstado]);
+
+  const cargarDatos = async () => {
     try {
       setCargando(true);
       setError('');
 
-      const response = await api.get('/entregas-epp/');
-      setEntregas(Array.isArray(response.data) ? response.data : []);
+      const [resEntregas, resBodegas] = await Promise.all([
+        api.get('/entregas-epp/'),
+        api.get('/bodegas/').catch(() => ({ data: [] })),
+      ]);
+
+      setEntregas(Array.isArray(resEntregas.data) ? resEntregas.data : []);
+      setBodegas(Array.isArray(resBodegas.data) ? resBodegas.data : []);
     } catch (err) {
       console.error(err);
       setError('Error al cargar las entregas.');
@@ -59,6 +79,14 @@ const Reportes = () => {
     );
   };
 
+  const tienePendienteDevolucion = (entrega) =>
+    (entrega.detalles || []).some((d) => d.es_devolutivo && !d.devuelto);
+
+  const tieneVencimientoProximo = (entrega) =>
+    (entrega.detalles || []).some(
+      (d) => d.dias_para_vencer !== null && d.dias_para_vencer !== undefined && d.dias_para_vencer <= 30
+    );
+
   const entregasFiltradas = entregas.filter((entrega) => {
     const texto = filtroTexto.toLowerCase();
 
@@ -83,8 +111,18 @@ const Reportes = () => {
       coincideMes = mesEntrega === filtroMes;
     }
 
-    return coincideTexto && coincideMes;
+    const coincideBodega = filtroBodega ? String(entrega.bodega) === String(filtroBodega) : true;
+    const coincideEstado = filtroEstado ? entrega.estado === filtroEstado : true;
+
+    return coincideTexto && coincideMes && coincideBodega && coincideEstado;
   });
+
+  const totalPaginas = Math.max(1, Math.ceil(entregasFiltradas.length / REGISTROS_POR_PAGINA));
+  const paginaSegura = Math.min(paginaActual, totalPaginas);
+  const entregasPagina = entregasFiltradas.slice(
+    (paginaSegura - 1) * REGISTROS_POR_PAGINA,
+    paginaSegura * REGISTROS_POR_PAGINA
+  );
 
   const generarPDF = () => {
     if (entregasFiltradas.length === 0) {
@@ -119,6 +157,8 @@ const Reportes = () => {
       'Cantidad',
       'Fecha',
       'Estado',
+      'Pend. Devolución',
+      'Vence Pronto',
     ];
 
     const filas = entregasFiltradas.map((e) => [
@@ -131,6 +171,8 @@ const Reportes = () => {
       obtenerCantidadTotal(e),
       e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleString() : 'N/A',
       e.estado || 'COMPLETADA',
+      tienePendienteDevolucion(e) ? 'Sí' : 'No',
+      tieneVencimientoProximo(e) ? 'Sí' : 'No',
     ]);
 
     autoTable(doc, {
@@ -144,11 +186,11 @@ const Reportes = () => {
         fontStyle: 'bold',
       },
       styles: {
-        fontSize: 8,
+        fontSize: 7.5,
         cellPadding: 3,
       },
       columnStyles: {
-        5: { cellWidth: 70 },
+        5: { cellWidth: 60 },
       },
     });
 
@@ -169,7 +211,7 @@ const Reportes = () => {
       views: [{ showGridLines: false }],
     });
 
-    worksheet.mergeCells('A1:I1');
+    worksheet.mergeCells('A1:K1');
     const titleCell = worksheet.getCell('A1');
     titleCell.value = 'NEXOFAENA SGI - REPORTE DE ENTREGAS DE EPP';
     titleCell.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
@@ -181,7 +223,7 @@ const Reportes = () => {
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     worksheet.getRow(1).height = 28;
 
-    worksheet.mergeCells('A2:I2');
+    worksheet.mergeCells('A2:K2');
     const subtitleCell = worksheet.getCell('A2');
     subtitleCell.value = `Generado: ${new Date().toLocaleString()} | Registros: ${entregasFiltradas.length}`;
     subtitleCell.font = { italic: true, color: { argb: 'FF64748B' } };
@@ -197,6 +239,8 @@ const Reportes = () => {
       { key: 'cantidad', width: 14 },
       { key: 'fecha', width: 24 },
       { key: 'estado', width: 18 },
+      { key: 'pendiente', width: 18 },
+      { key: 'vencimiento', width: 16 },
     ];
 
     const headerRow = worksheet.getRow(4);
@@ -210,6 +254,8 @@ const Reportes = () => {
       'Cantidad total',
       'Fecha',
       'Estado',
+      'Pend. Devolución',
+      'Vence Pronto',
     ];
 
     headerRow.height = 26;
@@ -245,6 +291,8 @@ const Reportes = () => {
         cantidad: obtenerCantidadTotal(e),
         fecha: e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleString() : 'N/A',
         estado: e.estado || 'COMPLETADA',
+        pendiente: tienePendienteDevolucion(e) ? 'Sí' : 'No',
+        vencimiento: tieneVencimientoProximo(e) ? 'Sí' : 'No',
       });
 
       row.eachCell((cell) => {
@@ -290,7 +338,7 @@ const Reportes = () => {
 
     worksheet.autoFilter = {
       from: 'A4',
-      to: 'I4',
+      to: 'K4',
     };
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -332,6 +380,24 @@ const Reportes = () => {
               onChange={(e) => setFiltroMes(e.target.value)}
             />
           </div>
+
+          <div className="filter-group">
+            <FaMapMarkerAlt className="filter-icon" />
+            <select className="filter-input" value={filtroBodega} onChange={(e) => setFiltroBodega(e.target.value)}>
+              <option value="">Todas las bodegas</option>
+              {bodegas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <FaFilter className="filter-icon" />
+            <select className="filter-input" value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+              <option value="">Todos los estados</option>
+              <option value="COMPLETADA">Completada</option>
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="ANULADA">Anulada</option>
+            </select>
+          </div>
         </div>
 
         <div className="export-buttons-group">
@@ -355,49 +421,90 @@ const Reportes = () => {
         ) : error ? (
           <div className="error-state">{error}</div>
         ) : (
-          <div className="table-responsive">
-            <table className="reportes-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Trabajador</th>
-                  <th>RUT</th>
-                  <th>Bodega</th>
-                  <th>Productos</th>
-                  <th>Cantidad</th>
-                  <th>Fecha</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
+          <>
+            <div className="table-responsive">
+              <table className="reportes-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Trabajador</th>
+                    <th>RUT</th>
+                    <th>Bodega</th>
+                    <th>Productos</th>
+                    <th>Cantidad</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Indicadores</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {entregasFiltradas.length > 0 ? (
-                  entregasFiltradas.map((e) => (
-                    <tr key={e.id}>
-                      <td><strong>#{e.id}</strong></td>
-                      <td>{e.trabajador_nombre || 'No registrado'}</td>
-                      <td>{e.trabajador_rut || 'N/A'}</td>
-                      <td>{e.bodega_nombre || 'N/A'}</td>
-                      <td>{obtenerProductos(e)}</td>
-                      <td>{obtenerCantidadTotal(e)}</td>
-                      <td>{e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleDateString() : 'N/A'}</td>
-                      <td>
-                        <span className={`estado-etiqueta ${e.estado === 'COMPLETADA' ? 'estado-ok' : 'estado-pendiente'}`}>
-                          {e.estado || 'COMPLETADA'}
-                        </span>
+                <tbody>
+                  {entregasPagina.length > 0 ? (
+                    entregasPagina.map((e) => {
+                      const pendiente = tienePendienteDevolucion(e);
+                      const vencimiento = tieneVencimientoProximo(e);
+
+                      return (
+                        <tr key={e.id}>
+                          <td><strong>#{e.id}</strong></td>
+                          <td>{e.trabajador_nombre || 'No registrado'}</td>
+                          <td>{e.trabajador_rut || 'N/A'}</td>
+                          <td>{e.bodega_nombre || 'N/A'}</td>
+                          <td>{obtenerProductos(e)}</td>
+                          <td>{obtenerCantidadTotal(e)}</td>
+                          <td>{e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleDateString() : 'N/A'}</td>
+                          <td>
+                            <span className={`estado-etiqueta ${e.estado === 'COMPLETADA' ? 'estado-ok' : 'estado-pendiente'}`}>
+                              {e.estado || 'COMPLETADA'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="indicadores-cell">
+                              {pendiente && (
+                                <span className="tag-pendiente"><FaSyncAlt /> Por devolver</span>
+                              )}
+                              {vencimiento && (
+                                <span className="tag-vencimiento"><FaHourglassHalf /> Vence pronto</span>
+                              )}
+                              {!pendiente && !vencimiento && <span className="tag-ninguno">—</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="9" className="empty-state">
+                        No se encontraron entregas con estos filtros.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" className="empty-state">
-                      No se encontraron entregas con estos filtros.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPaginas > 1 && (
+              <div className="paginacion">
+                <button
+                  className="btn-paginacion"
+                  onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+                  disabled={paginaSegura === 1}
+                >
+                  <FaChevronLeft /> Anterior
+                </button>
+
+                <span className="paginacion-info">Página {paginaSegura} de {totalPaginas}</span>
+
+                <button
+                  className="btn-paginacion"
+                  onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
+                  disabled={paginaSegura === totalPaginas}
+                >
+                  Siguiente <FaChevronRight />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

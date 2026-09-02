@@ -130,6 +130,25 @@
     color: var(--text-soft);
 }
 
+.toggle-reposicion {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-reposicion input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--orange);
+    cursor: pointer;
+}
+
 .btn-agregar-main {
     background: linear-gradient(135deg, var(--orange), var(--orange-light));
     color: white;
@@ -436,6 +455,292 @@
     min-height: 56px;
     background: rgba(255, 255, 255, 0.08);
 }
+
+.inventario-wrapper .checkbox-group {
+    display: flex;
+    align-items: center;
+}
+
+.inventario-wrapper .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.inventario-wrapper .checkbox-group input[type="checkbox"] {
+    width: 20px;
+    min-height: 20px;
+    height: 20px;
+    accent-color: var(--orange);
+    cursor: pointer;
+}
+
+.btn-unidades { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+.btn-unidades:hover { background: #3b82f6; color: white; transform: translateY(-2px); }
+
+/* --- BADGES EN COLUMNA DE PRODUCTO (DEVOLUTIVO / VIDA ÚTIL) --- */
+.item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.tag-devolutivo, .tag-vencimiento {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 3px 9px;
+    border-radius: 20px;
+}
+
+.tag-devolutivo { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+.tag-vencimiento { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.tag-critico { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.tag-despacho { background: rgba(124, 58, 237, 0.15); color: #a78bfa; }
+
+/* --- PAGINACIÓN --- */
+.paginacion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.btn-paginacion {
+    background: rgba(255, 255, 255, 0.06);
+    color: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.2s;
+}
+
+.btn-paginacion:hover:not(:disabled) { background: var(--orange); border-color: var(--orange); }
+.btn-paginacion:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.paginacion-info {
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* --- VER TODOS (MOVIMIENTOS) --- */
+.btn-ver-todos {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s;
+}
+
+.btn-ver-todos:hover { background: var(--orange); border-color: var(--orange); }
+
+/* --- MODAL: GESTIÓN DE UNIDADES INDIVIDUALES (RADIOS, ETC.) --- */
+.unidades-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 10, 20, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.unidades-modal {
+    background: #001e38;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.unidades-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    gap: 12px;
+}
+
+.unidades-modal-header h3 {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 900;
+    margin: 0 0 4px 0;
+}
+
+.unidades-modal-header p {
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.btn-cerrar-modal {
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+.btn-cerrar-modal:hover { background: rgba(255, 255, 255, 0.15); }
+
+.unidades-form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.unidades-form-row input {
+    flex: 1;
+    height: 44px;
+    padding: 0 14px;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.unidades-form-row input:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.btn-agregar-unidad {
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    color: white;
+    border: none;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.btn-agregar-unidad:hover { transform: translateY(-2px); }
+
+.unidades-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.unidad-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.unidad-codigo {
+    color: white;
+    font-weight: 800;
+    font-size: 0.88rem;
+    flex: 1;
+}
+
+.unidad-estado {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-soft);
+}
+
+.unidad-disponible .unidad-estado { background: rgba(16, 185, 129, 0.15); color: #4ade80; }
+.unidad-entregada .unidad-estado { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+.unidad-en_mantencion .unidad-estado { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.unidad-de_baja .unidad-estado { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.unidad-de_baja { opacity: 0.6; }
+
+.btn-baja-unidad {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: 0.2s;
+}
+
+.btn-baja-unidad:hover { background: #ef4444; color: white; }
+
+.btn-reparar-unidad {
+    background: rgba(16, 185, 129, 0.12);
+    color: #4ade80;
+    border: none;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    transition: 0.2s;
+}
+
+.btn-reparar-unidad:hover { background: #10b981; color: white; }
 
 .field-error {
     color: #f87171;

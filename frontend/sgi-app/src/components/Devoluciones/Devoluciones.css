@@ -1,0 +1,307 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+    --bg:#001529;
+    --card:#002244;
+    --card-hover:#002c59;
+    --input:#001a33;
+    --orange:#ea580c;
+    --orange-light:#fb923c;
+    --text:#ffffff;
+    --text-soft:#94a3b8;
+    --border:rgba(255,255,255,0.08);
+}
+
+.devoluciones-wrapper{
+    font-family:'Inter',sans-serif;
+    background:var(--bg);
+    min-height:100vh;
+    padding:30px;
+    max-width:1400px;
+    margin:auto;
+    color:var(--text);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.header-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.page-title{
+    margin:0;
+    font-size:1.8rem;
+    font-weight:900;
+    letter-spacing:-0.5px;
+    color: white;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-subtitle{
+    margin-top:5px;
+    margin-bottom: 25px;
+    color:var(--text-soft);
+    font-size:.9rem;
+    font-weight: 500;
+}
+
+.network-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.badge-online {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+.badge-offline {
+    background-color: rgba(234, 88, 12, 0.15);
+    color: #ea580c;
+}
+
+.alert {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    font-weight: bold;
+}
+.alert-error {
+    background: #fef2f2;
+    color: #dc3545;
+    border-left: 4px solid #dc3545;
+}
+.alert-success {
+    background: #ecfdf5;
+    color: #059669;
+    border-left: 4px solid #10b981;
+}
+
+.step-card{
+    background:var(--card);
+    border-radius:12px;
+    margin-bottom:20px;
+    border:1px solid var(--border);
+    overflow:hidden;
+}
+
+.step-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px 20px;
+    font-size:.95rem;
+    font-weight:800;
+    background:rgba(255,255,255,.03);
+    border-bottom:1px solid var(--border);
+    color: white;
+}
+
+.step-body{
+    padding:20px;
+}
+
+.custom-select{
+    width:100%;
+    height:44px;
+    background:var(--input);
+    border:1px solid var(--border);
+    color:white;
+    border-radius:10px;
+    padding:0 14px;
+    font-size:.9rem;
+    outline:none;
+    transition:.2s;
+}
+
+.custom-select:focus{
+    border-color:var(--orange);
+    box-shadow:0 0 0 3px rgba(234,88,12,.15);
+}
+
+.custom-select option{
+    background:var(--bg);
+    color: white;
+}
+
+.history-title{
+    margin:20px 0 15px 0;
+    font-size:1.2rem;
+    font-weight:900;
+    color: white;
+}
+
+.devoluciones-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.devolucion-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 20px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    transition:.2s;
+}
+
+.devolucion-item:hover{
+    border-color:rgba(234,88,12,.4);
+}
+
+.devolucion-producto{
+    font-size:1rem;
+    font-weight:800;
+    color:white;
+}
+
+.devolucion-cantidad{
+    color:var(--orange-light);
+    font-weight:700;
+}
+
+.devolucion-codigo{
+    color:var(--orange-light);
+    font-weight:900;
+    letter-spacing:.3px;
+}
+
+.devolucion-trabajador{
+    margin-top:4px;
+    font-size:.85rem;
+    color:var(--text-soft);
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.devolucion-acciones{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+}
+
+.estado-toggle{
+    display:flex;
+    gap:6px;
+    background:var(--input);
+    border-radius:10px;
+    padding:4px;
+    border:1px solid var(--border);
+}
+
+.estado-toggle-btn{
+    border:none;
+    background:transparent;
+    color:var(--text-soft);
+    padding:7px 12px;
+    border-radius:8px;
+    font-size:.78rem;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    transition:.2s;
+    white-space:nowrap;
+}
+
+.estado-toggle-btn.activo{ background:rgba(16,185,129,.18); color:#4ade80; }
+.estado-toggle-btn.danio.activo{ background:rgba(239,68,68,.18); color:#f87171; }
+
+.btn-marcar-devuelto{
+    border:none;
+    border-radius:10px;
+    padding:12px 20px;
+    background:linear-gradient(135deg, #ea580c, #fb923c);
+    color:white;
+    font-weight:800;
+    font-size:.85rem;
+    cursor:pointer;
+    transition:.2s;
+    white-space:nowrap;
+}
+
+.btn-marcar-devuelto:hover{
+    transform:translateY(-2px);
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4);
+}
+
+.badge-operativa, .badge-danada{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:.75rem;
+    font-weight:800;
+}
+
+.badge-operativa{ background:rgba(16,185,129,.15); color:#4ade80; }
+.badge-danada{ background:rgba(239,68,68,.15); color:#f87171; }
+
+.history-table-wrapper{
+    background:var(--card);
+    border-radius:12px;
+    overflow-x: auto;
+    border:1px solid var(--border);
+}
+
+.history-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.history-table th{
+    background:rgba(255,255,255,.03);
+    color:var(--text-soft);
+    padding:15px;
+    text-align:left;
+    font-size:.8rem;
+    font-weight:800;
+    text-transform:uppercase;
+    border-bottom: 2px solid var(--border);
+}
+
+.history-table td{
+    padding:15px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    font-size:.9rem;
+    color:white;
+    font-weight: 500;
+}
+
+.fw-bold {
+    font-weight: 700;
+}
+
+.text-center-padded {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-soft);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media(max-width:768px){
+    .devoluciones-wrapper{ padding:15px; }
+    .page-title{ font-size:1.4rem; }
+    .devolucion-item{ flex-direction:column; align-items:flex-start; gap:12px; }
+    .devolucion-acciones{ width:100%; flex-direction:column; align-items:stretch; }
+    .btn-marcar-devuelto{ width:100%; }
+}

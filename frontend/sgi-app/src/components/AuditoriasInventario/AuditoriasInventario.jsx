@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FaSearch, FaFileExcel, FaEye, FaClipboardCheck } from 'react-icons/fa';
+import { FaSearch, FaFileExcel, FaEye, FaClipboardCheck, FaShieldAlt } from 'react-icons/fa';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '../../api';
@@ -59,6 +59,7 @@ const AuditoriasInventario = () => {
       { header: 'Cierre', key: 'cierre', width: 24 },
       { header: 'Estado', key: 'estado', width: 18 },
       { header: 'Observación', key: 'observacion', width: 45 },
+      { header: 'Autorizado por', key: 'autorizado_por', width: 24 },
     ];
 
     sheet.getRow(1).eachCell((cell) => {
@@ -76,6 +77,7 @@ const AuditoriasInventario = () => {
         cierre: a.fecha_cierre ? new Date(a.fecha_cierre).toLocaleString() : 'N/A',
         estado: a.estado,
         observacion: a.observacion || '',
+        autorizado_por: a.autorizado_por_nombre || 'N/A',
       });
     });
 
@@ -136,6 +138,12 @@ const AuditoriasInventario = () => {
             <p><b>Inicio:</b> {a.fecha_inicio ? new Date(a.fecha_inicio).toLocaleString() : 'N/A'}</p>
             <p><b>Cierre:</b> {a.fecha_cierre ? new Date(a.fecha_cierre).toLocaleString() : 'Pendiente'}</p>
 
+            {a.autorizado_por_nombre && (
+              <p className="auditoria-autorizacion">
+                <FaShieldAlt /> Ajuste con descuadre crítico autorizado por <b>{a.autorizado_por_nombre}</b>
+              </p>
+            )}
+
             <button className="btn-detalle" onClick={() => verDetalle(a.id)}>
               <FaEye /> Ver detalle
             </button>
@@ -149,6 +157,12 @@ const AuditoriasInventario = () => {
             <h2>Detalle Auditoría #{detalle.auditoria}</h2>
             <button onClick={() => setDetalle(null)}>Cerrar</button>
           </div>
+
+          {detalle.autorizado_por_nombre && (
+            <div className="auditoria-autorizacion detalle-autorizacion">
+              <FaShieldAlt /> Descuadre crítico autorizado por <b>{detalle.autorizado_por_nombre}</b> mediante firma digital.
+            </div>
+          )}
 
           <table className="detalle-table">
             <thead>

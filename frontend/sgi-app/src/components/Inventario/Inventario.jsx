@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FaSearch,
   FaExclamationTriangle,
@@ -7,9 +8,21 @@ import {
   FaPlus,
   FaEdit,
   FaTrashAlt,
+  FaBarcode,
+  FaTimes,
+  FaBan,
+  FaSyncAlt,
+  FaHourglassHalf,
+  FaChevronLeft,
+  FaChevronRight,
+  FaExternalLinkAlt,
+  FaBolt,
+  FaTools,
 } from 'react-icons/fa';
 import api from '../../api';
 import './Inventario.css';
+
+const PRODUCTOS_POR_PAGINA = 12;
 
 const estadoInicial = {
   bodega: '',
@@ -21,9 +34,15 @@ const estadoInicial = {
   stock_maximo: '',
   ubicacion: '',
   estado: true,
+  vida_util_dias: '',
+  es_devolutivo: false,
+  es_activo_critico: false,
+  es_despacho_rapido: false,
 };
 
 const Inventario = () => {
+  const navigate = useNavigate();
+
   const [productos, setProductos] = useState([]);
   const [bodegas, setBodegas] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
@@ -32,15 +51,26 @@ const Inventario = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroBodega, setFiltroBodega] = useState('');
+  const [soloReposicion, setSoloReposicion] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEdicion, setIdEdicion] = useState(null);
   const [formData, setFormData] = useState(estadoInicial);
 
+  const [productoUnidades, setProductoUnidades] = useState(null);
+  const [unidades, setUnidades] = useState([]);
+  const [nuevoCodigoUnidad, setNuevoCodigoUnidad] = useState('');
+  const [errorUnidades, setErrorUnidades] = useState('');
+
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchTerm, filtroBodega, soloReposicion]);
 
   const cargarDatos = async () => {
     try {
@@ -55,6 +85,73 @@ const Inventario = () => {
       setMovimientos(resMovs.data);
     } catch {
       setError('Error al cargar datos del servidor.');
+    }
+  };
+
+  const abrirPanelUnidades = async (producto) => {
+    setProductoUnidades(producto);
+    setNuevoCodigoUnidad('');
+    setErrorUnidades('');
+
+    try {
+      const res = await api.get(`/unidades-activo/?inventario=${producto.id}`);
+      setUnidades(res.data);
+    } catch {
+      setErrorUnidades('No se pudieron cargar las unidades de este producto.');
+    }
+  };
+
+  const cerrarPanelUnidades = () => {
+    setProductoUnidades(null);
+    setUnidades([]);
+    setNuevoCodigoUnidad('');
+    setErrorUnidades('');
+  };
+
+  const agregarUnidad = async () => {
+    setErrorUnidades('');
+
+    if (!nuevoCodigoUnidad.trim()) {
+      setErrorUnidades('Ingresa un código para la unidad (ej. RADIO-S001).');
+      return;
+    }
+
+    try {
+      await api.post('/unidades-activo/', {
+        inventario: productoUnidades.id,
+        codigo: nuevoCodigoUnidad.trim().toUpperCase(),
+      });
+
+      setNuevoCodigoUnidad('');
+      await abrirPanelUnidades(productoUnidades);
+      cargarDatos();
+    } catch (err) {
+      setErrorUnidades(err.response?.data?.detail || 'No se pudo crear la unidad.');
+    }
+  };
+
+  const darDeBajaUnidad = async (unidad) => {
+    if (!window.confirm(`¿Dar de baja la unidad ${unidad.codigo}? Esta acción no se puede deshacer.`)) return;
+
+    setErrorUnidades('');
+
+    try {
+      await api.delete(`/unidades-activo/${unidad.id}/`);
+      await abrirPanelUnidades(productoUnidades);
+      cargarDatos();
+    } catch (err) {
+      setErrorUnidades(err.response?.data?.detail || 'No se pudo dar de baja la unidad.');
+    }
+  };
+
+  const repararUnidad = async (unidad) => {
+    setErrorUnidades('');
+
+    try {
+      await api.post(`/unidades-activo/${unidad.id}/reparar/`);
+      await abrirPanelUnidades(productoUnidades);
+    } catch (err) {
+      setErrorUnidades(err.response?.data?.detail || 'No se pudo marcar la unidad como reparada.');
     }
   };
 
@@ -73,11 +170,11 @@ const Inventario = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
 
     setErroresForm((prev) => ({
@@ -103,6 +200,10 @@ const Inventario = () => {
       stock_maximo: producto.stock_maximo ?? '',
       ubicacion: producto.ubicacion || '',
       estado: producto.estado ?? true,
+      vida_util_dias: producto.vida_util_dias ?? '',
+      es_devolutivo: producto.es_devolutivo ?? false,
+      es_activo_critico: producto.es_activo_critico ?? false,
+      es_despacho_rapido: producto.es_despacho_rapido ?? false,
     });
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -176,6 +277,10 @@ const Inventario = () => {
       stock_maximo: Number(formData.stock_maximo || 0),
       ubicacion: formData.ubicacion.trim(),
       estado: formData.estado,
+      vida_util_dias: formData.vida_util_dias === '' ? null : Number(formData.vida_util_dias),
+      es_devolutivo: formData.es_devolutivo,
+      es_activo_critico: formData.es_activo_critico,
+      es_despacho_rapido: formData.es_despacho_rapido,
     };
 
     try {
@@ -222,8 +327,17 @@ const Inventario = () => {
       ? String(p.bodega) === String(filtroBodega)
       : true;
 
-    return coincideTexto && coincideBodega;
+    const coincideReposicion = soloReposicion ? p.necesita_reposicion : true;
+
+    return coincideTexto && coincideBodega && coincideReposicion;
   });
+
+  const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA));
+  const paginaSegura = Math.min(paginaActual, totalPaginas);
+  const productosPagina = productosFiltrados.slice(
+    (paginaSegura - 1) * PRODUCTOS_POR_PAGINA,
+    paginaSegura * PRODUCTOS_POR_PAGINA
+  );
 
   const obtenerEstadoUI = (actual, minimo, maximo) => {
     const act = Number(actual);
@@ -269,6 +383,15 @@ const Inventario = () => {
             ))}
           </select>
         </div>
+
+        <label className="toggle-reposicion">
+          <input
+            type="checkbox"
+            checked={soloReposicion}
+            onChange={(e) => setSoloReposicion(e.target.checked)}
+          />
+          Solo necesita reposición
+        </label>
 
         <button className="btn-agregar-main" onClick={abrirCrear}>
           <FaPlus /> Crear Producto
@@ -366,6 +489,55 @@ const Inventario = () => {
               {erroresForm.ubicacion && <small className="field-error">{erroresForm.ubicacion}</small>}
             </div>
 
+            <div className="input-group">
+              <label>Vida útil (días)</label>
+              <input
+                type="number"
+                name="vida_util_dias"
+                placeholder="Ej: 365 (cascos, zapatos). Vacío = sin control"
+                value={formData.vida_util_dias}
+                onChange={handleChange}
+                min="1"
+              />
+              {erroresForm.vida_util_dias && <small className="field-error">{erroresForm.vida_util_dias}</small>}
+            </div>
+
+            <div className="input-group checkbox-group">
+              <label>
+                <input
+                  type="checkbox"
+                  name="es_devolutivo"
+                  checked={formData.es_devolutivo}
+                  onChange={handleChange}
+                />
+                {' '}Es un activo devolutivo (ej. radios)
+              </label>
+            </div>
+
+            <div className="input-group checkbox-group">
+              <label>
+                <input
+                  type="checkbox"
+                  name="es_activo_critico"
+                  checked={formData.es_activo_critico}
+                  onChange={handleChange}
+                />
+                {' '}Activo crítico / alto valor (exige firma de supervisor ante faltantes en auditoría)
+              </label>
+            </div>
+
+            <div className="input-group checkbox-group">
+              <label>
+                <input
+                  type="checkbox"
+                  name="es_despacho_rapido"
+                  checked={formData.es_despacho_rapido}
+                  onChange={handleChange}
+                />
+                {' '}Despacho rápido (ej. agua: sin RUT ni firma, un clic)
+              </label>
+            </div>
+
             <div className="input-group full-width">
               <label>Descripción opcional</label>
               <textarea
@@ -412,18 +584,35 @@ const Inventario = () => {
             </thead>
 
             <tbody>
-              {productosFiltrados.length === 0 ? (
+              {productosPagina.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center empty-state">
                     No se encontraron productos en esta ubicación.
                   </td>
                 </tr>
               ) : (
-                productosFiltrados.map((prod) => (
+                productosPagina.map((prod) => (
                   <tr key={prod.id}>
                     <td>
                       <div className="item-title">{prod.nombre}</div>
                       <div className="item-subtitle">{prod.codigo}</div>
+
+                      {(prod.es_devolutivo || prod.vida_util_dias || prod.es_activo_critico || prod.es_despacho_rapido) && (
+                        <div className="item-tags">
+                          {prod.es_devolutivo && (
+                            <span className="tag-devolutivo"><FaSyncAlt /> Devolutivo</span>
+                          )}
+                          {prod.vida_util_dias && (
+                            <span className="tag-vencimiento"><FaHourglassHalf /> Vida útil: {prod.vida_util_dias}d</span>
+                          )}
+                          {prod.es_activo_critico && (
+                            <span className="tag-critico"><FaExclamationTriangle /> Alto valor</span>
+                          )}
+                          {prod.es_despacho_rapido && (
+                            <span className="tag-despacho"><FaBolt /> Despacho rápido</span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     <td>{prod.bodega_nombre || 'Sin bodega'}</td>
@@ -436,6 +625,16 @@ const Inventario = () => {
 
                     <td className="text-center">
                       <div className="action-buttons">
+                        {prod.es_devolutivo && (
+                          <button
+                            className="btn-icon btn-unidades"
+                            title="Gestionar unidades individuales"
+                            onClick={() => abrirPanelUnidades(prod)}
+                          >
+                            <FaBarcode />
+                          </button>
+                        )}
+
                         <button className="btn-icon btn-edit" onClick={() => cargarParaEdicion(prod)}>
                           <FaEdit />
                         </button>
@@ -451,12 +650,38 @@ const Inventario = () => {
             </tbody>
           </table>
         </div>
+
+        {totalPaginas > 1 && (
+          <div className="paginacion">
+            <button
+              className="btn-paginacion"
+              onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+              disabled={paginaSegura === 1}
+            >
+              <FaChevronLeft /> Anterior
+            </button>
+
+            <span className="paginacion-info">Página {paginaSegura} de {totalPaginas}</span>
+
+            <button
+              className="btn-paginacion"
+              onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
+              disabled={paginaSegura === totalPaginas}
+            >
+              Siguiente <FaChevronRight />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="table-section">
         <div className="table-header-dark">
           <FaExclamationTriangle style={{ color: '#f59e0b', marginRight: '10px' }} />
           ÚLTIMOS MOVIMIENTOS DETECTADOS
+
+          <button className="btn-ver-todos" onClick={() => navigate('/movimientos')}>
+            Ver todos <FaExternalLinkAlt />
+          </button>
         </div>
 
         <div className="table-responsive">
@@ -491,6 +716,72 @@ const Inventario = () => {
           </table>
         </div>
       </div>
+
+      {productoUnidades && (
+        <div className="unidades-modal-overlay" onClick={cerrarPanelUnidades}>
+          <div className="unidades-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="unidades-modal-header">
+              <div>
+                <h3>Unidades de {productoUnidades.nombre}</h3>
+                <p>Cada unidad representa un equipo físico individual (ej. RADIO-S001).</p>
+              </div>
+
+              <button className="btn-cerrar-modal" onClick={cerrarPanelUnidades}>
+                <FaTimes />
+              </button>
+            </div>
+
+            {errorUnidades && <div className="error-banner">{errorUnidades}</div>}
+
+            <div className="unidades-form-row">
+              <input
+                type="text"
+                placeholder="Código de unidad (ej. RADIO-S001)"
+                value={nuevoCodigoUnidad}
+                onChange={(e) => setNuevoCodigoUnidad(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && agregarUnidad()}
+              />
+
+              <button className="btn-agregar-unidad" onClick={agregarUnidad}>
+                <FaPlus /> Agregar
+              </button>
+            </div>
+
+            <div className="unidades-lista">
+              {unidades.length === 0 ? (
+                <div className="text-center empty-state">Aún no hay unidades registradas.</div>
+              ) : (
+                unidades.map((u) => (
+                  <div key={u.id} className={`unidad-item unidad-${u.estado.toLowerCase()}`}>
+                    <span className="unidad-codigo">{u.codigo}</span>
+                    <span className="unidad-estado">{u.estado}</span>
+
+                    {u.estado === 'EN_MANTENCION' && (
+                      <button
+                        className="btn-reparar-unidad"
+                        title="Marcar como reparada"
+                        onClick={() => repararUnidad(u)}
+                      >
+                        <FaTools /> Reparada
+                      </button>
+                    )}
+
+                    {(u.estado === 'DISPONIBLE' || u.estado === 'EN_MANTENCION') && (
+                      <button
+                        className="btn-baja-unidad"
+                        title="Dar de baja"
+                        onClick={() => darDeBajaUnidad(u)}
+                      >
+                        <FaBan />
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

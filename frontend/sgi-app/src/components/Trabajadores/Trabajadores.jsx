@@ -1,28 +1,40 @@
 import { useState, useEffect } from 'react';
-import { FaUser, FaEdit, FaTrashAlt, FaCircle, FaSearch, FaUserPlus, FaUsers } from 'react-icons/fa';
+import {
+    FaUser, FaEdit, FaTrashAlt, FaCircle, FaSearch,
+    FaUserPlus, FaUsers, FaUndo, FaChevronLeft, FaChevronRight,
+} from 'react-icons/fa';
 import api from '../../api';
 import './Trabajadores.css';
+
+const TRABAJADORES_POR_PAGINA = 12;
+
+const estadoInicial = {
+    rut: '', nombres: '', apellido_paterno: '', apellido_materno: '',
+    cargo: '', telefono: '', correo: '', fecha_ingreso: '',
+};
 
 const Trabajadores = () => {
     const [trabajadores, setTrabajadores] = useState([]);
     const [error, setError] = useState('');
-    
-    // Estados para UI
+
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(false);
     const [idEdicion, setIdEdicion] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filtroEstado, setFiltroEstado] = useState('activos');
+    const [paginaActual, setPaginaActual] = useState(1);
 
-    const [formData, setFormData] = useState({
-        rut: '', nombres: '', apellido_paterno: '', apellido_materno: '', cargo: '', telefono: '', correo: ''
-    });
+    const [formData, setFormData] = useState(estadoInicial);
 
     useEffect(() => { cargarTrabajadores(); }, []);
+
+    useEffect(() => { setPaginaActual(1); }, [searchTerm, filtroEstado]);
 
     const cargarTrabajadores = async () => {
         try {
             const response = await api.get('/trabajadores/');
             setTrabajadores(response.data);
+            setError('');
         } catch (err) { setError('Error al cargar la lista de trabajadores.'); }
     };
 
@@ -38,23 +50,47 @@ const Trabajadores = () => {
             }
             limpiarFormulario();
             cargarTrabajadores();
-        } catch (err) { setError('Error al guardar. Verifica que el RUT no esté duplicado o los campos incompletos.'); }
+        } catch (err) {
+            const data = err.response?.data;
+            const detalle = data?.detail || data?.rut?.[0] || data?.correo?.[0];
+            setError(detalle || 'Error al guardar. Verifica que el RUT no esté duplicado o los campos incompletos.');
+        }
     };
 
     const cargarParaEdicion = (trabajador) => {
         setMostrarFormulario(true);
         setModoEdicion(true);
         setIdEdicion(trabajador.id);
-        setFormData({ ...trabajador });
+        setFormData({
+            rut: trabajador.rut,
+            nombres: trabajador.nombres,
+            apellido_paterno: trabajador.apellido_paterno,
+            apellido_materno: trabajador.apellido_materno || '',
+            cargo: trabajador.cargo,
+            telefono: trabajador.telefono || '',
+            correo: trabajador.correo || '',
+            fecha_ingreso: trabajador.fecha_ingreso || '',
+        });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const eliminarTrabajador = async (id) => {
-        if (window.confirm("¿Eliminar este trabajador? No podrás hacerlo si tiene entregas asociadas.")) {
+    const desactivarTrabajador = async (id) => {
+        if (window.confirm("¿Desactivar este trabajador? Podrás reactivarlo más adelante.")) {
             try {
                 await api.delete(`/trabajadores/${id}/`);
                 cargarTrabajadores();
-            } catch (err) { setError('No se puede eliminar. Tiene registros asociados.'); }
+            } catch (err) {
+                setError(err.response?.data?.detail || 'No se puede desactivar. Tiene registros asociados.');
+            }
+        }
+    };
+
+    const reactivarTrabajador = async (trabajador) => {
+        try {
+            await api.patch(`/trabajadores/${trabajador.id}/`, { activo: true });
+            cargarTrabajadores();
+        } catch (err) {
+            setError(err.response?.data?.detail || 'No se pudo reactivar al trabajador.');
         }
     };
 
@@ -62,42 +98,70 @@ const Trabajadores = () => {
         setMostrarFormulario(false);
         setModoEdicion(false);
         setIdEdicion(null);
-        setFormData({ rut: '', nombres: '', apellido_paterno: '', apellido_materno: '', cargo: '', telefono: '', correo: '' });
+        setFormData(estadoInicial);
         setError('');
     };
 
-    // Filtro inteligente para la barra de búsqueda
-    const trabajadoresFiltrados = trabajadores.filter(t => 
-        t.rut.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        t.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.apellido_paterno.toLowerCase().includes(searchTerm.toLowerCase())
+    const texto = searchTerm.toLowerCase();
+
+    const trabajadoresFiltrados = trabajadores.filter((t) => {
+        const coincideTexto =
+            t.rut.toLowerCase().includes(texto) ||
+            t.nombres.toLowerCase().includes(texto) ||
+            t.apellido_paterno.toLowerCase().includes(texto) ||
+            t.cargo?.toLowerCase().includes(texto);
+
+        const coincideEstado =
+            filtroEstado === 'todos' ? true : filtroEstado === 'activos' ? t.activo : !t.activo;
+
+        return coincideTexto && coincideEstado;
+    });
+
+    const totalPaginas = Math.max(1, Math.ceil(trabajadoresFiltrados.length / TRABAJADORES_POR_PAGINA));
+    const paginaSegura = Math.min(paginaActual, totalPaginas);
+    const trabajadoresPagina = trabajadoresFiltrados.slice(
+        (paginaSegura - 1) * TRABAJADORES_POR_PAGINA,
+        paginaSegura * TRABAJADORES_POR_PAGINA
     );
 
     return (
         <div className="trabajadores-wrapper">
             <h1 className="page-title"><FaUsers /> Gestión de Trabajadores</h1>
-            
+
             {error && <div className="error-msg">{error}</div>}
 
             {/* PANEL DE BÚSQUEDA Y ACCIÓN */}
             <div className="action-panel">
                 <div className="panel-header"><FaUser /> Directorio de Personal</div>
-                
+
                 <div className="search-add-container">
                     <div className="search-group">
-                        <label>Buscar por RUT o Apellido</label>
+                        <label>Buscar por RUT, nombre o cargo</label>
                         <div className="search-input-wrapper">
                             <span className="search-icon-box"><FaSearch /></span>
-                            <input 
-                                type="text" 
-                                placeholder="Ej: 12.345.678-k" 
+                            <input
+                                type="text"
+                                placeholder="Ej: 12.345.678-k"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <button 
+                    <div className="search-group filtro-estado-group">
+                        <label>Estado</label>
+                        <select
+                            className="filtro-estado-select"
+                            value={filtroEstado}
+                            onChange={(e) => setFiltroEstado(e.target.value)}
+                        >
+                            <option value="activos">Solo activos</option>
+                            <option value="inactivos">Solo inactivos</option>
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+
+                    <button
                         className="btn-agregar-main"
                         onClick={() => { limpiarFormulario(); setMostrarFormulario(true); }}
                     >
@@ -113,8 +177,8 @@ const Trabajadores = () => {
                         {modoEdicion ? 'Editar Registro de Trabajador' : 'Registrar Nuevo Trabajador'}
                     </h3>
                     <form onSubmit={handleSubmit}>
-                        <div className="form-grid">
-                            
+                        <div className="grid-form">
+
                             <div className="input-group">
                                 <label className="input-label">RUT del Trabajador</label>
                                 <input type="text" name="rut" placeholder="Ej: 12345678-9" value={formData.rut} onChange={handleChange} required className="form-input" disabled={modoEdicion} />
@@ -145,13 +209,18 @@ const Trabajadores = () => {
                                 <input type="text" name="telefono" placeholder="Ej: +569 12345678" value={formData.telefono} onChange={handleChange} className="form-input" />
                             </div>
 
-                            <div className="input-group full-width">
+                            <div className="input-group">
+                                <label className="input-label">Fecha de Ingreso</label>
+                                <input type="date" name="fecha_ingreso" value={formData.fecha_ingreso} onChange={handleChange} className="form-input" />
+                            </div>
+
+                            <div className="input-group">
                                 <label className="input-label">Correo Electrónico</label>
                                 <input type="email" name="correo" placeholder="correo@ejemplo.com" value={formData.correo} onChange={handleChange} className="form-input" />
                             </div>
 
                         </div>
-                        
+
                         <div className="form-actions">
                             <button type="submit" className="btn-guardar">
                                 {modoEdicion ? 'Actualizar Trabajador' : 'Guardar Trabajador'}
@@ -177,17 +246,21 @@ const Trabajadores = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {trabajadoresFiltrados.length === 0 ? (
+                        {trabajadoresPagina.length === 0 ? (
                             <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No se encontraron trabajadores.</td></tr>
                         ) : (
-                            trabajadoresFiltrados.map((t) => (
-                                <tr key={t.id}>
+                            trabajadoresPagina.map((t) => (
+                                <tr key={t.id} className={!t.activo ? 'fila-inactiva' : ''}>
                                     <td><strong>{t.rut}</strong></td>
                                     <td>{t.nombres} {t.apellido_paterno} {t.apellido_materno}</td>
                                     <td>{t.cargo}</td>
                                     <td>
                                         <div className="estado-badge">
-                                            <FaCircle className="dot-activo" /> Activo
+                                            {t.activo ? (
+                                                <><FaCircle className="dot-activo" /> Activo</>
+                                            ) : (
+                                                <><FaCircle className="dot-inactivo" /> Inactivo</>
+                                            )}
                                         </div>
                                     </td>
                                     <td>
@@ -195,9 +268,15 @@ const Trabajadores = () => {
                                             <button onClick={() => cargarParaEdicion(t)} className="btn-icon btn-edit" title="Editar">
                                                 <FaEdit />
                                             </button>
-                                            <button onClick={() => eliminarTrabajador(t.id)} className="btn-icon btn-delete" title="Eliminar">
-                                                <FaTrashAlt />
-                                            </button>
+                                            {t.activo ? (
+                                                <button onClick={() => desactivarTrabajador(t.id)} className="btn-icon btn-delete" title="Desactivar">
+                                                    <FaTrashAlt />
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => reactivarTrabajador(t)} className="btn-icon btn-reactivar" title="Reactivar">
+                                                    <FaUndo />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -205,6 +284,28 @@ const Trabajadores = () => {
                         )}
                     </tbody>
                 </table>
+
+                {totalPaginas > 1 && (
+                    <div className="paginacion">
+                        <button
+                            className="btn-paginacion"
+                            onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+                            disabled={paginaSegura === 1}
+                        >
+                            <FaChevronLeft /> Anterior
+                        </button>
+
+                        <span className="paginacion-info">Página {paginaSegura} de {totalPaginas}</span>
+
+                        <button
+                            className="btn-paginacion"
+                            onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
+                            disabled={paginaSegura === totalPaginas}
+                        >
+                            Siguiente <FaChevronRight />
+                        </button>
+                    </div>
+                )}
             </div>
 
         </div>

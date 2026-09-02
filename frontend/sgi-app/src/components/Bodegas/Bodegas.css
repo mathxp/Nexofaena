@@ -228,6 +228,24 @@
 .btn-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 .btn-delete:hover { background: #ef4444; color: white; transform: translateY(-2px); }
 
+.btn-reactivar { background: rgba(16, 185, 129, 0.15); color: #4ade80; }
+.btn-reactivar:hover { background: #10b981; color: white; transform: translateY(-2px); }
+
+/* --- ESTADO DE LA BODEGA --- */
+.badge-estado {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.badge-activa { background: rgba(16, 185, 129, 0.15); color: #4ade80; }
+.badge-inactiva { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+.fila-inactiva td { opacity: 0.55; }
+
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
     .bodegas-wrapper { padding: 15px; }

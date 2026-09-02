@@ -33,26 +33,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 25px 20px;
-    background: rgba(0, 0, 0, 0.1);
+    padding: 22px 20px;
+    background: #001529; /* Mismo azul base que el resto del sistema, sin overlay negro */
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.brand-icon {
-    font-size: 1.8rem;
-    color: #ea580c;
-    filter: drop-shadow(0 2px 4px rgba(234, 88, 12, 0.4));
+/* Chip claro: el logo trae texto azul marino que se pierde sobre el fondo oscuro */
+.brand-logo-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 10px 18px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
-.brand-text {
-    font-size: 1.3rem;
-    font-weight: 900;
-    letter-spacing: 0.5px;
-}
-
-.brand-text span {
-    color: #ea580c;
+.brand-logo {
+    width: 160px;
+    height: 34px;
+    object-fit: contain;
+    display: block;
 }
 
 /* --- MENÚ --- */
@@ -123,6 +124,7 @@
     padding: 20px;
     background: #000c17; /* Más oscuro para cerrar el diseño */
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: #f8fafc; /* Defensivo: nada en este bloque debe heredar negro por defecto */
 }
 
 .user-info {
@@ -131,11 +133,16 @@
     gap: 12px;
     margin-bottom: 15px;
     padding: 0 5px;
+    color: #f8fafc;
 }
 
 .user-icon {
-    font-size: 2rem;
+    font-size: 1.9rem;
     color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 50%;
+    padding: 6px;
+    flex-shrink: 0;
 }
 
 .user-name {
@@ -145,27 +152,24 @@
 }
 
 .user-role {
-    font-size: 0.75rem;
-    color: #10b981;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.user-role::before {
-    content: '●';
-    font-size: 8px;
+    font-size: 0.68rem;
+    color: #64748b; /* Mismo tono que .menu-label: es una etiqueta, no un estado de conexión */
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
 }
 
 .btn-logout {
     width: 100%;
-    padding: 10px;
-    background: transparent;
+    padding: 11px;
+    background: rgba(248, 113, 113, 0.1);
     color: #f87171;
-    border: 1px solid rgba(248, 113, 113, 0.3);
+    border: 1px solid rgba(248, 113, 113, 0.25);
     border-radius: 8px;
-    font-weight: 700;
-    font-size: 0.85rem;
+    font-weight: 800;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     cursor: pointer;
     display: flex;
     justify-content: center;
@@ -178,7 +182,7 @@
     background: #ef4444;
     color: white;
     border-color: #ef4444;
-    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
 }
 
 /* --- CONTENIDO PRINCIPAL --- */
@@ -204,15 +208,12 @@
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
-.mobile-brand {
-    color: white;
-    font-size: 1.2rem;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.mobile-brand-logo {
+    height: 30px;
+    width: auto;
+    object-fit: contain;
+    display: block;
 }
-.mobile-brand span { color: #ea580c; }
 
 .mobile-toggle {
     background: transparent;

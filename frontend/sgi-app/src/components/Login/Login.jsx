@@ -22,24 +22,36 @@ const Login = () => {
         e.preventDefault();
         setError('');
 
+        let tokens;
         try {
-            const response = await api.post('/token/', {
-                username,
-                password
-            });
-
-            localStorage.setItem('access_token', response.data.access);
-            localStorage.setItem('refresh_token', response.data.refresh);
-
-            localStorage.setItem('user_role', 'Administrador');
-            localStorage.setItem('username', username);
-
-            navigate('/dashboard');
-
+            const response = await api.post('/token/', { username, password });
+            tokens = response.data;
         } catch (err) {
             console.error(err);
             setError('Credenciales incorrectas. Intenta nuevamente.');
+            return;
         }
+
+        localStorage.setItem('access_token', tokens.access);
+        localStorage.setItem('refresh_token', tokens.refresh);
+
+        try {
+            const me = await api.get('/me/');
+
+            localStorage.setItem('user_id', me.data.id);
+            localStorage.setItem('username', me.data.username);
+            localStorage.setItem('user_role', me.data.rol_nombre || '');
+        } catch (err) {
+            // Las credenciales sí eran correctas: la sesión sigue siendo válida,
+            // pero limpiamos cualquier rol/usuario de una sesión anterior en este
+            // navegador para no heredar permisos de otra persona por error.
+            console.error(err);
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('username');
+            localStorage.removeItem('user_role');
+        }
+
+        navigate('/dashboard');
     };
 
     return (

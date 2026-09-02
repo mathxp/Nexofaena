@@ -64,11 +64,47 @@
     border:1px solid var(--border);
     overflow:hidden;
     transition:.2s;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
 
 .step-card:hover{
     border-color:rgba(234,88,12,.4);
     transform:translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.22);
+}
+
+/* =====================================
+   BANNER RESPONSABLE (AUTOMÁTICO)
+===================================== */
+
+.responsable-banner{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    background:linear-gradient(135deg, rgba(234,88,12,.12), rgba(234,88,12,.04));
+    border:1px solid rgba(234,88,12,.3);
+    border-radius:12px;
+    padding:14px 20px;
+    margin-bottom:20px;
+    color:var(--orange-light);
+    font-size:1.3rem;
+}
+
+.responsable-label{
+    display:block;
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:var(--text-soft);
+    font-weight:700;
+}
+
+.responsable-nombre{
+    display:block;
+    font-size:.95rem;
+    color:white;
+    font-weight:800;
+    margin-top:2px;
 }
 
 .step-header{
@@ -205,6 +241,10 @@
    EPP
 ===================================== */
 
+.product-search{
+    margin-bottom:16px;
+}
+
 .epp-list{
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
@@ -224,19 +264,121 @@
 
 .epp-item:hover{
     border-color:rgba(234,88,12,.4);
+    transform:translateY(-1px);
 }
 
 .epp-item.selected{
     background:rgba(234,88,12,.08);
     border-color:var(--orange);
+    box-shadow: 0 0 0 3px rgba(234,88,12,.1);
 }
 
 .epp-item-left{
     display:flex;
-    align-items:center;
+    align-items:flex-start;
     gap:12px;
     flex:1;
     cursor: pointer;
+}
+
+.epp-item-left .epp-checkbox{
+    margin-top:3px;
+}
+
+.epp-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+}
+
+.tag-devolutivo,
+.tag-vencimiento{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:.7rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    padding:3px 9px;
+    border-radius:20px;
+}
+
+.tag-devolutivo{
+    background:rgba(96,165,250,.15);
+    color:#60a5fa;
+}
+
+.tag-vencimiento{
+    background:rgba(245,158,11,.15);
+    color:#fbbf24;
+}
+
+.devolutivos-apartado{
+    margin-top:24px;
+    padding-top:20px;
+    border-top:1px dashed rgba(255,255,255,.12);
+}
+
+.apartado-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--orange-light);
+    font-weight:800;
+    font-size:.95rem;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    margin-bottom:14px;
+}
+
+.unidad-radio{
+    cursor:pointer;
+}
+
+.unidad-radio-codigo{
+    color:white;
+    font-weight:800;
+    font-size:.95rem;
+    letter-spacing:.3px;
+}
+
+.aviso-devolutivo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:rgba(96,165,250,.08);
+    border:1px solid rgba(96,165,250,.25);
+    color:#93c5fd;
+    padding:14px 16px;
+    border-radius:10px;
+    font-size:.85rem;
+    font-weight:600;
+    margin-top:16px;
+}
+
+.aviso-devolutivo svg{
+    font-size:1.2rem;
+    flex-shrink:0;
+}
+
+.link-devoluciones{
+    background:none;
+    border:none;
+    color:var(--orange-light);
+    font-weight:800;
+    cursor:pointer;
+    text-decoration:underline;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:.85rem;
+    padding:0;
+}
+
+.link-devoluciones:hover{
+    color:white;
 }
 
 .epp-checkbox{
@@ -458,8 +600,22 @@
     height: 40px;
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.08); /* Dark Premium Border */
-    background-color: #002244;
+    background-color: white;
     padding: 2px;
+    transition: transform .2s;
+}
+
+.history-signature-img:hover{
+    transform: scale(2.2);
+    position: relative;
+    z-index: 5;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+
+.text-muted{
+    color: var(--text-soft);
+    font-size: .8rem;
+    font-style: italic;
 }
 
 /* Signature Canvas */

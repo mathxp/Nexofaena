@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import {
   FaUser,
@@ -8,6 +9,11 @@ import {
   FaWifi,
   FaSignal,
   FaMapMarkerAlt,
+  FaUserShield,
+  FaSyncAlt,
+  FaHourglassHalf,
+  FaExternalLinkAlt,
+  FaBroadcastTower,
 } from 'react-icons/fa';
 
 import api from '../../api';
@@ -15,21 +21,30 @@ import { db } from '../../db';
 import './Entregas.css';
 
 const Entregas = () => {
+  const navigate = useNavigate();
+
   const [entregas, setEntregas] = useState([]);
   const [trabajadores, setTrabajadores] = useState([]);
   const [inventario, setInventario] = useState([]);
-  const [usuarios, setUsuarios] = useState([]);
   const [bodegas, setBodegas] = useState([]);
+
+  const [usuarioActual, setUsuarioActual] = useState({
+    id: localStorage.getItem('user_id') ? Number(localStorage.getItem('user_id')) : null,
+    username: localStorage.getItem('username') || '',
+    rol: localStorage.getItem('user_role') || '',
+  });
 
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState('');
   const [bodegaSeleccionada, setBodegaSeleccionada] = useState('');
   const [rutBusqueda, setRutBusqueda] = useState('');
   const [trabajadorSeleccionado, setTrabajadorSeleccionado] = useState(null);
   const [productosSeleccionados, setProductosSeleccionados] = useState({});
+  const [unidadesDisponibles, setUnidadesDisponibles] = useState([]);
+  const [unidadesSeleccionadas, setUnidadesSeleccionadas] = useState({});
+  const [busquedaProducto, setBusquedaProducto] = useState('');
 
   const sigCanvas = useRef({});
 
@@ -48,6 +63,7 @@ const Entregas = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    cargarUsuarioActual();
     cargarDatos();
 
     return () => {
@@ -56,27 +72,47 @@ const Entregas = () => {
     };
   }, []);
 
+  const cargarUsuarioActual = async () => {
+    if (usuarioActual.id) return;
+    if (!navigator.onLine) return;
+
+    try {
+      const res = await api.get('/me/');
+
+      localStorage.setItem('user_id', res.data.id);
+      localStorage.setItem('username', res.data.username);
+      localStorage.setItem('user_role', res.data.rol_nombre || '');
+
+      setUsuarioActual({
+        id: res.data.id,
+        username: res.data.username,
+        rol: res.data.rol_nombre || '',
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const cargarDatos = async () => {
     try {
       if (!navigator.onLine) throw new Error('OFFLINE_REAL');
 
-      const [resTrab, resInv, resUsuarios, resBodegas, resEntregas] = await Promise.all([
+      const [resTrab, resInv, resBodegas, resEntregas, resUnidades] = await Promise.all([
         api.get('/trabajadores/'),
         api.get('/inventario/'),
-        api.get('/usuarios/').catch(() => ({ data: [] })),
         api.get('/bodegas/'),
         api.get('/entregas-epp/').catch(() => ({ data: [] })),
+        api.get('/unidades-activo/?estado=DISPONIBLE').catch(() => ({ data: [] })),
       ]);
 
       setTrabajadores(resTrab.data);
       setInventario(resInv.data);
-      setUsuarios(resUsuarios.data);
       setBodegas(resBodegas.data);
       setEntregas(resEntregas.data);
+      setUnidadesDisponibles(resUnidades.data);
 
       await db.cache_trabajadores.bulkPut(resTrab.data);
       await db.cache_inventario.bulkPut(resInv.data);
-      await db.cache_usuarios.bulkPut(resUsuarios.data);
 
       setIsOffline(false);
       setError('');
@@ -89,11 +125,9 @@ const Entregas = () => {
 
         const localTrab = await db.cache_trabajadores.toArray();
         const localInv = await db.cache_inventario.toArray();
-        const localUsu = await db.cache_usuarios.toArray();
 
         setTrabajadores(localTrab);
         setInventario(localInv);
-        setUsuarios(localUsu);
         return;
       }
 
@@ -158,6 +192,24 @@ const Entregas = () => {
     }
   };
 
+  const toggleUnidad = (unidad) => {
+    setUnidadesSeleccionadas((prev) => {
+      const nuevo = { ...prev };
+
+      if (nuevo[unidad.id]) {
+        delete nuevo[unidad.id];
+      } else {
+        nuevo[unidad.id] = {
+          inventario_id: unidad.inventario,
+          codigo: unidad.codigo,
+          producto_nombre: unidad.producto_nombre,
+        };
+      }
+
+      return nuevo;
+    });
+  };
+
   const toggleProducto = (id) => {
     setProductosSeleccionados((prev) => {
       const nuevo = { ...prev };
@@ -191,18 +243,49 @@ const Entregas = () => {
     setTrabajadorSeleccionado(null);
     setRutBusqueda('');
     setProductosSeleccionados({});
-    setUsuarioSeleccionado('');
+    setUnidadesSeleccionadas({});
     setBodegaSeleccionada('');
+    setBusquedaProducto('');
 
     if (sigCanvas.current) {
       sigCanvas.current.clear();
     }
   };
 
+  const textoBusqueda = busquedaProducto.toLowerCase().trim();
+
   const productosDisponibles = inventario.filter((item) => {
     if (!bodegaSeleccionada) return false;
-    return String(item.bodega) === String(bodegaSeleccionada) && Number(item.stock_actual) > 0;
+    if (item.es_devolutivo) return false;
+    if (String(item.bodega) !== String(bodegaSeleccionada)) return false;
+    if (Number(item.stock_actual) <= 0) return false;
+
+    if (!textoBusqueda) return true;
+
+    return (
+      item.nombre?.toLowerCase().includes(textoBusqueda) ||
+      item.codigo?.toLowerCase().includes(textoBusqueda)
+    );
   });
+
+  const unidadesEnBodega = unidadesDisponibles.filter((unidad) => {
+    if (!bodegaSeleccionada) return false;
+    if (String(unidad.bodega) !== String(bodegaSeleccionada)) return false;
+
+    if (!textoBusqueda) return true;
+
+    return (
+      unidad.codigo?.toLowerCase().includes(textoBusqueda) ||
+      unidad.producto_nombre?.toLowerCase().includes(textoBusqueda)
+    );
+  });
+
+  const fechaVencimiento = (vidaUtilDias) => {
+    if (!vidaUtilDias) return null;
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() + Number(vidaUtilDias));
+    return fecha.toLocaleDateString();
+  };
 
   const validarStockSeleccionado = () => {
     for (const productoId of Object.keys(productosSeleccionados)) {
@@ -223,14 +306,21 @@ const Entregas = () => {
     setError('');
     setExito('');
 
-    if (!usuarioSeleccionado) return setError('⚠️ Seleccione el responsable de la entrega.');
+    const hayUnidades = Object.keys(unidadesSeleccionadas).length > 0;
+
+    if (!usuarioActual.id) return setError('⚠️ No se pudo identificar al responsable de la entrega. Vuelve a iniciar sesión.');
     if (!bodegaSeleccionada) return setError('⚠️ Seleccione la bodega.');
     if (!trabajadorSeleccionado) return setError('⚠️ Debe buscar y seleccionar un trabajador.');
-    if (Object.keys(productosSeleccionados).length === 0) {
-      return setError('⚠️ Seleccione al menos un producto a entregar.');
+    if (Object.keys(productosSeleccionados).length === 0 && !hayUnidades) {
+      return setError('⚠️ Seleccione al menos un producto o equipo a entregar.');
     }
     if (sigCanvas.current.isEmpty()) {
       return setError('⚠️ La firma del trabajador es obligatoria.');
+    }
+    if (hayUnidades && (isOffline || !navigator.onLine)) {
+      return setError(
+        '⚠️ Los radios y equipos devolutivos requieren conexión para evitar asignar el mismo equipo dos veces.'
+      );
     }
 
     const errorStock = validarStockSeleccionado();
@@ -238,8 +328,21 @@ const Entregas = () => {
 
     const firmaBase64 = sigCanvas.current.getCanvas().toDataURL('image/png');
 
+    const detallesProductos = Object.keys(productosSeleccionados).map((productoId) => ({
+      inventario: parseInt(productoId),
+      cantidad: productosSeleccionados[productoId],
+      talla: 'N/A',
+    }));
+
+    const detallesUnidades = Object.keys(unidadesSeleccionadas).map((unidadId) => ({
+      inventario: unidadesSeleccionadas[unidadId].inventario_id,
+      cantidad: 1,
+      talla: 'N/A',
+      unidad_activo: parseInt(unidadId),
+    }));
+
     const payloadLocal = {
-      usuario_id: parseInt(usuarioSeleccionado),
+      usuario_id: usuarioActual.id,
       bodega_id: parseInt(bodegaSeleccionada),
       trabajador_id: trabajadorSeleccionado.id,
       productos: productosSeleccionados,
@@ -255,17 +358,19 @@ const Entregas = () => {
       firma_base64: payloadLocal.firma_base64,
       observacion: `Entrega a ${trabajadorSeleccionado.nombres} ${trabajadorSeleccionado.apellido_paterno} | RUT ${trabajadorSeleccionado.rut}`,
       estado: 'COMPLETADA',
-      detalles: Object.keys(productosSeleccionados).map((productoId) => ({
-        inventario: parseInt(productoId),
-        cantidad: productosSeleccionados[productoId],
-        talla: 'N/A',
-      })),
+      detalles: [...detallesProductos, ...detallesUnidades],
     };
 
     try {
       if (!isOffline && navigator.onLine) {
         await api.post('/entregas-epp/', payloadServidor);
-        setExito('✅ Entrega registrada, historial creado y stock descontado correctamente.');
+
+        if (hayUnidades) {
+          const codigos = Object.values(unidadesSeleccionadas).map((u) => u.codigo).join(', ');
+          setExito(`✅ Entrega registrada. Recuerda: ${codigos} debe(n) devolverse al finalizar el turno.`);
+        } else {
+          setExito('✅ Entrega registrada, historial creado y stock descontado correctamente.');
+        }
       } else {
         await db.entregas_pendientes.add(payloadLocal);
 
@@ -288,12 +393,22 @@ const Entregas = () => {
       limpiarFormulario();
       cargarDatos();
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      setTimeout(() => setExito(''), 3000);
+      setTimeout(() => setExito(''), 5000);
     } catch (err) {
       console.error(err);
 
       if (!navigator.onLine) {
         setIsOffline(true);
+
+        if (hayUnidades) {
+          setError(
+            '❌ Se perdió la conexión al registrar la entrega. No se pudo confirmar si el/los equipo(s) ' +
+            `(${Object.values(unidadesSeleccionadas).map((u) => u.codigo).join(', ')}) quedaron asignados. ` +
+            'Verifica en Devoluciones antes de reintentar para no duplicar la entrega.'
+          );
+          return;
+        }
+
         await db.entregas_pendientes.add(payloadLocal);
         setExito('Red inestable. Entrega resguardada localmente.');
         limpiarFormulario();
@@ -326,34 +441,23 @@ const Entregas = () => {
         </div>
       </div>
 
+      <div className="responsable-banner">
+        <FaUserShield />
+        <div>
+          <span className="responsable-label">Registrando entrega como</span>
+          <strong className="responsable-nombre">
+            {usuarioActual.username || 'Usuario no identificado'}
+            {usuarioActual.rol ? ` · ${usuarioActual.rol}` : ''}
+          </strong>
+        </div>
+      </div>
+
       {error && <div className="alert alert-error">{error}</div>}
       {exito && <div className="alert alert-success">{exito}</div>}
 
       <div className="step-card">
         <div className="step-header">
-          <span>1. RESPONSABLE DE ENTREGA</span>
-          <FaHardHat />
-        </div>
-
-        <div className="step-body">
-          <select
-            className="custom-select"
-            value={usuarioSeleccionado}
-            onChange={(e) => setUsuarioSeleccionado(e.target.value)}
-          >
-            <option value="">-- Seleccione usuario responsable --</option>
-            {usuarios.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.username} {u.rut ? `(${u.rut})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="step-card">
-        <div className="step-header">
-          <span>2. BODEGA DE ENTREGA</span>
+          <span>1. BODEGA DE ENTREGA</span>
           <FaMapMarkerAlt />
         </div>
 
@@ -364,6 +468,8 @@ const Entregas = () => {
             onChange={(e) => {
               setBodegaSeleccionada(e.target.value);
               setProductosSeleccionados({});
+              setUnidadesSeleccionadas({});
+              setBusquedaProducto('');
             }}
           >
             <option value="">-- Seleccione bodega --</option>
@@ -378,7 +484,7 @@ const Entregas = () => {
 
       <div className="step-card">
         <div className="step-header">
-          <span>3. IDENTIFICACIÓN TRABAJADOR</span>
+          <span>2. IDENTIFICACIÓN TRABAJADOR</span>
           <FaUser />
         </div>
 
@@ -425,66 +531,162 @@ const Entregas = () => {
           </div>
 
           <div className="step-card">
-            <div className="step-header">4. SELECCIÓN DE PRODUCTOS / EPP</div>
+            <div className="step-header">3. SELECCIÓN DE PRODUCTOS / EPP</div>
 
             <div className="step-body">
               {!bodegaSeleccionada ? (
                 <div className="text-center-padded">Seleccione una bodega primero.</div>
-              ) : productosDisponibles.length === 0 ? (
-                <div className="text-center-padded">
-                  No hay productos con stock disponible en esta bodega.
-                </div>
               ) : (
-                <div className="epp-list">
-                  {productosDisponibles.map((producto) => {
-                    const isSelected = !!productosSeleccionados[producto.id];
+                <>
+                  <div className="search-input-wrapper product-search">
+                    <span className="search-icon-box">
+                      <FaSearch />
+                    </span>
 
-                    return (
-                      <div
-                        key={producto.id}
-                        className={`epp-item ${isSelected ? 'selected' : ''}`}
-                      >
-                        <div
-                          className="epp-item-left"
-                          onClick={() => toggleProducto(producto.id)}
-                        >
-                          <input
-                            type="checkbox"
-                            className="epp-checkbox"
-                            checked={isSelected}
-                            readOnly
-                          />
+                    <input
+                      type="text"
+                      placeholder="Buscar producto por nombre o código..."
+                      value={busquedaProducto}
+                      onChange={(e) => setBusquedaProducto(e.target.value)}
+                    />
+                  </div>
 
-                          <span>
-                            {producto.nombre}
-                            <small className="epp-stock-info">
-                              {' '}
-                              [{producto.codigo}] Stock: {producto.stock_actual}
-                            </small>
-                          </span>
-                        </div>
+                  {productosDisponibles.length === 0 ? (
+                    <div className="text-center-padded">
+                      No hay productos con stock disponible que coincidan con la búsqueda.
+                    </div>
+                  ) : (
+                    <div className="epp-list">
+                      {productosDisponibles.map((producto) => {
+                        const isSelected = !!productosSeleccionados[producto.id];
+                        const vencimiento = fechaVencimiento(producto.vida_util_dias);
 
-                        {isSelected && (
-                          <input
-                            type="number"
-                            className="epp-qty-input"
-                            value={productosSeleccionados[producto.id]}
-                            onChange={(e) => updateCantidad(producto.id, e.target.value)}
-                            min="1"
-                            max={producto.stock_actual}
-                          />
-                        )}
+                        return (
+                          <div
+                            key={producto.id}
+                            className={`epp-item ${isSelected ? 'selected' : ''}`}
+                          >
+                            <div
+                              className="epp-item-left"
+                              onClick={() => toggleProducto(producto.id)}
+                            >
+                              <input
+                                type="checkbox"
+                                className="epp-checkbox"
+                                checked={isSelected}
+                                readOnly
+                              />
+
+                              <div>
+                                <span>
+                                  {producto.nombre}
+                                  <small className="epp-stock-info">
+                                    {' '}
+                                    [{producto.codigo}] Stock: {producto.stock_actual}
+                                  </small>
+                                </span>
+
+                                <div className="epp-tags">
+                                  {producto.es_devolutivo && (
+                                    <span className="tag-devolutivo">
+                                      <FaSyncAlt /> Devolutivo
+                                    </span>
+                                  )}
+
+                                  {vencimiento && (
+                                    <span className="tag-vencimiento">
+                                      <FaHourglassHalf /> Vence: {vencimiento}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isSelected && (
+                              <input
+                                type="number"
+                                className="epp-qty-input"
+                                value={productosSeleccionados[producto.id]}
+                                onChange={(e) => updateCantidad(producto.id, e.target.value)}
+                                min="1"
+                                max={producto.stock_actual}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="devolutivos-apartado">
+                    <div className="apartado-header">
+                      <FaBroadcastTower /> Radios y Equipos Devolutivos
+                    </div>
+
+                    {unidadesEnBodega.length === 0 ? (
+                      <div className="text-center-padded">
+                        No hay equipos devolutivos disponibles en esta bodega. Agrégalos desde{' '}
+                        <strong>Inventario</strong> (marca el producto como devolutivo y crea sus unidades).
                       </div>
-                    );
-                  })}
-                </div>
+                    ) : (
+                      <div className="epp-list">
+                        {unidadesEnBodega.map((unidad) => {
+                          const isSelected = !!unidadesSeleccionadas[unidad.id];
+
+                          return (
+                            <div
+                              key={unidad.id}
+                              className={`epp-item unidad-radio ${isSelected ? 'selected' : ''}`}
+                              onClick={() => toggleUnidad(unidad)}
+                            >
+                              <div className="epp-item-left">
+                                <input
+                                  type="checkbox"
+                                  className="epp-checkbox"
+                                  checked={isSelected}
+                                  readOnly
+                                />
+
+                                <div>
+                                  <span className="unidad-radio-codigo">{unidad.codigo}</span>
+                                  <div className="epp-tags">
+                                    <span className="tag-devolutivo">
+                                      <FaSyncAlt /> {unidad.producto_nombre}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {Object.keys(unidadesSeleccionadas).length > 0 && (
+                    <div className="aviso-devolutivo">
+                      <FaSyncAlt />
+                      <span>
+                        {Object.values(unidadesSeleccionadas).map((u) => u.codigo).join(', ')} debe(n)
+                        devolverse al finalizar el turno. Podrás registrarlo en{' '}
+                        <button
+                          type="button"
+                          className="link-devoluciones"
+                          onClick={() => navigate('/devoluciones')}
+                        >
+                          Devoluciones <FaExternalLinkAlt />
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
 
           <div className="step-card">
             <div className="step-header">
-              <span>5. FIRMA DIGITAL DEL TRABAJADOR</span>
+              <span>4. FIRMA DIGITAL DEL TRABAJADOR</span>
               <FaPenFancy />
             </div>
 
@@ -530,34 +732,71 @@ const Entregas = () => {
               <th>Bodega</th>
               <th>Fecha</th>
               <th>Estado</th>
+              <th>Ítems</th>
+              <th>Firma</th>
             </tr>
           </thead>
 
           <tbody>
             {entregas.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center-padded">
+                <td colSpan="7" className="text-center-padded">
                   No hay entregas registradas.
                 </td>
               </tr>
             ) : (
-              entregas.slice(0, 10).map((entrega) => (
-                <tr key={entrega.id}>
-                  <td>
-                    <strong>#{entrega.id}</strong>
-                  </td>
+              entregas.slice(0, 10).map((entrega) => {
+                const detalles = entrega.detalles || [];
+                const tieneDevolutivo = detalles.some((d) => d.es_devolutivo && !d.devuelto);
+                const tieneVencimientoProximo = detalles.some(
+                  (d) => d.dias_para_vencer !== null && d.dias_para_vencer !== undefined && d.dias_para_vencer <= 30
+                );
 
-                  <td className="fw-bold">
-                    {entrega.trabajador_nombre || entrega.trabajador_rut || 'N/A'}
-                  </td>
+                return (
+                  <tr key={entrega.id}>
+                    <td>
+                      <strong>#{entrega.id}</strong>
+                    </td>
 
-                  <td>{entrega.bodega_nombre || 'N/A'}</td>
+                    <td className="fw-bold">
+                      {entrega.trabajador_nombre || entrega.trabajador_rut || 'N/A'}
+                    </td>
 
-                  <td>{new Date(entrega.fecha_entrega || entrega.fecha).toLocaleString()}</td>
+                    <td>{entrega.bodega_nombre || 'N/A'}</td>
 
-                  <td>{entrega.estado || 'Registrada'}</td>
-                </tr>
-              ))
+                    <td>{new Date(entrega.fecha_entrega || entrega.fecha).toLocaleString()}</td>
+
+                    <td>{entrega.estado || 'Registrada'}</td>
+
+                    <td>
+                      <div className="epp-tags">
+                        {tieneDevolutivo && (
+                          <span className="tag-devolutivo" title="Contiene ítems devolutivos pendientes">
+                            <FaSyncAlt />
+                          </span>
+                        )}
+                        {tieneVencimientoProximo && (
+                          <span className="tag-vencimiento" title="Contiene EPP próximo a vencer">
+                            <FaHourglassHalf />
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td>
+                      {entrega.firma_base64 ? (
+                        <img
+                          src={entrega.firma_base64}
+                          alt={`Firma de ${entrega.trabajador_nombre || 'trabajador'}`}
+                          className="history-signature-img"
+                        />
+                      ) : (
+                        <span className="text-muted">Sin firma</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

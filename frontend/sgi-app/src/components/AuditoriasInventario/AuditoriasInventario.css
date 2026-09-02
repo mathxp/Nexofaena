@@ -183,6 +183,24 @@
   font-weight: 900;
 }
 
+.auditoria-autorizacion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0 0 14px 0;
+}
+
+.detalle-autorizacion {
+  margin: 0 20px 20px 20px;
+}
+
 .empty-row,
 .auditoria-error {
   text-align: center;
