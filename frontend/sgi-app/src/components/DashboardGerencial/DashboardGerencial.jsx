@@ -12,12 +12,10 @@ import {
   FaProjectDiagram,
   FaShippingFast,
   FaSearch,
-  FaLink,
-  FaHandshake,
-  FaArrowRight,
-  FaUserShield,
   FaChartPie,
-  FaFlag,
+  FaCoins,
+  FaBoxes,
+  FaLayerGroup,
 } from 'react-icons/fa';
 
 import {
@@ -57,6 +55,15 @@ ChartJS.register(
 const UMBRAL_RIESGO_ALTO = 70;
 const UMBRAL_RIESGO_MEDIO = 40;
 
+const formatearCLP = (valor) =>
+  Number(valor || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+
+const claseAbcColor = (clase) => {
+  if (clase === 'A') return '#ef4444';
+  if (clase === 'B') return '#fbbf24';
+  return '#4ade80';
+};
+
 const badgeRiesgo = (probabilidad) => {
   if (probabilidad >= UMBRAL_RIESGO_ALTO) return 'riesgo-alto';
   if (probabilidad >= UMBRAL_RIESGO_MEDIO) return 'riesgo-medio';
@@ -69,12 +76,6 @@ const colorRiesgo = (probabilidad) => {
   return '#60a5fa';
 };
 
-const claseNivelRiesgo = (nivel) => {
-  if (nivel === 'Alto') return 'riesgo-alto';
-  if (nivel === 'Medio') return 'riesgo-medio';
-  return 'riesgo-bajo';
-};
-
 const DashboardGerencial = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -85,17 +86,16 @@ const DashboardGerencial = () => {
     confiable: false,
   });
   const [prediccionProducto, setPrediccionProducto] = useState([]);
+  const [presupuestoProyectado, setPresupuestoProyectado] = useState({ semanal_clp: 0, mensual_clp: 0 });
   const [quiebreStock, setQuiebreStock] = useState([]);
   const [recomendaciones, setRecomendaciones] = useState([]);
   const [anomalias, setAnomalias] = useState([]);
+  const [capitalInmovilizado, setCapitalInmovilizado] = useState({ items: [], total_clp: 0, cantidad_items: 0 });
 
-  const [reglasAsociacion, setReglasAsociacion] = useState([]);
-  const [reglasConfiable, setReglasConfiable] = useState(false);
-  const [reglasMotivo, setReglasMotivo] = useState('');
-
-  const [perfilRiesgo, setPerfilRiesgo] = useState([]);
-  const [riesgoConfiable, setRiesgoConfiable] = useState(false);
-  const [riesgoMotivo, setRiesgoMotivo] = useState('');
+  const [clasificacionAbc, setClasificacionAbc] = useState([]);
+  const [resumenAbc, setResumenAbc] = useState({});
+  const [abcConfiable, setAbcConfiable] = useState(false);
+  const [abcMotivo, setAbcMotivo] = useState('');
 
   const [busqueda, setBusqueda] = useState('');
   const [busquedaResultado, setBusquedaResultado] = useState(null);
@@ -125,9 +125,11 @@ const DashboardGerencial = () => {
           confiable: Boolean(data.prediccion_consumo?.confiable),
         });
         setPrediccionProducto(Array.isArray(data.prediccion_consumo_producto) ? data.prediccion_consumo_producto : []);
+        setPresupuestoProyectado(data.presupuesto_proyectado || { semanal_clp: 0, mensual_clp: 0 });
         setQuiebreStock(Array.isArray(data.quiebre_stock) ? data.quiebre_stock : []);
         setRecomendaciones(Array.isArray(data.recomendaciones_reposicion) ? data.recomendaciones_reposicion : []);
         setAnomalias(Array.isArray(data.anomalias_consumo) ? data.anomalias_consumo : []);
+        setCapitalInmovilizado(data.capital_inmovilizado || { items: [], total_clp: 0, cantidad_items: 0 });
       } else {
         console.error(resumenRes.reason);
         setError('No se pudo cargar el Modelo Predictivo de Inteligencia Artificial.');
@@ -135,24 +137,18 @@ const DashboardGerencial = () => {
 
       if (mlAvanzadoRes.status === 'fulfilled') {
         const data = mlAvanzadoRes.value.data || {};
-        const reglas = data.recomendaciones_epp || {};
-        const riesgo = data.perfil_riesgo || {};
 
-        setReglasAsociacion(Array.isArray(reglas.reglas) ? reglas.reglas : []);
-        setReglasConfiable(Boolean(reglas.confiable));
-        setReglasMotivo(reglas.motivo || '');
-
-        setPerfilRiesgo(Array.isArray(riesgo.trabajadores) ? riesgo.trabajadores : []);
-        setRiesgoConfiable(Boolean(riesgo.confiable));
-        setRiesgoMotivo(riesgo.motivo || '');
+        const abc = data.clasificacion_abc || {};
+        setClasificacionAbc(Array.isArray(abc.items) ? abc.items : []);
+        setResumenAbc(abc.resumen || {});
+        setAbcConfiable(Boolean(abc.confiable));
+        setAbcMotivo(abc.motivo || '');
       } else {
         console.error(mlAvanzadoRes.reason);
-        setReglasAsociacion([]);
-        setReglasConfiable(false);
-        setReglasMotivo('No se pudo cargar el módulo de asociación de EPP.');
-        setPerfilRiesgo([]);
-        setRiesgoConfiable(false);
-        setRiesgoMotivo('No se pudo cargar el perfil de riesgo operativo.');
+        setClasificacionAbc([]);
+        setResumenAbc({});
+        setAbcConfiable(false);
+        setAbcMotivo('No se pudo cargar la clasificación ABC de inventario.');
       }
     } finally {
       setLoading(false);
@@ -350,17 +346,12 @@ const DashboardGerencial = () => {
     ],
   };
 
-  const conteoPorNivelRiesgo = perfilRiesgo.reduce((acc, p) => {
-    acc[p.nivel_riesgo] = (acc[p.nivel_riesgo] || 0) + 1;
-    return acc;
-  }, {});
-
-  const chartDataNivelRiesgo = {
-    labels: ['Bajo', 'Medio', 'Alto'],
+  const chartDataAbc = {
+    labels: ['Clase A (alto valor)', 'Clase B (valor medio)', 'Clase C (consumo masivo)'],
     datasets: [
       {
-        data: ['Bajo', 'Medio', 'Alto'].map((nivel) => conteoPorNivelRiesgo[nivel] || 0),
-        backgroundColor: ['#60a5fa', '#fbbf24', '#ef4444'],
+        data: ['A', 'B', 'C'].map((clase) => resumenAbc[clase]?.cantidad || 0),
+        backgroundColor: ['A', 'B', 'C'].map(claseAbcColor),
         borderColor: '#001e38',
         borderWidth: 2,
       },
@@ -498,24 +489,31 @@ const DashboardGerencial = () => {
                     <th>Producto</th>
                     <th>Semana</th>
                     <th>Mes</th>
+                    <th>Gasto proyectado</th>
                     <th>Modelo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {prediccionProducto.length === 0 ? (
-                    <tr><td colSpan="4" className="ml-empty">Sin historial suficiente todavía.</td></tr>
+                    <tr><td colSpan="5" className="ml-empty">Sin historial suficiente todavía.</td></tr>
                   ) : (
                     prediccionProducto.slice(0, 6).map((p) => (
                       <tr key={p.inventario_id}>
                         <td>{p.producto_nombre}</td>
                         <td>{p.proyeccion_semana}</td>
                         <td>{p.proyeccion_mes}</td>
+                        <td className="fw-bold">{formatearCLP(p.proyeccion_gasto_mensual_clp)}</td>
                         <td><span className="tag-algoritmo">{p.algoritmo}</span></td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
+            </div>
+
+            <div className="prediction-box">
+              <FaCoins /> Presupuesto proyectado del mes: <strong>{formatearCLP(presupuestoProyectado.mensual_clp)}</strong>
+              {' '}({formatearCLP(presupuestoProyectado.semanal_clp)} / semana) para reponer todo el catálogo activo.
             </div>
           </div>
         </div>
@@ -590,6 +588,39 @@ const DashboardGerencial = () => {
             </div>
           </div>
         </div>
+
+        <div className="prediction-box modulo-impacto-red">
+          <FaCoins /> Capital inmovilizado en sobre-stock: <strong>{formatearCLP(capitalInmovilizado.total_clp)}</strong>
+          {' '}en {capitalInmovilizado.cantidad_items} producto(s) con riesgo de quiebre ~0% y cobertura de más de 6
+          meses. Sugerencia: mover a otras faenas o pausar próximas compras.
+        </div>
+
+        {capitalInmovilizado.items.length > 0 && (
+          <div className="ml-table-wrapper">
+            <table className="ml-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Bodega</th>
+                  <th>Stock actual</th>
+                  <th>Cobertura</th>
+                  <th>Capital inmovilizado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {capitalInmovilizado.items.slice(0, 6).map((c) => (
+                  <tr key={c.inventario_id}>
+                    <td>{c.producto_nombre}</td>
+                    <td>{c.bodega_nombre}</td>
+                    <td>{c.stock_actual} un.</td>
+                    <td>{c.dias_cobertura_estimados ? `${c.dias_cobertura_estimados} días` : 'Sin consumo reciente'}</td>
+                    <td className="fw-bold">{formatearCLP(c.capital_inmovilizado_clp)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* ============ MÓDULO 3: K-MEANS ============ */}
@@ -624,95 +655,54 @@ const DashboardGerencial = () => {
                   </div>
                   <div className="ml-item-subtitle">{a.mensaje}</div>
                 </div>
-                <div className="ml-item-badge">{Math.round(a.cantidad_mes)} un.</div>
+                <div className="ml-item-badge">
+                  {a.impacto_financiero_clp > 0 ? formatearCLP(a.impacto_financiero_clp) : `${Math.round(a.cantidad_mes)} un.`}
+                </div>
               </div>
             ))
           )}
         </div>
       </div>
 
-      {/* ============ MÓDULO 4: REGLAS DE ASOCIACIÓN ============ */}
+      {/* ============ MÓDULO 7: K-MEANS (CLASIFICACIÓN ABC) ============ */}
       <div className="modulo-ia">
         <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-purple"><FaLink /></div>
+          <div className="modulo-icon modulo-icon-orange"><FaLayerGroup /></div>
           <div>
-            <div className="modulo-badge">Reglas de Asociación</div>
-            <h2 className="modulo-title">Recomendador de EPP (Cross-Selling)</h2>
+            <div className="modulo-badge">K-Means (Clustering)</div>
+            <h2 className="modulo-title">Clasificación ABC Dinámica de Inventario</h2>
             <p className="modulo-desc">
-              Analiza qué productos se entregan juntos con más frecuencia de lo que explicaría el
-              azar, para que el pañolero ofrezca proactivamente el complemento correcto.
+              Agrupa automáticamente el catálogo por precio unitario y rotación mensual: Clase A
+              (alto valor/crítico), Clase B (valor medio) y Clase C (consumo masivo), sin depender
+              de que alguien marque manualmente qué producto es importante.
             </p>
           </div>
         </div>
 
-        <div className="modulo-impacto modulo-impacto-purple">
-          <FaHandshake /> Impacto: reduce los viajes de vuelta al pañol por un EPP olvidado y
-          refuerza el uso completo de equipos que van en conjunto (ej. arnés + cabo de vida).
+        <div className="modulo-impacto modulo-impacto-orange">
+          <FaBoxes /> Impacto: prioriza el control físico y las firmas de autorización en los
+          productos de Clase A, mientras deja el despacho de Clase C sin fricción administrativa.
         </div>
 
-        {!reglasConfiable ? (
+        {!abcConfiable && (
           <div className="fallback-msg">
-            <FaExclamationTriangle /> {reglasMotivo || 'Datos insuficientes para entrenamiento. Mostrando cálculo base.'}
-          </div>
-        ) : reglasAsociacion.length === 0 ? (
-          <div className="ml-empty">Sin asociaciones relevantes detectadas todavía.</div>
-        ) : (
-          <div className="ml-list">
-            {reglasAsociacion.map((r, idx) => (
-              <div key={idx} className="ml-item ml-item-purple">
-                <FaLink className="ml-item-icon ml-item-icon-purple" />
-                <div className="ml-item-grow">
-                  <div className="ml-item-title">
-                    {r.producto_origen} <FaArrowRight className="ml-item-arrow" /> {r.producto_sugerido}
-                    <span className="tag-algoritmo">lift {r.lift}</span>
-                  </div>
-                  <div className="ml-item-subtitle">{r.mensaje}</div>
-                </div>
-                <div className="ml-item-badge ml-item-badge-purple">{r.confianza}%</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ============ MÓDULO 5: RANDOM FOREST CLASSIFIER ============ */}
-      <div className="modulo-ia">
-        <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-cyan"><FaUserShield /></div>
-          <div>
-            <div className="modulo-badge">Random Forest Classifier</div>
-            <h2 className="modulo-title">Perfil de Riesgo Operativo</h2>
-            <p className="modulo-desc">
-              Clasifica a cada trabajador según su tasa de reposición de activos críticos, para
-              levantar una bandera roja antes de entregarle otro equipo costoso.
-            </p>
-          </div>
-        </div>
-
-        <div className="modulo-impacto modulo-impacto-cyan">
-          <FaExclamationTriangle /> Impacto: anticipa pérdidas repetidas de herramientas de alto
-          valor en vez de descubrirlas recién en el siguiente conteo cíclico.
-        </div>
-
-        {!riesgoConfiable && (
-          <div className="fallback-msg">
-            <FaExclamationTriangle /> {riesgoMotivo || 'Datos insuficientes para entrenamiento. Mostrando cálculo base.'}
+            <FaExclamationTriangle /> {abcMotivo || 'Datos insuficientes para entrenamiento. Mostrando cálculo base.'}
           </div>
         )}
 
         <div className="charts-grid">
           <div className="chart-card">
             <div className="chart-header">
-              <div className="chart-title"><FaChartPie /> Distribución de riesgo</div>
-              <div className="chart-subtitle">{perfilRiesgo.length} trabajador(es) con activos críticos</div>
+              <div className="chart-title"><FaChartPie /> Distribución del catálogo</div>
+              <div className="chart-subtitle">{clasificacionAbc.length} producto(s) clasificados</div>
             </div>
 
             <div className="chart-container">
-              {perfilRiesgo.length === 0 ? (
-                <div className="ml-empty">Sin trabajadores con entregas de activos críticos todavía.</div>
+              {clasificacionAbc.length === 0 ? (
+                <div className="ml-empty">Sin productos con precio unitario cargado todavía.</div>
               ) : (
                 <Doughnut
-                  data={chartDataNivelRiesgo}
+                  data={chartDataAbc}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
@@ -721,43 +711,45 @@ const DashboardGerencial = () => {
                 />
               )}
             </div>
+
+            <div className="prediction-box">
+              <FaCoins /> Valor en stock — A: <strong>{formatearCLP(resumenAbc.A?.valor_stock_clp)}</strong>{' '}
+              · B: <strong>{formatearCLP(resumenAbc.B?.valor_stock_clp)}</strong>{' '}
+              · C: <strong>{formatearCLP(resumenAbc.C?.valor_stock_clp)}</strong>
+            </div>
           </div>
 
           <div className="chart-card">
             <div className="chart-header">
-              <div className="chart-title"><FaUserShield /> Trabajadores en riesgo</div>
-              <div className="chart-subtitle">Ordenado por tasa de reposición</div>
+              <div className="chart-title"><FaLayerGroup /> Productos de Clase A</div>
+              <div className="chart-subtitle">Mayor valor en stock — exigen control estricto</div>
             </div>
 
             <div className="ml-table-wrapper">
               <table className="ml-table">
                 <thead>
                   <tr>
-                    <th>Trabajador</th>
-                    <th>Reposición</th>
-                    <th>Nivel</th>
-                    <th></th>
+                    <th>Producto</th>
+                    <th>Precio unit.</th>
+                    <th>Rotación/mes</th>
+                    <th>Valor stock</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {perfilRiesgo.length === 0 ? (
-                    <tr><td colSpan="4" className="ml-empty">Sin datos suficientes todavía.</td></tr>
+                  {clasificacionAbc.filter((i) => i.clase_abc === 'A').length === 0 ? (
+                    <tr><td colSpan="4" className="ml-empty">Sin productos de Clase A todavía.</td></tr>
                   ) : (
-                    perfilRiesgo.slice(0, 6).map((p) => (
-                      <tr key={p.trabajador_id}>
-                        <td>
-                          {p.trabajador_nombre}
-                          <div className="ml-table-subtext">{p.cargo}</div>
-                        </td>
-                        <td>{p.tasa_reposicion}%</td>
-                        <td><span className={`badge-riesgo ${claseNivelRiesgo(p.nivel_riesgo)}`}>{p.nivel_riesgo}</span></td>
-                        <td>
-                          {p.bandera_roja && (
-                            <FaFlag className="bandera-roja" title="Evaluar antes de entregar otro activo crítico" />
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                    clasificacionAbc
+                      .filter((i) => i.clase_abc === 'A')
+                      .slice(0, 6)
+                      .map((i) => (
+                        <tr key={i.inventario_id}>
+                          <td>{i.producto_nombre}</td>
+                          <td>{formatearCLP(i.precio_unitario)}</td>
+                          <td>{i.rotacion_mensual} un.</td>
+                          <td className="fw-bold">{formatearCLP(i.valor_stock_clp)}</td>
+                        </tr>
+                      ))
                   )}
                 </tbody>
               </table>

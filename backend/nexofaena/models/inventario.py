@@ -1,7 +1,5 @@
 from django.db import models
 from .bodega import Bodega
-# Descomenta esta línea cuando crees el modelo en models/categoria_producto.py
-# from .categoria_producto import CategoriaProducto 
 from decimal import Decimal
 class Inventario(models.Model):
     """
@@ -10,20 +8,11 @@ class Inventario(models.Model):
     """
     # Relaciones base
     bodega = models.ForeignKey(
-        Bodega, 
-        on_delete=models.PROTECT, 
+        Bodega,
+        on_delete=models.PROTECT,
         related_name="inventarios",
         verbose_name="Bodega"
     )
-    
-    # Categorización (Prepárado para el modelo CategoriaProducto)
-    # categoria = models.ForeignKey(
-    #     CategoriaProducto, 
-    #     on_delete=models.SET_NULL, 
-    #     null=True, 
-    #     blank=True,
-    #     verbose_name="Categoría"
-    # )
 
     # Identificación y Catálogo
     codigo = models.CharField(max_length=50, unique=True, verbose_name="Código SKU")
@@ -34,10 +23,39 @@ class Inventario(models.Model):
     modelo = models.CharField(max_length=100, blank=True, null=True, verbose_name="Modelo")
     unidad_medida = models.CharField(max_length=20, default="UN", verbose_name="Unidad de Medida")
 
+    # Variante de producto (ej. Guantes anticorte talla M/L/XL): mismo `nombre`,
+    # `talla` distinta, cada una con su propio stock y código. Evita crear
+    # productos separados tipo "Guantes L" que rompen el agrupamiento por nombre.
+    talla = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Talla",
+        help_text="Solo para productos con variantes de talla (guantes, buzos, zapatos). Vacío si no aplica.",
+    )
+
     # Control de Stock (DecimalField para precisión contable)
     stock_actual = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'), verbose_name="Stock Actual")
     stock_minimo = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'), verbose_name="Stock Mínimo")
     stock_maximo = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'), verbose_name="Stock Máximo")
+
+    # Valorización (seguimiento del dinero entregado por pañol)
+    precio_unitario = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name="Precio Unitario (CLP)",
+        help_text="Precio real de costo/reposición por unidad. Se usa para valorizar el stock y las entregas de pañol.",
+    )
+
+    # Metodología 5S (filtro de clasificación de bodega)
+    CLASIFICACIONES_5S = (
+        ('SEIRI', 'Seiri - Clasificar'),
+        ('SEITON', 'Seiton - Ordenar'),
+        ('SEISO', 'Seiso - Limpiar'),
+        ('SEIKETSU', 'Seiketsu - Estandarizar'),
+        ('SHITSUKE', 'Shitsuke - Disciplina'),
+    )
+    clasificacion_5s = models.CharField(
+        max_length=20, choices=CLASIFICACIONES_5S, blank=True, null=True,
+        verbose_name="Clasificación 5S",
+        help_text="Etapa de la metodología 5S asignada a este ítem/ubicación, usada como filtro de inventario.",
+    )
 
 
     # Ubicación Física
@@ -64,12 +82,6 @@ class Inventario(models.Model):
         verbose_name="¿Activo crítico / de alto valor?",
         help_text="Si un conteo cíclico detecta faltante en este producto, se exige firma de autorización de un supervisor para ajustar el stock."
     )
-    es_despacho_rapido = models.BooleanField(
-        default=False,
-        verbose_name="¿Despacho rápido?",
-        help_text="Consumibles de alta rotación (ej. agua) que se descuentan con un clic, sin RUT ni firma, y quedan fuera de las alertas de anomalía de consumo."
-    )
-
     # Auditoría y Estado
     estado = models.BooleanField(default=True, verbose_name="¿Activo?")
     fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
@@ -97,3 +109,8 @@ class Inventario(models.Model):
     def exceso_stock(self):
         """Lógica de negocio: Retorna True si supera el stock máximo definido."""
         return self.stock_maximo > 0 and self.stock_actual > self.stock_maximo
+
+    @property
+    def valor_stock(self):
+        """Valorización del stock actual al precio unitario vigente (seguimiento de dinero)."""
+        return self.stock_actual * self.precio_unitario

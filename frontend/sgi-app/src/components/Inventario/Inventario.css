@@ -31,12 +31,31 @@
     color: white !important;
     font-size: 1.8rem;
     font-weight: 900;
-    margin: 0 0 25px 0;
+    margin: 0 0 6px 0;
     text-transform: uppercase;
     letter-spacing: -0.5px;
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.page-subtitle {
+    color: var(--text-soft);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 0 0 25px 0;
+}
+
+.error-banner {
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-left: 4px solid #ef4444;
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-weight: 700;
+    animation: fadeIn 0.3s ease both;
 }
 
 /* --- PESTAÑAS (TABS) SUPERIORES --- */
@@ -77,29 +96,51 @@
 
 /* --- PANEL DE ACCIÓN Y BÚSQUEDA --- */
 .action-panel {
-    background: var(--card);
+    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
     border-radius: 12px;
-    padding: 20px;
+    padding: 18px 20px;
     margin-bottom: 25px;
     border: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     flex-wrap: wrap;
 }
 
-.search-group {
-    flex: 1;
-    min-width: 280px;
+/* Agrupa los filtros aparte del botón "Crear Producto": así el botón
+   siempre queda anclado a la derecha (o en su propia fila, compacto),
+   en vez de terminar suelto cuando los filtros no caben en una línea. */
+.filtros-container {
     display: flex;
     align-items: center;
-    height: 48px;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.search-group {
+    display: flex;
+    align-items: center;
+    height: 44px;
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
     background: var(--input);
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* La búsqueda de texto puede crecer; los select quedan a un ancho fijo y
+   razonable en vez de forzar 280px cada uno (lo que antes empujaba el
+   botón "Crear Producto" a su propia fila, descuadrado). */
+.search-group-texto {
+    flex: 1 1 240px;
+    min-width: 220px;
+}
+
+.search-group-select {
+    flex: 0 0 auto;
+    width: 200px;
 }
 
 .search-group:focus-within {
@@ -108,26 +149,58 @@
 }
 
 .search-icon {
-    padding: 0 15px;
+    padding: 0 12px;
     color: var(--text-soft);
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
-.search-group input {
+.search-group input.filter-input {
     border: none;
     background: transparent;
     color: white;
     height: 100%;
     width: 100%;
     outline: none;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
+    font-family: 'Inter', sans-serif;
 }
 
-.search-group input::placeholder {
+.search-group input.filter-input::placeholder {
     color: var(--text-soft);
+}
+
+/* Los <select> no tenían NINGÚN estilo propio (solo el nativo del
+   navegador): por eso se veían desalineados en tamaño y tipografía
+   respecto al resto del panel. */
+select.filter-input {
+    border: none;
+    background:
+        url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")
+        no-repeat right 14px center / 9px auto,
+        transparent;
+    color: white;
+    height: 100%;
+    width: 100%;
+    padding: 0 30px 0 4px;
+    outline: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    text-overflow: ellipsis;
+}
+
+select.filter-input option {
+    background: var(--bg);
+    color: white;
 }
 
 .toggle-reposicion {
@@ -135,11 +208,13 @@
     align-items: center;
     gap: 8px;
     color: var(--text-soft);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
+    height: 44px;
+    padding: 0 4px;
 }
 
 .toggle-reposicion input {
@@ -153,12 +228,16 @@
     background: linear-gradient(135deg, var(--orange), var(--orange-light));
     color: white;
     border: none;
-    height: 48px;
-    padding: 0 30px;
+    height: 44px;
+    padding: 0 22px;
     border-radius: 10px;
     font-weight: 800;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
     box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
     transition: transform 0.2s, box-shadow 0.2s;
     white-space: nowrap;
@@ -185,14 +264,31 @@
 .badge-optimo { background: rgba(16, 185, 129, 0.15); color: #4ade80; border: 1px solid rgba(16, 185, 129, 0.3); }
 .badge-alerta { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 .badge-critico { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-5s { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); min-width: 70px; }
+
+/* Una S, un color: antes las 5 clasificaciones se veían idénticas (azul),
+   imposible distinguirlas de un vistazo al escanear la columna. */
+.badge-5s-seiri     { background: rgba(239, 68, 68, 0.15);  color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+.badge-5s-seiton    { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+.badge-5s-seiso     { background: rgba(16, 185, 129, 0.15); color: #4ade80; border-color: rgba(16, 185, 129, 0.3); }
+.badge-5s-seiketsu  { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+.badge-5s-shitsuke  { background: rgba(124, 58, 237, 0.15); color: #a78bfa; border-color: rgba(124, 58, 237, 0.3); }
+
+.text-muted { color: var(--text-soft); }
 
 /* --- TABLAS (INVENTARIO Y MOVIMIENTOS) --- */
 .table-section {
-    background: var(--card);
+    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
     border-radius: 12px;
     border: 1px solid var(--border);
     overflow: hidden;
     margin-bottom: 30px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.table-section:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
 }
 
 .table-header-dark {
@@ -206,6 +302,32 @@
     gap: 10px;
     text-transform: uppercase;
     border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.table-header-icon {
+    color: var(--orange);
+    font-size: 1rem;
+}
+
+/* El "valor total" es el dato más importante de la barra: antes era texto
+   plano perdido a la derecha, ahora es un chip que realmente resalta. */
+.chip-valor-total {
+    margin-left: auto;
+    background: rgba(16, 185, 129, 0.12);
+    color: #4ade80;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.chip-valor-total strong {
+    font-weight: 900;
+    font-size: 0.88rem;
 }
 
 .table-responsive {
@@ -225,25 +347,88 @@
     border-bottom: 2px solid var(--border);
 }
 
-.styled-table th { 
-    padding: 16px 20px; 
-    text-transform: uppercase; 
+.styled-table th {
+    padding: 16px 20px;
+    text-transform: uppercase;
     font-weight: 800;
     font-size: 0.8rem;
     letter-spacing: 0.5px;
 }
 
-.styled-table td { 
-    padding: 16px 20px; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04); 
-    font-size: 0.9rem; 
-    color: white; 
+.styled-table th.text-center { text-align: center; }
+
+.styled-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 0.9rem;
+    color: white;
     vertical-align: middle;
     font-weight: 500;
 }
 
-.styled-table tbody tr:hover { 
-    background-color: rgba(255, 255, 255, 0.02) !important; 
+/* Faltaba por completo: sin esto, "text-center" no centraba nada y las
+   columnas numéricas (stock, mín., máx., precio...) quedaban pegadas a la
+   izquierda igual que el texto normal. */
+.styled-table td.text-center {
+    text-align: center;
+}
+
+.styled-table tbody tr {
+    box-shadow: inset 3px 0 0 transparent;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Zebra striping sutil: con 100+ filas de números alineados, sin esto el
+   ojo se pierde de fila en fila. */
+.styled-table tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.015);
+}
+
+.styled-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    box-shadow: inset 3px 0 0 var(--orange);
+}
+
+/* Nombre + código del producto: sin esto ambos se veían con el mismo peso
+   y color, sin jerarquía visual. */
+.item-title {
+    color: white;
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+.item-subtitle {
+    color: var(--text-soft);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-top: 2px;
+}
+
+/* Columnas numéricas de stock: peso y alineación consistentes en vez de
+   heredar el estilo genérico de celda. */
+.stock-number {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+    color: white;
+}
+
+.stock-number.highlight-stock {
+    color: var(--orange-light);
+    font-size: 1rem;
+}
+
+.stock-number.min-stock {
+    color: var(--text-soft);
+    font-weight: 700;
+}
+
+.empty-state {
+    padding: 40px 20px;
+    color: var(--text-soft);
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 /* --- BOTONES DE ACCIÓN EN TABLA --- */
@@ -382,7 +567,9 @@
 @media (max-width: 768px) {
     .inventario-wrapper { padding: 15px; }
     .action-panel { flex-direction: column; align-items: stretch; }
-    .btn-agregar-main { padding: 15px; height: auto; }
+    .filtros-container { flex-direction: column; align-items: stretch; }
+    .search-group-select { width: 100%; }
+    .btn-agregar-main { padding: 15px; height: auto; justify-content: center; }
     .tabs-container { justify-content: stretch; }
     .tab-btn { flex: 1; text-align: center; }
 }
@@ -576,7 +763,7 @@
 }
 
 .unidades-modal {
-    background: #001e38;
+    background: linear-gradient(160deg, #002244 0%, #001830 100%);
     border: 1px solid var(--border);
     border-radius: 14px;
     width: 100%;
@@ -584,7 +771,13 @@
     max-height: 85vh;
     overflow-y: auto;
     padding: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    animation: nx-scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes nx-scale-in {
+    from { opacity: 0; transform: scale(0.94) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .unidades-modal-header {
@@ -746,6 +939,12 @@
     color: #f87171;
     font-size: 0.78rem;
     font-weight: 700;
+    margin-top: 4px;
+}
+
+.field-hint {
+    color: #94a3b8;
+    font-size: 0.75rem;
     margin-top: 4px;
 }
 .inventario-wrapper input:invalid,

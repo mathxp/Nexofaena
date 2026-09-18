@@ -45,7 +45,7 @@
 
 /* --- PANEL DE ACCIÓN Y BÚSQUEDA --- */
 .action-panel {
-    background: var(--card);
+    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
     border-radius: 12px;
     padding: 25px;
     margin-bottom: 35px;
@@ -157,7 +157,7 @@
 
 /* --- FORMULARIO DESPLEGABLE --- */
 .form-container {
-    background: #001e38;
+    background: linear-gradient(160deg, #001e38 0%, #001830 100%);
     border: 1px solid var(--border);
     padding: 30px;
     border-radius: 12px;
@@ -287,10 +287,16 @@
 
 /* --- TABLA DE TRABAJADORES --- */
 .table-responsive {
-    background: var(--card);
+    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
     border-radius: 12px;
     border: 1px solid var(--border);
     overflow-x: auto;
+    transition: border-color .25s ease, box-shadow .25s ease;
+}
+
+.table-responsive:hover {
+    border-color: rgba(255,255,255,.14);
+    box-shadow: 0 14px 34px rgba(0,0,0,.25);
 }
 
 .styled-table {
@@ -324,8 +330,14 @@
     font-weight: 500;
 }
 
-.styled-table tbody tr:hover { 
-    background-color: rgba(255, 255, 255, 0.02) !important; 
+.styled-table tbody tr {
+    box-shadow: inset 3px 0 0 transparent;
+    transition: background-color .2s ease, box-shadow .2s ease;
+}
+
+.styled-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    box-shadow: inset 3px 0 0 var(--orange);
 }
 
 /* Estado del trabajador */
@@ -338,7 +350,7 @@
     color: white;
 }
 
-.dot-activo { color: #10b981; font-size: 10px; }
+.dot-activo { color: #10b981; font-size: 10px; filter: drop-shadow(0 0 4px rgba(16,185,129,.7)); }
 .dot-inactivo { color: #ef4444; font-size: 10px; }
 
 /* Botones de Acción de la Tabla */

@@ -18,7 +18,17 @@ import {
 
 import api from '../../api';
 import { db } from '../../db';
+import { useGeolocalizacion } from '../../hooks/useGeolocalizacion';
+import { sincronizarEntregasPendientes as sincronizarEntregasPendientesCompartido } from '../../services/entregasOffline';
 import './Entregas.css';
+
+const formatoCLP = new Intl.NumberFormat('es-CL', {
+  style: 'currency',
+  currency: 'CLP',
+  maximumFractionDigits: 0,
+});
+
+const formatearCLP = (valor) => formatoCLP.format(Number(valor) || 0);
 
 const Entregas = () => {
   const navigate = useNavigate();
@@ -47,6 +57,7 @@ const Entregas = () => {
   const [busquedaProducto, setBusquedaProducto] = useState('');
 
   const sigCanvas = useRef({});
+  const { capturar: capturarGeolocalizacion, estado: estadoGps, error: errorGps } = useGeolocalizacion();
 
   useEffect(() => {
     const handleOnline = () => {
@@ -147,27 +158,7 @@ const Entregas = () => {
 
     setExito(`Sincronizando ${pendientes.length} entregas pendientes...`);
 
-    for (const entrega of pendientes) {
-      try {
-        await api.post('/entregas-epp/', {
-          trabajador: entrega.trabajador_id,
-          usuario: entrega.usuario_id,
-          bodega: entrega.bodega_id,
-          firma_base64: entrega.firma_base64,
-          observacion: 'Entrega sincronizada desde modo offline',
-          estado: 'COMPLETADA',
-          detalles: Object.keys(entrega.productos).map((productoId) => ({
-            inventario: parseInt(productoId),
-            cantidad: entrega.productos[productoId],
-            talla: 'N/A',
-          })),
-        });
-
-        await db.entregas_pendientes.delete(entrega.id);
-      } catch (err) {
-        console.error('Error sincronizando entrega:', err);
-      }
-    }
+    await sincronizarEntregasPendientesCompartido();
 
     cargarDatos();
     setExito('✅ Sincronización offline completada.');
@@ -328,6 +319,13 @@ const Entregas = () => {
 
     const firmaBase64 = sigCanvas.current.getCanvas().toDataURL('image/png');
 
+    // Se captura recién al confirmar (no antes): es la coordenada más
+    // cercana posible al instante real de la entrega. Si el GPS falla o el
+    // permiso está denegado, geolocalizacion queda en null y la entrega
+    // igual se registra (la firma es la evidencia obligatoria, el GPS es
+    // evidencia adicional).
+    const geolocalizacion = await capturarGeolocalizacion();
+
     const detallesProductos = Object.keys(productosSeleccionados).map((productoId) => ({
       inventario: parseInt(productoId),
       cantidad: productosSeleccionados[productoId],
@@ -348,6 +346,10 @@ const Entregas = () => {
       productos: productosSeleccionados,
       firma_base64: firmaBase64,
       fecha: new Date().toISOString(),
+      latitud: geolocalizacion?.latitud ?? null,
+      longitud: geolocalizacion?.longitud ?? null,
+      precision_metros: geolocalizacion?.precision_metros ?? null,
+      geolocalizacion_capturada_en: geolocalizacion?.geolocalizacion_capturada_en ?? null,
       sincronizado: 0,
     };
 
@@ -358,6 +360,10 @@ const Entregas = () => {
       firma_base64: payloadLocal.firma_base64,
       observacion: `Entrega a ${trabajadorSeleccionado.nombres} ${trabajadorSeleccionado.apellido_paterno} | RUT ${trabajadorSeleccionado.rut}`,
       estado: 'COMPLETADA',
+      latitud: payloadLocal.latitud,
+      longitud: payloadLocal.longitud,
+      precision_metros: payloadLocal.precision_metros,
+      geolocalizacion_capturada_en: payloadLocal.geolocalizacion_capturada_en,
       detalles: [...detallesProductos, ...detallesUnidades],
     };
 
@@ -702,10 +708,6 @@ const Entregas = () => {
                     penColor="#001529"
                     canvasProps={{ className: 'sigCanvas' }}
                   />
-
-                  <div className="signature-line">
-                    <span>Firme Aquí</span>
-                  </div>
                 </div>
 
                 <button className="btn-clear-sig" onClick={limpiarFirma}>
@@ -713,6 +715,14 @@ const Entregas = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          <div className="gps-status-line">
+            <FaMapMarkerAlt />
+            {estadoGps === 'capturando' && <span>Obteniendo ubicación GPS...</span>}
+            {estadoGps === 'ok' && <span>Ubicación GPS capturada para auditoría.</span>}
+            {estadoGps === 'error' && <span title={errorGps}>Sin GPS disponible: la entrega se registrará igual.</span>}
+            {estadoGps === 'inactivo' && <span>La ubicación se captura al confirmar la entrega.</span>}
           </div>
 
           <button className="btn-confirmar-main" onClick={handleSubmit}>
@@ -733,6 +743,7 @@ const Entregas = () => {
               <th>Fecha</th>
               <th>Estado</th>
               <th>Ítems</th>
+              <th>Valor</th>
               <th>Firma</th>
             </tr>
           </thead>
@@ -740,7 +751,7 @@ const Entregas = () => {
           <tbody>
             {entregas.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center-padded">
+                <td colSpan="8" className="text-center-padded">
                   No hay entregas registradas.
                 </td>
               </tr>
@@ -781,6 +792,12 @@ const Entregas = () => {
                           </span>
                         )}
                       </div>
+                    </td>
+
+                    <td className="fw-bold">
+                      {formatearCLP(
+                        entrega.valor_total ?? detalles.reduce((t, d) => t + (Number(d.subtotal) || 0), 0)
+                      )}
                     </td>
 
                     <td>

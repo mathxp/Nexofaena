@@ -12,7 +12,9 @@ from .views.unidad_activo_views import UnidadActivoViewSet
 from .views.auth_views import MeView
 from .views.password_views import PasswordResetRequestView, PasswordResetConfirmView
 from .views.auditoria_views import AuditoriaInventarioViewSet
-from .views.despacho_rapido_views import DespachoRapidoView, DespachoRapidoStatsView
+from .views.reporte_views import ReporteEppPorTurnoView, ReportePrestamosPendientesView
+from .views.telegram_views import TelegramEstadoVinculacionView, TelegramGenerarCodigoView
+from .views.telegram_webhook_views import telegram_webhook
 
 router = DefaultRouter()
 
@@ -33,10 +35,13 @@ urlpatterns = [
     path("dashboard/resumen/", DashboardResumenView.as_view(), name="dashboard_resumen"),
     path("dashboard/ml-avanzado/", MLAnalyticsView.as_view(), name="dashboard_ml_avanzado"),
     path("dashboard/ml-busqueda/", MLBusquedaView.as_view(), name="dashboard_ml_busqueda"),
-    path("despacho-rapido/", DespachoRapidoView.as_view(), name="despacho_rapido"),
-    path("despacho-rapido/stats/", DespachoRapidoStatsView.as_view(), name="despacho_rapido_stats"),
+    path("reportes/epp-por-turno/", ReporteEppPorTurnoView.as_view(), name="reporte_epp_por_turno"),
+    path("reportes/prestamos-pendientes/", ReportePrestamosPendientesView.as_view(), name="reporte_prestamos_pendientes"),
     path("register/", RegistroConInvitacionView.as_view(), name="register"),
     path("me/", MeView.as_view(), name="me"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="password_reset"),
-    path("password-reset-confirm/", PasswordResetConfirmView.as_view(), name="password_reset_confirm"), 
+    path("password-reset-confirm/", PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
+    path("telegram/estado/", TelegramEstadoVinculacionView.as_view(), name="telegram_estado"),
+    path("telegram/generar-codigo/", TelegramGenerarCodigoView.as_view(), name="telegram_generar_codigo"),
+    path("telegram/webhook/<str:secreto>/", telegram_webhook, name="telegram_webhook"),
 ]

@@ -120,7 +120,7 @@ class AuditoriaInventarioService:
     @transaction.atomic
     def cerrar_auditoria(auditoria_id):
         try:
-            auditoria = AuditoriaInventario.objects.get(
+            auditoria = AuditoriaInventario.objects.select_for_update().get(
                 id=auditoria_id,
                 estado="ABIERTA",
             )
@@ -145,7 +145,7 @@ class AuditoriaInventarioService:
         por bodega a la vez.
         """
         try:
-            auditoria = AuditoriaInventario.objects.get(
+            auditoria = AuditoriaInventario.objects.select_for_update().get(
                 id=auditoria_id,
                 estado="ABIERTA",
             )
@@ -164,7 +164,7 @@ class AuditoriaInventarioService:
     @transaction.atomic
     def ajustar_stock(auditoria_id, usuario, firma_autorizacion=None):
         try:
-            auditoria = AuditoriaInventario.objects.get(
+            auditoria = AuditoriaInventario.objects.select_for_update().get(
                 id=auditoria_id,
                 estado="CERRADA",
             )
@@ -196,7 +196,12 @@ class AuditoriaInventarioService:
             )
 
             stock_anterior = producto.stock_actual
-            nuevo_stock = detalle.stock_fisico
+            # OJO: no se puede fijar stock_actual = detalle.stock_fisico. Ese
+            # valor es una foto de cuando se hizo el conteo; si entre el
+            # conteo y este ajuste hubo ingresos/salidas reales, sobrescribir
+            # con el número viejo los borra en silencio. Se aplica en cambio
+            # la diferencia detectada sobre el stock vigente ahora mismo.
+            nuevo_stock = max(Decimal("0"), stock_anterior + detalle.diferencia)
 
             producto.stock_actual = nuevo_stock
             producto.save(update_fields=["stock_actual"])
@@ -223,7 +228,13 @@ class AuditoriaInventarioService:
         if detalles_criticos:
             auditoria.firma_autorizacion = firma_autorizacion
             auditoria.autorizado_por = usuario
-            auditoria.save(update_fields=["firma_autorizacion", "autorizado_por"])
+
+        # Sin esta transición, la auditoría seguía viéndose "CERRADA" después
+        # de ajustar: el filtro de arriba (estado="CERRADA") volvía a
+        # encontrarla, permitiendo aplicar la misma diferencia dos veces
+        # sobre el stock si alguien apretaba "Ajustar stock" otra vez.
+        auditoria.estado = "AJUSTADA"
+        auditoria.save(update_fields=["estado", "firma_autorizacion", "autorizado_por"])
 
         DashboardService.invalidar_cache()
 

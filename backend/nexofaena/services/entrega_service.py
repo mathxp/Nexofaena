@@ -87,6 +87,24 @@ class EntregaService:
                         f"Las unidades individuales de {producto.nombre} se entregan de a una."
                     )
 
+                # No puede retirar un devolutivo nuevo mientras deba otro:
+                # si no lo devuelve primero, no queda claro cuál de los dos
+                # le corresponde devolver después, y el stock de devolutivos
+                # queda descuadrado. Aplica parejo al kiosco de autoservicio
+                # y a una entrega manual del bodeguero, porque ambos pasan
+                # por este mismo servicio.
+                tiene_pendiente = DetalleEntregaEPP.objects.filter(
+                    entrega__trabajador_id=trabajador_id,
+                    unidad_activo__isnull=False,
+                    devuelto=False,
+                ).exists()
+
+                if tiene_pendiente:
+                    raise ValidationError(
+                        f"{trabajador.nombres} {trabajador.apellido_paterno} ya tiene un equipo devolutivo "
+                        "pendiente de devolver. Debe devolverlo antes de retirar otro."
+                    )
+
                 try:
                     unidad = UnidadActivo.objects.select_for_update().get(
                         id=unidad_activo_id,
@@ -123,6 +141,7 @@ class EntregaService:
                 observacion=item.get("observacion", ""),
                 fecha_vencimiento_vida_util=fecha_vencimiento,
                 unidad_activo=unidad,
+                precio_unitario=producto.precio_unitario,
             )
 
             if fecha_vencimiento:

@@ -4,11 +4,12 @@ import logging
 from django.db import transaction
 
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from nexofaena.models.inventario import Inventario
 from nexofaena.models.movimiento_inventario import MovimientoInventario
-from nexofaena.permissions import IsBodeguero
+from nexofaena.permissions import IsBodeguero, IsEncargadoBodega
 from nexofaena.serializers.movimiento_inventario_serializer import MovimientoInventarioSerializer
 from nexofaena.services.alerta_service import AlertaService
 from nexofaena.services.dashboard_service import DashboardService
@@ -78,11 +79,19 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
 
         cantidad = Decimal(str(cantidad))
 
-        if cantidad <= 0:
-            return Response(
-                {"detail": "La cantidad debe ser mayor a cero."},
-                status=status.HTTP_400_BAD_REQUEST,
+        # En AJUSTE la cantidad es "el nuevo stock exacto" (línea más abajo:
+        # nuevo_stock = cantidad), no una cantidad a sumar/restar: 0 es un
+        # valor legítimo (el producto se agotó por completo). En INGRESO y
+        # SALIDA, en cambio, un movimiento de 0 unidades no representa nada.
+        limite_minimo = Decimal("0") if tipo == "AJUSTE" else Decimal("0.01")
+
+        if cantidad < limite_minimo:
+            mensaje = (
+                "La cantidad no puede ser negativa."
+                if tipo == "AJUSTE"
+                else "La cantidad debe ser mayor a cero."
             )
+            return Response({"detail": mensaje}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             producto = Inventario.objects.select_for_update().get(
@@ -173,6 +182,96 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @action(detail=False, methods=["post"], permission_classes=[IsEncargadoBodega])
+    @transaction.atomic
+    def traspaso(self, request, *args, **kwargs):
+        """
+        Traspaso entre bodegas (ej. Reserva -> Central): distinto de una
+        entrega a trabajador. Mueve stock entre DOS filas de Inventario (una
+        por bodega) y queda registrado en un único MovimientoInventario tipo
+        TRASPASO con trazabilidad de ambos lados (origen y destino).
+        """
+        inventario_origen_id = request.data.get("inventario_origen")
+        inventario_destino_id = request.data.get("inventario_destino")
+        cantidad = request.data.get("cantidad")
+        observacion = request.data.get("observacion", "")
+
+        if not inventario_origen_id or not inventario_destino_id or cantidad in ["", None]:
+            return Response(
+                {"detail": "Faltan campos requeridos: inventario_origen, inventario_destino, cantidad."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            cantidad = Decimal(str(cantidad))
+        except (ArithmeticError, ValueError):
+            return Response({"detail": "Cantidad inválida."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if cantidad <= 0:
+            return Response({"detail": "La cantidad debe ser mayor a cero."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            origen = Inventario.objects.select_for_update().get(id=inventario_origen_id)
+            destino = Inventario.objects.select_for_update().get(id=inventario_destino_id)
+        except Inventario.DoesNotExist:
+            return Response({"detail": "El producto de origen o destino no existe."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if origen.bodega_id == destino.bodega_id:
+            return Response(
+                {"detail": "El origen y el destino deben ser bodegas distintas."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if origen.stock_actual < cantidad:
+            return Response(
+                {"detail": f"Stock insuficiente en {origen.bodega.nombre} para traspasar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        stock_anterior_origen = origen.stock_actual
+        stock_anterior_destino = destino.stock_actual
+
+        origen.stock_actual = stock_anterior_origen - cantidad
+        destino.stock_actual = stock_anterior_destino + cantidad
+        origen.save(update_fields=["stock_actual"])
+        destino.save(update_fields=["stock_actual"])
+
+        AlertaService.verificar_stock_producto(origen)
+        AlertaService.verificar_stock_producto(destino)
+
+        movimiento = MovimientoInventario.objects.create(
+            usuario=request.user,
+            bodega_id=origen.bodega_id,
+            inventario=origen,
+            tipo_movimiento="TRASPASO",
+            cantidad=cantidad,
+            stock_anterior=stock_anterior_origen,
+            stock_actual=origen.stock_actual,
+            bodega_destino_id=destino.bodega_id,
+            inventario_destino=destino,
+            stock_anterior_destino=stock_anterior_destino,
+            stock_actual_destino=destino.stock_actual,
+            observacion=observacion or f"Traspaso {origen.bodega.nombre} -> {destino.bodega.nombre}",
+        )
+
+        logger.info(
+            "Traspaso registrado | usuario=%s | producto=%s | %s -> %s | cantidad=%s",
+            request.user.username, origen.nombre, origen.bodega.nombre, destino.bodega.nombre, cantidad,
+        )
+
+        DashboardService.invalidar_cache()
+
+        serializer = self.get_serializer(movimiento)
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Traspaso registrado: {cantidad} {origen.unidad_medida} de {origen.bodega.nombre} a {destino.bodega.nombre}.",
+                "data": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
     def destroy(self, request, *args, **kwargs):
         logger.warning(
             "Intento de eliminación de movimiento bloqueado | usuario=%s",
@@ -185,3 +284,24 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
+
+    def update(self, request, *args, **kwargs):
+        # El modelo se documenta como "registro inmutable" (foto del stock en
+        # ese instante), pero ModelViewSet expone PUT/PATCH por defecto y el
+        # serializer no marca los campos como read_only: sin este bloqueo,
+        # cualquier Bodeguero podía reescribir cantidad/stock_anterior/
+        # stock_actual de un movimiento pasado sin que eso tocara el stock
+        # real ni quedara trazado, rompiendo toda la auditoría del sistema.
+        logger.warning(
+            "Intento de edición de movimiento bloqueado | usuario=%s | movimiento_id=%s",
+            request.user.username,
+            kwargs.get("pk"),
+        )
+
+        return Response(
+            {"detail": "Los movimientos de inventario no pueden editarse: son un registro inmutable."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)

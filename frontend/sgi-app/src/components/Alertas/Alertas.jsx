@@ -10,6 +10,8 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaCheckDouble,
+  FaTelegram,
+  FaCopy,
 } from 'react-icons/fa';
 
 import ExcelJS from 'exceljs';
@@ -53,8 +55,14 @@ const Alertas = () => {
   const [filtroTexto, setFiltroTexto] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
 
+  const [telegramEstado, setTelegramEstado] = useState(null);
+  const [telegramCodigo, setTelegramCodigo] = useState(null);
+  const [telegramCargando, setTelegramCargando] = useState(false);
+  const [telegramError, setTelegramError] = useState('');
+
   useEffect(() => {
     cargarDatos();
+    cargarEstadoTelegram();
   }, []);
 
   useEffect(() => { setPaginaActual(1); }, [filtroTipo, filtroTexto]);
@@ -72,6 +80,35 @@ const Alertas = () => {
     } catch {
       setError('Error al cargar la información del servidor.');
     }
+  };
+
+  const cargarEstadoTelegram = async () => {
+    try {
+      const res = await api.get('/telegram/estado/');
+      setTelegramEstado(res.data);
+    } catch {
+      // No es crítico para la pantalla de Alertas: si falla, simplemente no
+      // se muestra el widget de vinculación.
+    }
+  };
+
+  const generarCodigoTelegram = async () => {
+    setTelegramCargando(true);
+    setTelegramError('');
+
+    try {
+      const res = await api.post('/telegram/generar-codigo/');
+      setTelegramCodigo(res.data);
+    } catch (err) {
+      setTelegramError(err.response?.data?.detail || 'No se pudo generar el código de vinculación.');
+    } finally {
+      setTelegramCargando(false);
+    }
+  };
+
+  const copiarComandoTelegram = () => {
+    if (!telegramCodigo) return;
+    navigator.clipboard?.writeText(`/vincular ${telegramCodigo.codigo}`);
   };
 
   const marcarComoLeida = async (id) => {
@@ -416,6 +453,57 @@ const Alertas = () => {
         </div>
       )}
 
+      <div className="telegram-widget">
+        <div className="telegram-widget-header">
+          <FaTelegram />
+          <span>Bot de Telegram</span>
+        </div>
+
+        {telegramEstado?.vinculado ? (
+          <div className="telegram-widget-body">
+            <FaCheckCircle className="icon-green" />
+            <span>
+              Vinculado{telegramEstado.telegram_username ? ` como @${telegramEstado.telegram_username}` : ''}.
+              Escríbele por privado: /alertas, /stock, /historial, /atender.
+            </span>
+          </div>
+        ) : telegramCodigo ? (
+          <div className="telegram-widget-body telegram-widget-codigo">
+            <span>
+              Abre un chat privado con el bot y envíale exactamente:
+            </span>
+            <div className="telegram-codigo-linea">
+              <code>/vincular {telegramCodigo.codigo}</code>
+              <button type="button" onClick={copiarComandoTelegram} title="Copiar comando">
+                <FaCopy />
+              </button>
+            </div>
+            {telegramCodigo.deep_link && (
+              <a href={telegramCodigo.deep_link} target="_blank" rel="noreferrer" className="telegram-deep-link">
+                Abrir chat con el bot <FaTelegram />
+              </a>
+            )}
+            <span className="telegram-codigo-expira">
+              Válido hasta las {new Date(telegramCodigo.expira_en).toLocaleTimeString()}.
+            </span>
+          </div>
+        ) : (
+          <div className="telegram-widget-body">
+            <span>Consulta stock, alertas y entregas, o marca alertas como atendidas, directo desde Telegram.</span>
+            <button
+              type="button"
+              className="btn-vincular-telegram"
+              onClick={generarCodigoTelegram}
+              disabled={telegramCargando}
+            >
+              {telegramCargando ? 'Generando...' : 'Vincular mi Telegram'}
+            </button>
+          </div>
+        )}
+
+        {telegramError && <div className="error-msg" style={{ marginTop: '8px' }}>{telegramError}</div>}
+      </div>
+
       <div className="view-selector">
         <button
           className={`view-btn ${vistaActiva === 'STOCK' ? 'active' : ''}`}
@@ -466,7 +554,7 @@ const Alertas = () => {
                 {stockCritico.length === 0 ? (
                   <div className="item-empty">No hay insumos en quiebre.</div>
                 ) : (
-                  stockCritico.map((item) => (
+                  stockCritico.slice(0, 4).map((item) => (
                     <div key={item.id} className="stock-item">
                       <FaExclamationTriangle className="item-icon icon-red" />
                       <div className="item-details">
@@ -477,6 +565,12 @@ const Alertas = () => {
                       </div>
                     </div>
                   ))
+                )}
+
+                {stockCritico.length > 4 && (
+                  <div className="item-empty" style={{ color: '#f87171' }}>
+                    + {stockCritico.length - 4} insumos en quiebre
+                  </div>
                 )}
               </div>
             </div>
@@ -490,7 +584,7 @@ const Alertas = () => {
                 {stockBajo.length === 0 ? (
                   <div className="item-empty">No hay insumos con stock bajo.</div>
                 ) : (
-                  stockBajo.map((item) => (
+                  stockBajo.slice(0, 4).map((item) => (
                     <div key={item.id} className="stock-item">
                       <FaExclamationTriangle className="item-icon icon-orange" />
                       <div className="item-details">
@@ -501,6 +595,12 @@ const Alertas = () => {
                       </div>
                     </div>
                   ))
+                )}
+
+                {stockBajo.length > 4 && (
+                  <div className="item-empty" style={{ color: '#fbbf24' }}>
+                    + {stockBajo.length - 4} insumos con stock bajo
+                  </div>
                 )}
               </div>
             </div>
@@ -544,7 +644,7 @@ const Alertas = () => {
                 {stockSobre.length === 0 ? (
                   <div className="item-empty">No hay insumos sobre su stock máximo.</div>
                 ) : (
-                  stockSobre.map((item) => (
+                  stockSobre.slice(0, 4).map((item) => (
                     <div key={item.id} className="stock-item">
                       <FaExclamationTriangle className="item-icon icon-blue" />
                       <div className="item-details">
@@ -555,6 +655,12 @@ const Alertas = () => {
                       </div>
                     </div>
                   ))
+                )}
+
+                {stockSobre.length > 4 && (
+                  <div className="item-empty" style={{ color: '#60a5fa' }}>
+                    + {stockSobre.length - 4} insumos sobre stock
+                  </div>
                 )}
               </div>
             </div>

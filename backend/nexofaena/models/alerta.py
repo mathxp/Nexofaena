@@ -13,6 +13,7 @@ class TipoAlerta(models.TextChoices):
     MANTENIMIENTO = "MANTENIMIENTO", "Mantenimiento"
     CIERRE_TURNO = "CIERRE_TURNO", "Cierre de Turno"
     SISTEMA = "SISTEMA", "Sistema"
+    INTENTO_SUPLANTACION = "INTENTO_SUPLANTACION", "Intento de Suplantación"
 
 
 class Alerta(models.Model):

@@ -2,6 +2,29 @@ from django.db import models
 
 
 class Bodega(models.Model):
+    TIPOS = (
+        ("CENTRAL", "Central"),
+        ("RESERVA", "Reserva"),
+    )
+
+    codigo = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Código",
+        help_text="Código corto de la bodega (ej. BOD-CEN, BOD-RES).",
+    )
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPOS,
+        blank=True,
+        null=True,
+        verbose_name="Tipo de bodega",
+        help_text="Central: atiende al trabajador día a día. Reserva: stock de respaldo y baja rotación.",
+    )
+
     nombre = models.CharField(
         max_length=100,
         unique=True,

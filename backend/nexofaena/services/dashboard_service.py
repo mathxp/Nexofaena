@@ -12,7 +12,14 @@ from nexofaena.services.ml_service import MLService
 
 CACHE_KEY_DASHBOARD = "nexofaena:dashboard:resumen"
 CACHE_KEY_ML_AVANZADO = "nexofaena:dashboard:ml_avanzado"
-CACHE_TTL_SEGUNDOS = 60
+# 10 minutos: reentrenar Random Forest + Regresión Logística + K-Means (por
+# cada cargo) toma ~4-5s con 12 meses de historial real. Un TTL de 60s hacía
+# que cualquier usuario que entrara a los ~60s de otro pagara ese costo de
+# nuevo. Es seguro subirlo porque toda escritura que cambia stock (entregas,
+# movimientos, traspasos, ajustes de auditoría) ya llama a
+# invalidar_cache() de inmediato — este TTL es solo la red de seguridad para
+# cambios que no pasan por esos servicios (ej. edición directa en el admin).
+CACHE_TTL_SEGUNDOS = 600
 
 
 class DashboardService:
@@ -52,9 +59,11 @@ class DashboardService:
             "stock_estado": DashboardService.obtener_stock_estado(),
             "prediccion_consumo": MLService.predecir_consumo_semanal(),
             "prediccion_consumo_producto": analitica_stock["prediccion_consumo_producto"],
+            "presupuesto_proyectado": analitica_stock["presupuesto_proyectado"],
             "anomalias_consumo": MLService.detectar_anomalias(),
             "quiebre_stock": analitica_stock["quiebre_stock"],
             "recomendaciones_reposicion": analitica_stock["recomendaciones_reposicion"],
+            "capital_inmovilizado": analitica_stock["capital_inmovilizado"],
         }
 
         cache.set(CACHE_KEY_DASHBOARD, data, CACHE_TTL_SEGUNDOS)
@@ -64,29 +73,17 @@ class DashboardService:
     @staticmethod
     def obtener_ml_avanzado():
         """
-        Bloque de IA "extendido" del Dashboard Gerencial: reglas de
-        asociación de EPP y perfil de riesgo operativo por trabajador.
-        Se cachea por la misma razón que obtener_dashboard() — entrenar el
-        Random Forest de riesgo en cada request sería trabajo perdido si
-        nadie cambió datos desde la última carga.
+        Bloque de IA "extendido" del Dashboard Gerencial: clasificación ABC
+        dinámica del inventario. Se cachea por la misma razón que
+        obtener_dashboard() — reentrenar en cada request sería trabajo
+        perdido si nadie cambió datos desde la última carga.
         """
         cacheado = cache.get(CACHE_KEY_ML_AVANZADO)
         if cacheado is not None:
             return cacheado
 
-        perfil_riesgo = MLService.perfil_riesgo_operativo()
-        entrenado = any(p["algoritmo"] == "Random Forest Classifier" for p in perfil_riesgo)
-
         data = {
-            "recomendaciones_epp": MLService.top_reglas_asociacion(),
-            "perfil_riesgo": {
-                "trabajadores": perfil_riesgo,
-                "confiable": entrenado,
-                "motivo": None if entrenado else (
-                    "Historial insuficiente para entrenar el clasificador; se muestra el "
-                    "cálculo base por regla de negocio."
-                ),
-            },
+            "clasificacion_abc": MLService.clasificacion_abc_dinamica(),
         }
 
         cache.set(CACHE_KEY_ML_AVANZADO, data, CACHE_TTL_SEGUNDOS)

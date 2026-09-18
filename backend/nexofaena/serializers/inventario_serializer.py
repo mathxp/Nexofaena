@@ -6,6 +6,8 @@ class InventarioSerializer(serializers.ModelSerializer):
     bodega_nombre = serializers.CharField(source="bodega.nombre", read_only=True)
     necesita_reposicion = serializers.BooleanField(read_only=True)
     exceso_stock = serializers.BooleanField(read_only=True)
+    valor_stock = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    clasificacion_5s_display = serializers.CharField(source="get_clasificacion_5s_display", read_only=True)
 
     class Meta:
         model = Inventario
@@ -16,7 +18,8 @@ class InventarioSerializer(serializers.ModelSerializer):
             "ubicacion", "estado", "necesita_reposicion", "exceso_stock",
             "vida_util_dias", "es_devolutivo", "tiempo_reposicion_dias",
             "es_activo_critico",
-            "es_despacho_rapido",
+            "precio_unitario", "valor_stock",
+            "clasificacion_5s", "clasificacion_5s_display",
         ]
         read_only_fields = ["fecha_creacion", "fecha_actualizacion"]
 
@@ -50,6 +53,11 @@ class InventarioSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "La vida útil debe ser de al menos 1 día, o vacía si no aplica control de vencimiento."
             )
+        return value
+
+    def validate_precio_unitario(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("El precio unitario no puede ser negativo.")
         return value
 
     def validate(self, data):

@@ -9,3 +9,4 @@ from .movimiento_inventario import MovimientoInventario
 from .alerta import Alerta
 from .invitacion import InvitacionRegistro
 from .auditoria_inventario import AuditoriaInventario, DetalleAuditoriaInventario
+from .telegram_bot import TelegramVinculo, TelegramCodigoVinculacion, TelegramEstadoBot

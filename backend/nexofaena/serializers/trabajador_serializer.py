@@ -19,10 +19,16 @@ class TrabajadorSerializer(serializers.ModelSerializer):
             "correo",
             "activo",
             "fecha_ingreso",
+            "face_descriptor",
+            "face_enrolado_en",
         ]
         read_only_fields = [
             "fecha_creacion",
             "fecha_actualizacion",
+            # Se escribe solo por la acción enrolar-rostro (TrabajadorViewSet),
+            # nunca por un PUT/PATCH genérico de la ficha.
+            "face_descriptor",
+            "face_enrolado_en",
         ]
 
     def validate_rut(self, value: str) -> str:

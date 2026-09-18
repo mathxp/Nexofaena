@@ -142,6 +142,31 @@ class AlertaService:
         )
 
     @staticmethod
+    def generar_alerta_suplantacion(trabajador, bodega=None):
+        """
+        El reconocimiento facial de Entregas Pañol (Entregas.jsx) pide un
+        parpadeo antes de confirmar identidad, precisamente para que una
+        foto estática (ej. mostrada en un celular) no pueda hacerse pasar
+        por el trabajador reconocido. Si el chequeo de vida falla varias
+        veces seguidas mientras el rostro coincide con esta persona, se
+        deja esta alerta — que ya dispara el bot de Telegram automáticamente
+        vía la señal post_save de Alerta, sin cablear nada nuevo ahí.
+        """
+        mensaje = (
+            f"El reconocimiento facial no logró confirmar que "
+            f"{trabajador.nombres} {trabajador.apellido_paterno} (RUT {trabajador.rut}) "
+            f"estuviera presente en persona (no se detectó parpadeo tras varios intentos). "
+            f"Posible intento de suplantación con una foto."
+        )
+
+        return Alerta.objects.create(
+            bodega=bodega,
+            tipo_alerta=TipoAlerta.INTENTO_SUPLANTACION,
+            mensaje=mensaje,
+            leida=False,
+        )
+
+    @staticmethod
     def generar_alerta_mantenimiento(unidad, detalle):
         """
         Módulo de Activos Retornables: si una radio vuelve marcada como

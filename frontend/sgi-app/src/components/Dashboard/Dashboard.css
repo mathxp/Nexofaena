@@ -58,13 +58,7 @@
     border-radius: 50%;
     background: #10b981;
     box-shadow: 0 0 0 rgba(16, 185, 129, 0.6);
-    animation: pulse 1.8s infinite;
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
-    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    animation: nx-pulse-ring 1.8s infinite;
 }
 
 /* --- KPIs GRID --- */
@@ -76,7 +70,8 @@
 }
 
 .kpi-card {
-    background: #002244;
+    position: relative;
+    background: linear-gradient(160deg, #002244 0%, #001b38 100%);
     border-radius: 12px;
     padding: 20px;
     display: flex;
@@ -85,12 +80,21 @@
     gap: 15px;
     border: 1px solid rgba(255,255,255,0.05);
     box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-    transition: all 0.2s ease;
+    transition: transform 0.25s var(--ease, ease), box-shadow 0.25s var(--ease, ease), border-color 0.25s ease;
+    animation: nx-fade-up 0.45s var(--ease, ease) both;
+    overflow: hidden;
 }
 
+.kpi-grid > .kpi-card:nth-child(1) { animation-delay: 0ms; }
+.kpi-grid > .kpi-card:nth-child(2) { animation-delay: 60ms; }
+.kpi-grid > .kpi-card:nth-child(3) { animation-delay: 120ms; }
+.kpi-grid > .kpi-card:nth-child(4) { animation-delay: 180ms; }
+.kpi-grid > .kpi-card:nth-child(5) { animation-delay: 240ms; }
+
 .kpi-card:hover {
-    background: #002d5a;
-    transform: translateY(-3px);
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
 }
 
 .kpi-icon-box {
@@ -101,12 +105,17 @@
     align-items: center;
     justify-content: center;
     font-size: 1.4rem;
+    transition: transform 0.25s var(--ease-spring, ease);
+}
+
+.kpi-card:hover .kpi-icon-box {
+    transform: scale(1.1) rotate(-4deg);
 }
 
 /* Colores de íconos */
-.kpi-blue .kpi-icon-box { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-.kpi-orange .kpi-icon-box { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
-.kpi-red .kpi-icon-box { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.kpi-blue .kpi-icon-box { background: rgba(59, 130, 246, 0.15); color: #60a5fa; box-shadow: 0 0 0 1px rgba(96,165,250,0.15); }
+.kpi-orange .kpi-icon-box { background: rgba(249, 115, 22, 0.15); color: #fb923c; box-shadow: 0 0 0 1px rgba(251,146,60,0.15); }
+.kpi-red .kpi-icon-box { background: rgba(239, 68, 68, 0.15); color: #f87171; box-shadow: 0 0 0 1px rgba(248,113,113,0.15); }
 
 .kpi-label {
     font-size: 0.75rem;
@@ -155,11 +164,18 @@
     color: white !important; /* FORZADO BLANCO */
     font-size: 0.9rem;
     font-weight: 500;
+    transition: background 0.2s ease, transform 0.2s ease;
+    animation: nx-fade-up 0.35s ease both;
 }
 
-.alert-item.urgente { border-left-color: #ef4444; }
-.alert-item.aviso { border-left-color: #f59e0b; }
-.alert-item.info { border-left-color: #60a5fa; }
+.alert-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(2px);
+}
+
+.alert-item.urgente { border-left-color: #ef4444; box-shadow: inset 3px 0 12px -8px rgba(239, 68, 68, 0.7); }
+.alert-item.aviso { border-left-color: #f59e0b; box-shadow: inset 3px 0 12px -8px rgba(245, 158, 11, 0.6); }
+.alert-item.info { border-left-color: #60a5fa; box-shadow: inset 3px 0 12px -8px rgba(96, 165, 250, 0.6); }
 
 .badge-urgente, .badge-aviso, .badge-info {
     flex-shrink: 0;
@@ -224,12 +240,14 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    transition: all 0.2s;
+    transition: transform 0.2s var(--ease, ease), box-shadow 0.2s ease, background 0.25s ease, border-color 0.25s ease;
 }
 
 .qa-btn:hover {
-    background: #ea580c;
+    background: linear-gradient(135deg, #ea580c, #f97316);
     border-color: #ea580c;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(234, 88, 12, 0.35);
 }
 
 .qa-icon-wrapper {
@@ -241,6 +259,12 @@
     align-items: center;
     justify-content: center;
     color: white;
+    transition: transform 0.2s var(--ease-spring, ease);
+}
+
+.qa-btn:hover .qa-icon-wrapper {
+    transform: scale(1.12) rotate(-4deg);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 @keyframes fadeIn {

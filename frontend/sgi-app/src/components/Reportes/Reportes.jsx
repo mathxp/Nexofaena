@@ -10,6 +10,8 @@ import {
   FaChevronRight,
   FaSyncAlt,
   FaHourglassHalf,
+  FaTools,
+  FaUserClock,
 } from 'react-icons/fa';
 
 import { jsPDF } from 'jspdf';
@@ -18,11 +20,12 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 import api from '../../api';
+import ReporteConsumoTurno from '../ReporteConsumoTurno/ReporteConsumoTurno';
 import './Reportes.css';
 
 const REGISTROS_POR_PAGINA = 15;
 
-const Reportes = () => {
+const ReporteEntregas = () => {
   const [entregas, setEntregas] = useState([]);
   const [bodegas, setBodegas] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -507,6 +510,31 @@ const Reportes = () => {
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+const Reportes = () => {
+  const [tab, setTab] = useState('entregas');
+
+  return (
+    <div className="reportes-page">
+      <div className="reportes-tabs">
+        <button
+          className={`reportes-tab ${tab === 'entregas' ? 'active' : ''}`}
+          onClick={() => setTab('entregas')}
+        >
+          <FaTools /> Entregas EPP
+        </button>
+        <button
+          className={`reportes-tab ${tab === 'turno' ? 'active' : ''}`}
+          onClick={() => setTab('turno')}
+        >
+          <FaUserClock /> Consumo por Turno
+        </button>
+      </div>
+
+      {tab === 'entregas' ? <ReporteEntregas /> : <ReporteConsumoTurno />}
     </div>
   );
 };

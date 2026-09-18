@@ -64,7 +64,12 @@ MIDDLEWARE = [
 # ==========================================
 # CORS
 # ==========================================
-CORS_ALLOW_ALL_ORIGINS = True
+# Antes era CORS_ALLOW_ALL_ORIGINS = True (cualquier sitio podía llamar a la
+# API) — el CORS_ALLOWED_ORIGINS de abajo, que ya se configuraba en .env, no
+# se estaba usando en absoluto. Con el backend expuesto a internet real
+# (no solo LAN) conviene restringirlo a los orígenes reales del frontend.
+CORS_ALLOWED_ORIGINS_RAW = config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=str)
+CORS_ALLOWED_ORIGINS = [origen.strip() for origen in str(CORS_ALLOWED_ORIGINS_RAW).split(",") if origen.strip()]
 
 # ==========================================
 # URLS
@@ -106,8 +111,39 @@ DATABASES = {
     )
 }
 
+# ==========================================
+# REPORTES OPERATIVOS
+# ==========================================
+# Umbral configurable para derivar el turno (día/noche) desde la hora de
+# entrega, sin tocar código: TURNO_HORA_INICIO_DIA <= hora < TURNO_HORA_INICIO_NOCHE = "dia".
+TURNO_HORA_INICIO_DIA = int(os.environ.get("TURNO_HORA_INICIO_DIA", 8))
+TURNO_HORA_INICIO_NOCHE = int(os.environ.get("TURNO_HORA_INICIO_NOCHE", 20))
+
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@nexofaena.cl"
+
+# ==========================================
+# BOT DE NOTIFICACIONES (TELEGRAM)
+# ==========================================
+# Token del bot (@BotFather) y chat_id del grupo/canal de gerencia/supervisores
+# que debe recibir las alertas críticas (stock crítico, robo hormiga, etc.).
+# Sin TELEGRAM_BOT_TOKEN configurado, NotificationService.enviar_alerta() no
+# hace nada (falla silenciosa, no debe romper el flujo que generó la alerta).
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_CHAT_ID = config("TELEGRAM_CHAT_ID", default="")
+TELEGRAM_NOTIFICACIONES_ACTIVAS = config("TELEGRAM_NOTIFICACIONES_ACTIVAS", default=True, cast=bool)
+
+# Bot conversacional (comandos /stock, /alertas, /historial, /atender por DM).
+# TELEGRAM_BOT_USERNAME (sin @, ej. "nexofaena_alertas_bot") arma el enlace
+# directo "Vincular Telegram" del frontend; sin él, igual funciona pero el
+# usuario debe buscar el bot manualmente en Telegram.
+TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default="")
+TELEGRAM_CODIGO_TTL_MINUTOS = config("TELEGRAM_CODIGO_TTL_MINUTOS", default=10, cast=int)
+
+# Solo se usa si el bot corre por webhook (despliegue en la nube) en vez de
+# long-polling (telegram_bot, pensado para LAN). Vacío = la vista del
+# webhook rechaza todo con 404 — no hace nada raro por default.
+TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
 
 # ==========================================
 # USUARIO PERSONALIZADO

@@ -11,6 +11,7 @@ class AuditoriaInventario(models.Model):
     ESTADOS = (
         ("ABIERTA", "Abierta"),
         ("CERRADA", "Cerrada"),
+        ("AJUSTADA", "Ajustada"),
         ("ANULADA", "Anulada"),
     )
 

@@ -1,6 +1,197 @@
-/* index.css */
+/* =========================================================
+   NEXOFAENA SGI — SISTEMA DE DISEÑO GLOBAL "DARK PREMIUM"
+   Fundamento visual compartido por toda la app: tokens, resets,
+   scrollbar, selección, foco y animaciones reutilizables.
+   Los estilos por componente siguen viviendo en su propio .css;
+   esto es la base sobre la que todos se apoyan.
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    /* --- Superficies --- */
+    --bg: #001529;
+    --bg-soft: #001e38;
+    --card: #002244;
+    --card-alt: #002d5a;
+    --input: #001a33;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+
+    /* --- Marca --- */
+    --orange: #ea580c;
+    --orange-light: #fb923c;
+    --orange-glow: rgba(234, 88, 12, 0.45);
+    --gradient-brand: linear-gradient(135deg, #ea580c 0%, #fb923c 100%);
+    --gradient-brand-hover: linear-gradient(135deg, #f97316 0%, #fdba74 100%);
+
+    /* --- Semánticos --- */
+    --success: #10b981;
+    --success-soft: rgba(16, 185, 129, 0.15);
+    --warning: #f59e0b;
+    --warning-soft: rgba(245, 158, 11, 0.15);
+    --danger: #ef4444;
+    --danger-soft: rgba(239, 68, 68, 0.15);
+    --info: #60a5fa;
+    --info-soft: rgba(96, 165, 250, 0.15);
+    --purple: #7c3aed;
+    --purple-soft: rgba(124, 58, 237, 0.15);
+
+    /* --- Texto --- */
+    --text: #ffffff;
+    --text-soft: #94a3b8;
+    --text-faint: #64748b;
+
+    /* --- Elevación (sombras con profundidad real, no solo blur plano) --- */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.38);
+    --shadow-glow-orange: 0 8px 28px rgba(234, 88, 12, 0.35);
+    --shadow-glow-orange-lg: 0 16px 44px rgba(234, 88, 12, 0.4);
+
+    /* --- Radios y transición --- */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ================= RESET BASE ================= */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     margin: 0;
     padding: 0;
-    background-color: #001529; /* Color base del sistema */
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Textura sutil de fondo: dos resplandores radiales fijos, casi
+   imperceptibles, que le dan profundidad al azul plano sin distraer. */
+#root {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(234, 88, 12, 0.05), transparent 40%),
+        radial-gradient(circle at 88% 92%, rgba(96, 165, 250, 0.04), transparent 45%),
+        var(--bg);
+}
+
+/* ================= SELECCIÓN DE TEXTO ================= */
+::selection {
+    background: rgba(234, 88, 12, 0.35);
+    color: #ffffff;
+}
+
+/* ================= FOCO ACCESIBLE ================= */
+:focus-visible {
+    outline: 2px solid var(--orange-light);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ================= SCROLLBAR PERSONALIZADO ================= */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(234, 88, 12, 0.45) rgba(255, 255, 255, 0.04);
+}
+
+*::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+*::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(234, 88, 12, 0.55), rgba(251, 146, 60, 0.55));
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(234, 88, 12, 0.85), rgba(251, 146, 60, 0.85));
+    background-clip: padding-box;
+}
+
+/* ================= UTILIDADES REUTILIZABLES ================= */
+
+/* Entrada suave para vistas y tarjetas — usar en el contenedor raíz de
+   cada página (ej. className="page-enter") para que nada aparezca "de golpe". */
+.page-enter {
+    animation: nx-fade-up 0.45s var(--ease) both;
+}
+
+/* Para listas: aplicar junto con --nx-delay inline (ej. style={{'--nx-delay': `${i * 40}ms`}})
+   para un efecto de aparición escalonada elegante. */
+.stagger-item {
+    animation: nx-fade-up 0.4s var(--ease) both;
+    animation-delay: var(--nx-delay, 0ms);
+}
+
+.glow-on-hover {
+    transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.glow-on-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-glow-orange);
+}
+
+/* Skeleton de carga con efecto shimmer, para reemplazar "Cargando..." planos */
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+}
+
+.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: nx-shimmer 1.6s infinite;
+}
+
+@keyframes nx-shimmer {
+    100% { transform: translateX(100%); }
+}
+
+@keyframes nx-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes nx-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes nx-scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes nx-pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+    70% { box-shadow: 0 0 0 9px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }

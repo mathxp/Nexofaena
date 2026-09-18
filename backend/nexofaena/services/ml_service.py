@@ -4,14 +4,13 @@ Motor de Machine Learning / Inteligencia Artificial de NexoFaena SGI.
 Toda la matemática vive aquí (Regla de Oro: "Frontend tonto, backend
 inteligente"). El frontend solo debe pintar lo que este service entrega.
 
-Seis modelos, cada uno resolviendo un problema de negocio distinto:
+Modelos, cada uno resolviendo un problema de negocio distinto:
 
 1. Regresión Lineal / Random Forest -> Planificación y Compras.
 2. Regresión Logística              -> Prevención de quiebre de stock.
 3. K-Means                          -> Auditoría de consumo ("robo hormiga").
-4. Reglas de Asociación             -> Cross-selling de EPP en el pañol.
-5. Random Forest Classifier         -> Perfil de riesgo operativo del trabajador.
 6. TF-IDF + Similitud de Coseno     -> Búsqueda semántica de KPIs en texto plano.
+7. K-Means                          -> Clasificación ABC dinámica del inventario (valor x rotación).
 """
 
 import math
@@ -32,6 +31,7 @@ from sklearn.preprocessing import StandardScaler
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncWeek
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from nexofaena.models.entrega import DetalleEntregaEPP
 from nexofaena.models.inventario import Inventario
@@ -47,21 +47,20 @@ MIN_FILAS_REGRESION_LOGISTICA = 40
 DIAS_VENTANA_ENTRENAMIENTO = 180
 MAX_FILAS_ENTRENAMIENTO = 5000
 
+UMBRAL_DIAS_SOBRESTOCK = 180  # ~6 meses de cobertura
+UMBRAL_PROBABILIDAD_SOBRESTOCK = 5  # % de riesgo de quiebre considerado prácticamente nulo
+
 MIN_TRABAJADORES_KMEANS = 6
-
-MIN_ENTREGAS_ASOCIACION = 20
-MIN_SOPORTE_ASOCIACION = 0.02
-MIN_CONFIANZA_ASOCIACION = 0.3
-TOP_N_ASOCIACION = 3
-TOP_N_ASOCIACION_DASHBOARD = 8
-
-MIN_TRABAJADORES_RIESGO = 10
-UMBRAL_TASA_RIESGO_MEDIO = 0.15
-UMBRAL_TASA_RIESGO_ALTO = 0.35
 
 MIN_PRODUCTOS_TFIDF = 5
 TOP_N_BUSQUEDA_SEMANTICA = 5
 UMBRAL_SIMILITUD_MINIMA = 0.1
+
+MIN_PRODUCTOS_ABC = 6
+DIAS_VENTANA_ROTACION_ABC = 90
+
+MIN_ENTREGAS_HISTORICO_PROPIO = 3
+UMBRAL_Z_HISTORICO = 2.0
 
 
 class MLService:
@@ -149,7 +148,7 @@ class MLService:
         productos = {
             p.id: p
             for p in Inventario.objects.filter(
-                id__in=series.keys(), estado=True, es_despacho_rapido=False,
+                id__in=series.keys(), estado=True,
             ).select_related("bodega")
         }
 
@@ -174,13 +173,19 @@ class MLService:
                 algoritmo = "Promedio histórico"
 
             proyeccion_semana = max(0, round(proyeccion_semana, 1))
+            proyeccion_mes = round(proyeccion_semana * 4, 1)
+            precio_unitario = float(producto.precio_unitario)
 
             proyecciones.append({
                 "inventario_id": producto.id,
                 "producto_nombre": producto.nombre,
                 "bodega_nombre": producto.bodega.nombre,
                 "proyeccion_semana": proyeccion_semana,
-                "proyeccion_mes": round(proyeccion_semana * 4, 1),
+                "proyeccion_mes": proyeccion_mes,
+                "precio_unitario": precio_unitario,
+                # Valorización financiera: cuánto costará reponer lo que se proyecta consumir.
+                "proyeccion_gasto_clp": round(proyeccion_semana * precio_unitario, 2),
+                "proyeccion_gasto_mensual_clp": round(proyeccion_mes * precio_unitario, 2),
                 "algoritmo": algoritmo,
             })
 
@@ -283,18 +288,33 @@ class MLService:
         }
 
         hoy = timezone.now().date()
-        productos = Inventario.objects.filter(estado=True, es_despacho_rapido=False).select_related("bodega")
+        productos = Inventario.objects.filter(estado=True).select_related("bodega")
 
         quiebre_stock = []
         recomendaciones = []
+        capital_inmovilizado = []
 
         for producto in productos:
             diario = proyecciones_rf.get(producto.id, consumo_diario.get(producto.id, 0))
+            stock_actual = float(producto.stock_actual)
+            precio_unitario = float(producto.precio_unitario)
 
             if diario <= 0:
+                # Sin consumo reciente: si además hay stock valorizado, es capital
+                # dormido (0% de riesgo de quiebre porque nadie lo está pidiendo).
+                if stock_actual > 0 and precio_unitario > 0:
+                    capital_inmovilizado.append({
+                        "inventario_id": producto.id,
+                        "producto_nombre": producto.nombre,
+                        "bodega_nombre": producto.bodega.nombre,
+                        "stock_actual": stock_actual,
+                        "dias_cobertura_estimados": None,
+                        "precio_unitario": precio_unitario,
+                        "capital_inmovilizado_clp": round(stock_actual * precio_unitario, 2),
+                        "motivo": "Sin consumo registrado en el período reciente (posible obsolescencia).",
+                    })
                 continue
 
-            stock_actual = float(producto.stock_actual)
             dias_restantes = stock_actual / diario
             tiempo_reposicion = producto.tiempo_reposicion_dias or 7
 
@@ -307,6 +327,24 @@ class MLService:
                 algoritmo = "Regresión Logística (fórmula base)"
 
             probabilidad = round(min(100, probabilidad), 1)
+
+            # Optimización de capital: riesgo de quiebre ~nulo + cobertura de
+            # varios meses = dinero inmovilizado en sobre-stock, no en riesgo.
+            if (
+                probabilidad <= UMBRAL_PROBABILIDAD_SOBRESTOCK
+                and dias_restantes >= UMBRAL_DIAS_SOBRESTOCK
+                and precio_unitario > 0
+            ):
+                capital_inmovilizado.append({
+                    "inventario_id": producto.id,
+                    "producto_nombre": producto.nombre,
+                    "bodega_nombre": producto.bodega.nombre,
+                    "stock_actual": stock_actual,
+                    "dias_cobertura_estimados": round(dias_restantes, 1),
+                    "precio_unitario": precio_unitario,
+                    "capital_inmovilizado_clp": round(stock_actual * precio_unitario, 2),
+                    "motivo": "Sobre-stock: más de 6 meses de cobertura con riesgo de quiebre prácticamente nulo.",
+                })
 
             if probabilidad < 15:
                 continue
@@ -346,7 +384,7 @@ class MLService:
         quiebre_stock.sort(key=lambda r: r["probabilidad_quiebre"], reverse=True)
         recomendaciones.sort(key=lambda r: r["probabilidad_quiebre"], reverse=True)
 
-        return quiebre_stock, recomendaciones
+        return quiebre_stock, recomendaciones, capital_inmovilizado
 
     @staticmethod
     def analitica_stock():
@@ -362,36 +400,65 @@ class MLService:
             reverse=True,
         )
 
-        quiebre_stock, recomendaciones = MLService._analizar_riesgo_quiebre(proyecciones_producto)
+        quiebre_stock, recomendaciones, capital_inmovilizado = MLService._analizar_riesgo_quiebre(proyecciones_producto)
+
+        presupuesto_proyectado = {
+            "semanal_clp": round(sum(p["proyeccion_gasto_clp"] for p in proyecciones_producto), 2),
+            "mensual_clp": round(sum(p["proyeccion_gasto_mensual_clp"] for p in proyecciones_producto), 2),
+        }
+
+        capital_inmovilizado_ordenado = sorted(
+            capital_inmovilizado, key=lambda c: c["capital_inmovilizado_clp"], reverse=True
+        )
 
         return {
             "prediccion_consumo_producto": proyecciones_producto[:TOP_N_PRODUCTOS_PLANIFICACION],
+            "presupuesto_proyectado": presupuesto_proyectado,
             "quiebre_stock": quiebre_stock,
             "recomendaciones_reposicion": recomendaciones,
+            "capital_inmovilizado": {
+                "items": capital_inmovilizado_ordenado[:TOP_N_PRODUCTOS_PLANIFICACION],
+                "total_clp": round(sum(c["capital_inmovilizado_clp"] for c in capital_inmovilizado), 2),
+                "cantidad_items": len(capital_inmovilizado),
+            },
         }
 
     @staticmethod
     def predecir_quiebre_stock():
-        quiebre_stock, _ = MLService._analizar_riesgo_quiebre()
+        quiebre_stock, _, _ = MLService._analizar_riesgo_quiebre()
         return quiebre_stock
 
     @staticmethod
     def recomendar_reposicion():
-        _, recomendaciones = MLService._analizar_riesgo_quiebre()
+        _, recomendaciones, _ = MLService._analizar_riesgo_quiebre()
         return recomendaciones
+
+    @staticmethod
+    def capital_inmovilizado():
+        """Punto de entrada standalone: dinero congelado en sobre-stock (probabilidad
+        de quiebre ~nula y cobertura mayor a UMBRAL_DIAS_SOBRESTOCK días)."""
+        _, _, capital_inmovilizado = MLService._analizar_riesgo_quiebre()
+        capital_inmovilizado.sort(key=lambda c: c["capital_inmovilizado_clp"], reverse=True)
+        return capital_inmovilizado
 
     # ==================================================================
     # MÓDULO 3 · K-Means — Auditoría de Consumo ("Robo Hormiga")
     # ==================================================================
     @staticmethod
     def detectar_anomalias():
+        """
+        La comparación es SIEMPRE dentro del mismo cargo: un soldador no se
+        compara contra un geólogo ni contra "toda la faena", porque los
+        consumos no son comparables entre oficios distintos (requerimiento
+        directo del stakeholder). Se agrupa por cargo primero y el
+        clustering/estadístico corre por separado dentro de cada grupo.
+        """
         inicio_mes = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         consumos = (
             MovimientoInventario.objects
             .filter(tipo_movimiento="SALIDA", fecha__gte=inicio_mes, trabajador__isnull=False)
-            .exclude(inventario__es_despacho_rapido=True)
-            .values("trabajador_id", "trabajador__nombres", "trabajador__apellido_paterno")
+            .values("trabajador_id", "trabajador__nombres", "trabajador__apellido_paterno", "trabajador__cargo")
             .annotate(
                 total=Sum("cantidad"),
                 num_entregas=Count("id"),
@@ -405,10 +472,19 @@ class MLService:
         if len(registros) < 3:
             return []
 
-        if len(registros) >= MIN_TRABAJADORES_KMEANS:
-            anomalias = MLService._detectar_anomalias_kmeans(registros)
-        else:
-            anomalias = MLService._detectar_anomalias_fallback(registros)
+        por_cargo = {}
+        for registro in registros:
+            por_cargo.setdefault(registro["trabajador__cargo"], []).append(registro)
+
+        anomalias = []
+        for registros_cargo in por_cargo.values():
+            if len(registros_cargo) < 3:
+                continue  # sin suficientes pares del mismo cargo para comparar
+
+            if len(registros_cargo) >= MIN_TRABAJADORES_KMEANS:
+                anomalias.extend(MLService._detectar_anomalias_kmeans(registros_cargo))
+            else:
+                anomalias.extend(MLService._detectar_anomalias_fallback(registros_cargo))
 
         return MLService._enriquecer_anomalias(anomalias, inicio_mes)
 
@@ -429,7 +505,11 @@ class MLService:
         X_escalado = scaler.fit_transform(X)
 
         k = min(3, max(2, len(registros) // 4))
-        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+        # n_init=3 (no 10): con grupos de una decena de trabajadores por
+        # cargo, 10 reinicios aleatorios no cambian el resultado pero sí
+        # multiplican el costo — esto se llama una vez POR CADA cargo en
+        # detectar_anomalias(), así que el ahorro se repite por grupo.
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=3)
         etiquetas = kmeans.fit_predict(X_escalado)
 
         totales = X[:, 0]
@@ -446,10 +526,13 @@ class MLService:
         if promedio_por_cluster[cluster_alto] <= umbral:
             return []
 
+        mascara_normal = etiquetas != cluster_alto
+        promedio_normal = float(mean(totales[mascara_normal])) if mascara_normal.any() else promedio_global
+
         anomalos = []
         for registro, etiqueta, total in zip(registros, etiquetas, totales):
             if etiqueta == cluster_alto and total > umbral:
-                anomalos.append({**registro, "algoritmo": "K-Means"})
+                anomalos.append({**registro, "algoritmo": "K-Means", "promedio_referencia": promedio_normal})
 
         return anomalos
 
@@ -463,7 +546,7 @@ class MLService:
         umbral = promedio + 2 * desviacion
 
         return [
-            {**r, "algoritmo": "Estadístico (Z-score)"}
+            {**r, "algoritmo": "Estadístico (Z-score)", "promedio_referencia": promedio}
             for r, total in zip(registros, totales)
             if total > umbral
         ]
@@ -488,8 +571,7 @@ class MLService:
                 fecha__gte=inicio_mes,
                 trabajador_id__in=trabajador_ids,
             )
-            .exclude(inventario__es_despacho_rapido=True)
-            .values("trabajador_id", "inventario_id", "inventario__nombre", "bodega__nombre")
+            .values("trabajador_id", "inventario_id", "inventario__nombre", "inventario__precio_unitario", "bodega__nombre")
             .annotate(total=Sum("cantidad"))
             .order_by("trabajador_id", "-total")
         )
@@ -508,460 +590,42 @@ class MLService:
 
             nombre_trabajador = f"{registro['trabajador__nombres']} {registro['trabajador__apellido_paterno']}"
 
+            # Traducción financiera del "robo hormiga": el exceso de unidades por
+            # sobre el consumo normal del grupo, valorizado al precio del producto
+            # que más retiró (proxy razonable cuando el exceso es multi-producto).
+            precio_referencia = float(top_producto["inventario__precio_unitario"] or 0)
+            promedio_referencia = registro.get("promedio_referencia", 0)
+            exceso_unidades = max(0.0, float(registro["total"]) - promedio_referencia)
+            impacto_financiero_clp = round(exceso_unidades * precio_referencia, 2)
+
             anomalias.append({
                 "trabajador_id": registro["trabajador_id"],
                 "trabajador_nombre": nombre_trabajador,
+                "cargo": registro.get("trabajador__cargo"),
                 "inventario_id": top_producto["inventario_id"],
                 "producto_nombre": top_producto["inventario__nombre"],
                 "bodega_nombre": top_producto["bodega__nombre"],
                 "cantidad_mes": float(registro["total"]),
                 "num_entregas": registro["num_entregas"],
                 "productos_distintos": registro["productos_distintos"],
+                "exceso_unidades": round(exceso_unidades, 1),
+                "impacto_financiero_clp": impacto_financiero_clp,
                 "algoritmo": registro["algoritmo"],
                 "mensaje": (
-                    f"{nombre_trabajador} retiró {float(registro['total']):.0f} unidades en total este mes "
+                    f"{nombre_trabajador} ({registro.get('trabajador__cargo') or 'sin cargo'}) retiró "
+                    f"{float(registro['total']):.0f} unidades en total este mes "
                     f"({registro['num_entregas']} entregas, {registro['productos_distintos']} productos distintos), "
-                    f"destacando {top_producto['inventario__nombre']}. Consumo fuera del patrón normal del grupo."
+                    f"destacando {top_producto['inventario__nombre']}. "
+                    f"Consumo fuera del patrón normal de su mismo cargo."
+                    + (
+                        f" Impacto financiero estimado: ${impacto_financiero_clp:,.0f} CLP en exceso sobre lo esperado."
+                        .replace(",", ".")
+                        if impacto_financiero_clp > 0 else ""
+                    )
                 ),
             })
 
         return anomalias
-
-    # ==================================================================
-    # MÓDULO 4 · Reglas de Asociación — Cross-selling de EPP
-    # ==================================================================
-    @staticmethod
-    def _construir_canastas_epp():
-        """
-        Cada entrega (EntregaEPP) es una "canasta": el conjunto de productos
-        distintos que un trabajador se llevó en una misma visita al pañol.
-        Es el insumo estándar para reglas de asociación tipo market-basket.
-        """
-        filas = (
-            DetalleEntregaEPP.objects
-            .filter(entrega__estado="COMPLETADA")
-            .values("entrega_id", "inventario_id")
-            .distinct()
-        )
-
-        canastas = {}
-        for fila in filas:
-            canastas.setdefault(fila["entrega_id"], set()).add(fila["inventario_id"])
-
-        return list(canastas.values())
-
-    @staticmethod
-    def _calcular_reglas_asociacion():
-        """
-        Soporte / confianza / lift calculados a mano sobre pares de
-        productos: el catálogo de un pañol es chico, así que no vale la
-        pena traer una librería de Apriori aparte solo para esto.
-
-        Devuelve {inventario_id: [reglas hacia otros productos]} y el
-        total de canastas usado (para poder decidir si hay masa crítica
-        de datos antes de confiar en las reglas).
-        """
-        canastas = MLService._construir_canastas_epp()
-        total_canastas = len(canastas)
-
-        if total_canastas < MIN_ENTREGAS_ASOCIACION:
-            return {}, total_canastas
-
-        conteo_individual = Counter()
-        conteo_pares = Counter()
-
-        for canasta in canastas:
-            for producto in canasta:
-                conteo_individual[producto] += 1
-            for a, b in combinations(sorted(canasta), 2):
-                conteo_pares[(a, b)] += 1
-
-        reglas = {}
-
-        for (a, b), conteo_ab in conteo_pares.items():
-            soporte_ab = conteo_ab / total_canastas
-            if soporte_ab < MIN_SOPORTE_ASOCIACION:
-                continue
-
-            soporte_a = conteo_individual[a] / total_canastas
-            soporte_b = conteo_individual[b] / total_canastas
-            lift = soporte_ab / (soporte_a * soporte_b)
-
-            if lift <= 1:
-                continue  # sin lift > 1 la combinación no dice nada por sobre el azar
-
-            confianza_a_b = conteo_ab / conteo_individual[a]
-            if confianza_a_b >= MIN_CONFIANZA_ASOCIACION:
-                reglas.setdefault(a, []).append({
-                    "inventario_id": b, "confianza": confianza_a_b,
-                    "soporte": soporte_ab, "lift": lift,
-                })
-
-            confianza_b_a = conteo_ab / conteo_individual[b]
-            if confianza_b_a >= MIN_CONFIANZA_ASOCIACION:
-                reglas.setdefault(b, []).append({
-                    "inventario_id": a, "confianza": confianza_b_a,
-                    "soporte": soporte_ab, "lift": lift,
-                })
-
-        return reglas, total_canastas
-
-    @staticmethod
-    def recomendar_epp_asociado(inventario_id, top_n=TOP_N_ASOCIACION):
-        """
-        Punto de entrada para la tablet del pañolero: al agregar el
-        "Producto A" a una entrega, sugiere qué otros productos suelen
-        entregarse junto a él (ej. Arnés -> Cabo de vida), ordenados por
-        lift (cuánto aumenta la combinación la probabilidad por sobre el
-        azar, no solo qué tan seguido aparece).
-        """
-        try:
-            reglas, total_canastas = MLService._calcular_reglas_asociacion()
-        except Exception:
-            return {
-                "sugerencias": [], "confiable": False,
-                "motivo": "Error inesperado al calcular las reglas de asociación.",
-            }
-
-        if total_canastas < MIN_ENTREGAS_ASOCIACION:
-            return {
-                "sugerencias": [], "confiable": False,
-                "motivo": (
-                    f"Aún no hay suficiente historial de entregas "
-                    f"({total_canastas}/{MIN_ENTREGAS_ASOCIACION}) para calcular asociaciones confiables."
-                ),
-            }
-
-        candidatas = sorted(
-            reglas.get(inventario_id, []),
-            key=lambda r: r["lift"],
-            reverse=True,
-        )[:top_n]
-
-        if not candidatas:
-            return {
-                "sugerencias": [], "confiable": True,
-                "motivo": "Sin asociaciones relevantes registradas para este producto.",
-            }
-
-        productos = {
-            p.id: p for p in Inventario.objects.filter(
-                id__in=[c["inventario_id"] for c in candidatas]
-            )
-        }
-
-        sugerencias = []
-        for candidata in candidatas:
-            producto = productos.get(candidata["inventario_id"])
-            if not producto:
-                continue
-
-            confianza_pct = round(candidata["confianza"] * 100, 1)
-
-            sugerencias.append({
-                "inventario_id": producto.id,
-                "producto_nombre": producto.nombre,
-                "producto_codigo": producto.codigo,
-                "confianza": confianza_pct,
-                "soporte": round(candidata["soporte"] * 100, 1),
-                "lift": round(candidata["lift"], 2),
-                "mensaje": (
-                    f"El {confianza_pct:.0f}% de quienes reciben este producto "
-                    f"también se llevan {producto.nombre}."
-                ),
-            })
-
-        return {
-            "sugerencias": sugerencias,
-            "confiable": True,
-            "algoritmo": "Reglas de Asociación (soporte / confianza / lift)",
-        }
-
-    @staticmethod
-    def top_reglas_asociacion(top_n=TOP_N_ASOCIACION_DASHBOARD):
-        """
-        Vista agregada para el Dashboard Gerencial: a diferencia de
-        recomendar_epp_asociado (pensado para la tablet del pañolero
-        durante una entrega puntual), expone las reglas más fuertes de
-        todo el catálogo para mostrar el panorama general de qué EPP se
-        repiten juntos.
-        """
-        try:
-            reglas_por_producto, total_canastas = MLService._calcular_reglas_asociacion()
-        except Exception:
-            return {
-                "reglas": [], "confiable": False,
-                "motivo": "Error inesperado al calcular las reglas de asociación.",
-            }
-
-        if total_canastas < MIN_ENTREGAS_ASOCIACION:
-            return {
-                "reglas": [], "confiable": False,
-                "motivo": (
-                    f"Aún no hay suficiente historial de entregas "
-                    f"({total_canastas}/{MIN_ENTREGAS_ASOCIACION}) para calcular asociaciones confiables."
-                ),
-            }
-
-        todas = sorted(
-            (
-                {
-                    "inventario_a_id": producto_a_id,
-                    "inventario_b_id": regla["inventario_id"],
-                    "confianza": regla["confianza"],
-                    "soporte": regla["soporte"],
-                    "lift": regla["lift"],
-                }
-                for producto_a_id, reglas in reglas_por_producto.items()
-                for regla in reglas
-            ),
-            key=lambda r: r["lift"],
-            reverse=True,
-        )[:top_n]
-
-        if not todas:
-            return {
-                "reglas": [], "confiable": True,
-                "motivo": "Sin asociaciones relevantes registradas todavía.",
-            }
-
-        ids_productos = {r["inventario_a_id"] for r in todas} | {r["inventario_b_id"] for r in todas}
-        productos = {p.id: p for p in Inventario.objects.filter(id__in=ids_productos)}
-
-        reglas_salida = []
-        for r in todas:
-            producto_a = productos.get(r["inventario_a_id"])
-            producto_b = productos.get(r["inventario_b_id"])
-            if not producto_a or not producto_b:
-                continue
-
-            confianza_pct = round(r["confianza"] * 100, 1)
-
-            reglas_salida.append({
-                "producto_origen": producto_a.nombre,
-                "producto_sugerido": producto_b.nombre,
-                "confianza": confianza_pct,
-                "soporte": round(r["soporte"] * 100, 1),
-                "lift": round(r["lift"], 2),
-                "mensaje": (
-                    f"Trabajadores que sacan {producto_a.nombre} tienen {confianza_pct:.0f}% de "
-                    f"probabilidad de necesitar también {producto_b.nombre}."
-                ),
-            })
-
-        return {
-            "reglas": reglas_salida,
-            "confiable": True,
-            "algoritmo": "Reglas de Asociación (soporte / confianza / lift)",
-        }
-
-    # ==================================================================
-    # MÓDULO 5 · Random Forest Classifier — Perfil de Riesgo Operativo
-    # ==================================================================
-    @staticmethod
-    def _construir_features_riesgo():
-        """
-        Por cada trabajador con al menos una entrega de un activo crítico,
-        arma las variables que explican su "tasa de reposición": cuántas
-        veces tuvo que pedir de nuevo el mismo activo crítico (proxy de
-        pérdida/rotura, no hay un campo explícito de "incidente") y qué
-        proporción de sus devoluciones llegaron dañadas.
-        """
-        entregas_criticas = (
-            DetalleEntregaEPP.objects
-            .filter(entrega__estado="COMPLETADA", inventario__es_activo_critico=True)
-            .values("entrega__trabajador_id", "inventario_id")
-        )
-
-        por_trabajador = {}
-        for fila in entregas_criticas:
-            trabajador_id = fila["entrega__trabajador_id"]
-            stats = por_trabajador.setdefault(trabajador_id, {"total": 0, "productos": Counter()})
-            stats["total"] += 1
-            stats["productos"][fila["inventario_id"]] += 1
-
-        if not por_trabajador:
-            return []
-
-        dañados_por_trabajador = dict(
-            DetalleEntregaEPP.objects
-            .filter(entrega__trabajador_id__in=por_trabajador.keys(), estado_devolucion="DAÑADA")
-            .values("entrega__trabajador_id")
-            .annotate(total=Count("id"))
-            .values_list("entrega__trabajador_id", "total")
-        )
-
-        devueltos_por_trabajador = dict(
-            DetalleEntregaEPP.objects
-            .filter(entrega__trabajador_id__in=por_trabajador.keys(), devuelto=True)
-            .values("entrega__trabajador_id")
-            .annotate(total=Count("id"))
-            .values_list("entrega__trabajador_id", "total")
-        )
-
-        filas = []
-        for trabajador_id, stats in por_trabajador.items():
-            productos_distintos = len(stats["productos"])
-            reposiciones = stats["total"] - productos_distintos
-            tasa_reposicion = reposiciones / stats["total"] if stats["total"] else 0
-
-            devueltos = devueltos_por_trabajador.get(trabajador_id, 0)
-            dañados = dañados_por_trabajador.get(trabajador_id, 0)
-            tasa_dañados = dañados / devueltos if devueltos else 0
-
-            filas.append({
-                "trabajador_id": trabajador_id,
-                "entregas_criticas": stats["total"],
-                "productos_criticos_distintos": productos_distintos,
-                "reposiciones_criticas": reposiciones,
-                "tasa_reposicion": tasa_reposicion,
-                "tasa_danados": tasa_dañados,
-            })
-
-        return filas
-
-    @staticmethod
-    def _nivel_riesgo_por_regla(tasa_reposicion):
-        if tasa_reposicion >= UMBRAL_TASA_RIESGO_ALTO:
-            return "Alto"
-        if tasa_reposicion >= UMBRAL_TASA_RIESGO_MEDIO:
-            return "Medio"
-        return "Bajo"
-
-    @staticmethod
-    def perfil_riesgo_operativo():
-        """
-        Clasifica a los trabajadores en Bajo/Medio/Alto riesgo según su
-        tasa de reposición de activos críticos.
-
-        El sistema aún no tiene sanciones o incidentes cargados a mano, así
-        que el label de entrenamiento se deriva con la misma regla de
-        negocio del fallback (igual que la Regresión Logística del Módulo
-        2: el label sale de una regla, no de un humano). El Random Forest
-        no memoriza esa regla tal cual, aprende a generalizarla combinando
-        las tres variables, y de paso entrega una confianza por caso en
-        vez de un corte binario duro.
-        """
-        try:
-            filas = MLService._construir_features_riesgo()
-        except Exception:
-            return []
-
-        if len(filas) < MIN_TRABAJADORES_RIESGO:
-            return MLService._enriquecer_riesgo(MLService._perfil_riesgo_fallback(filas))
-
-        X = np.array([
-            [f["tasa_reposicion"], f["entregas_criticas"], f["tasa_danados"]]
-            for f in filas
-        ])
-        y = np.array([MLService._nivel_riesgo_por_regla(f["tasa_reposicion"]) for f in filas])
-
-        if len(set(y)) < 2:
-            # Todos los trabajadores cayeron en el mismo nivel: no hay nada
-            # que un clasificador pueda aprender a separar todavía.
-            return MLService._enriquecer_riesgo(MLService._perfil_riesgo_fallback(filas))
-
-        try:
-            modelo = RandomForestClassifier(n_estimators=200, random_state=42, max_depth=4)
-            modelo.fit(X, y)
-            probabilidades = modelo.predict_proba(X)
-            clases = list(modelo.classes_)
-        except Exception:
-            return MLService._enriquecer_riesgo(MLService._perfil_riesgo_fallback(filas))
-
-        resultados = []
-        for fila, probas in zip(filas, probabilidades):
-            idx_predicho = int(np.argmax(probas))
-
-            resultados.append({
-                **fila,
-                "nivel_riesgo": clases[idx_predicho],
-                "confianza": round(float(probas[idx_predicho]) * 100, 1),
-                "bandera_roja": clases[idx_predicho] == "Alto",
-                "algoritmo": "Random Forest Classifier",
-            })
-
-        return MLService._enriquecer_riesgo(resultados)
-
-    @staticmethod
-    def _perfil_riesgo_fallback(filas):
-        """Regla de negocio directa (sin entrenar) cuando aún no hay
-        suficientes trabajadores con historial de activos críticos como
-        para separar clases de forma representativa."""
-        return [
-            {
-                **fila,
-                "nivel_riesgo": MLService._nivel_riesgo_por_regla(fila["tasa_reposicion"]),
-                "confianza": None,
-                "bandera_roja": fila["tasa_reposicion"] >= UMBRAL_TASA_RIESGO_ALTO,
-                "algoritmo": "Regla de negocio (fallback: historial insuficiente para entrenar)",
-            }
-            for fila in filas
-        ]
-
-    @staticmethod
-    def _enriquecer_riesgo(resultados):
-        if not resultados:
-            return []
-
-        trabajadores = {
-            t.id: t for t in Trabajador.objects.filter(
-                id__in=[r["trabajador_id"] for r in resultados]
-            )
-        }
-
-        salida = []
-        for r in resultados:
-            trabajador = trabajadores.get(r["trabajador_id"])
-            if not trabajador:
-                continue
-
-            salida.append({
-                "trabajador_id": trabajador.id,
-                "trabajador_nombre": trabajador.nombre_completo,
-                "cargo": trabajador.cargo,
-                "entregas_criticas": r["entregas_criticas"],
-                "reposiciones_criticas": r["reposiciones_criticas"],
-                "tasa_reposicion": round(r["tasa_reposicion"] * 100, 1),
-                "tasa_danados": round(r["tasa_danados"] * 100, 1),
-                "nivel_riesgo": r["nivel_riesgo"],
-                "confianza": r["confianza"],
-                "bandera_roja": r["bandera_roja"],
-                "algoritmo": r["algoritmo"],
-            })
-
-        salida.sort(key=lambda r: r["tasa_reposicion"], reverse=True)
-        return salida
-
-    @staticmethod
-    def evaluar_riesgo_entrega(trabajador_id):
-        """
-        Punto de entrada puntual para el flujo de entrega: antes de
-        despachar otro activo crítico, consulta si el trabajador tiene
-        bandera roja para que el pañolero decida con contexto. No bloquea
-        la entrega automáticamente, es una alerta informativa.
-        """
-        try:
-            perfiles = MLService.perfil_riesgo_operativo()
-        except Exception:
-            return {
-                "trabajador_id": trabajador_id,
-                "nivel_riesgo": "Sin datos",
-                "bandera_roja": False,
-                "mensaje": "Error inesperado al calcular el perfil de riesgo.",
-            }
-
-        perfil = next((p for p in perfiles if p["trabajador_id"] == trabajador_id), None)
-
-        if not perfil:
-            return {
-                "trabajador_id": trabajador_id,
-                "nivel_riesgo": "Sin datos",
-                "bandera_roja": False,
-                "mensaje": "Sin historial de activos críticos registrado para este trabajador.",
-            }
-
-        return perfil
 
     # ==================================================================
     # MÓDULO 6 · TF-IDF + Similitud de Coseno — Búsqueda Semántica de KPIs
@@ -1083,3 +747,289 @@ class MLService:
             "confiable": len(resultados) > 0,
             "algoritmo": algoritmo,
         }
+
+    # ==================================================================
+    # MÓDULO 7 · K-Means — Clasificación ABC Dinámica de Inventario
+    # ==================================================================
+    @staticmethod
+    def _rotacion_mensual_por_producto():
+        """Promedio mensual de unidades que salieron de cada producto en la
+        ventana reciente (rotación real, no la proyección de RF del Módulo 1),
+        para no acoplar la clasificación ABC a productos con historial semanal
+        insuficiente para entrenar un bosque de árboles."""
+        desde = timezone.now() - timedelta(days=DIAS_VENTANA_ROTACION_ABC)
+        meses_ventana = DIAS_VENTANA_ROTACION_ABC / 30
+
+        filas = (
+            MovimientoInventario.objects
+            .filter(tipo_movimiento="SALIDA", fecha__gte=desde)
+            .values("inventario_id")
+            .annotate(total=Sum("cantidad"))
+        )
+
+        return {
+            fila["inventario_id"]: float(fila["total"] or 0) / meses_ventana
+            for fila in filas
+        }
+
+    @staticmethod
+    def _construir_features_abc():
+        rotacion_mensual = MLService._rotacion_mensual_por_producto()
+        productos = Inventario.objects.filter(estado=True).select_related("bodega")
+
+        return [
+            {
+                "producto": producto,
+                "precio_unitario": float(producto.precio_unitario),
+                "rotacion_mensual": rotacion_mensual.get(producto.id, 0.0),
+            }
+            for producto in productos
+        ]
+
+    @staticmethod
+    def _clasificacion_abc_pareto(filas):
+        """Regla de Pareto 80/15/5 clásica (sin entrenar) cuando el catálogo
+        es demasiado chico para que K-Means forme 3 clústeres representativos."""
+        ordenado = sorted(filas, key=lambda f: f["precio_unitario"] * f["rotacion_mensual"], reverse=True)
+        valor_total = sum(f["precio_unitario"] * f["rotacion_mensual"] for f in ordenado)
+
+        acumulado = 0.0
+        clasificadas = []
+
+        for f in ordenado:
+            acumulado += f["precio_unitario"] * f["rotacion_mensual"]
+            porcentaje_acumulado = (acumulado / valor_total * 100) if valor_total > 0 else 100
+
+            if porcentaje_acumulado <= 80:
+                clase = "A"
+            elif porcentaje_acumulado <= 95:
+                clase = "B"
+            else:
+                clase = "C"
+
+            clasificadas.append({**f, "clase_abc": clase})
+
+        return clasificadas, "Regla de Pareto 80/15/5 (fallback: catálogo pequeño)"
+
+    @staticmethod
+    def _clasificacion_abc_kmeans(filas):
+        """
+        K-Means con dos variables (precio_unitario, rotación_mensual) sobre
+        el catálogo completo. Los 3 clústeres no nacen con nombre, así que se
+        etiquetan post-hoc por su centroide: el de mayor precio promedio es
+        Clase A (alto valor/crítico); entre los dos restantes, el de mayor
+        rotación promedio es Clase C (consumo masivo); el que queda es B.
+        """
+        X = np.array([[f["precio_unitario"], f["rotacion_mensual"]] for f in filas])
+
+        scaler = StandardScaler()
+        X_escalado = scaler.fit_transform(X)
+
+        kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+        etiquetas = kmeans.fit_predict(X_escalado)
+
+        precios = X[:, 0]
+        rotaciones = X[:, 1]
+
+        promedio_precio_cluster = {c: float(mean(precios[etiquetas == c])) for c in set(etiquetas)}
+        cluster_a = max(promedio_precio_cluster, key=promedio_precio_cluster.get)
+
+        clusters_restantes = [c for c in set(etiquetas) if c != cluster_a]
+        promedio_rotacion_cluster = {c: float(mean(rotaciones[etiquetas == c])) for c in clusters_restantes}
+        cluster_c = max(promedio_rotacion_cluster, key=promedio_rotacion_cluster.get)
+
+        mapa_clase = {cluster_a: "A"}
+        for c in clusters_restantes:
+            mapa_clase[c] = "C" if c == cluster_c else "B"
+
+        clasificadas = [
+            {**fila, "clase_abc": mapa_clase[etiqueta]}
+            for fila, etiqueta in zip(filas, etiquetas)
+        ]
+
+        return clasificadas, "K-Means (precio unitario x rotación mensual)"
+
+    @staticmethod
+    def clasificacion_abc_dinamica():
+        """
+        Punto de entrada para el Dashboard Gerencial: agrupa el catálogo de
+        inventario por precio unitario y rotación mensual para etiquetar
+        automáticamente Clase A (alto valor/crítico, exige firma), Clase B
+        (valor medio) y Clase C (consumo masivo) — sin
+        depender de que alguien marque manualmente qué producto es
+        "importante".
+        """
+        try:
+            filas = MLService._construir_features_abc()
+        except Exception:
+            return {
+                "items": [], "resumen": {}, "confiable": False,
+                "motivo": "Error inesperado al calcular la clasificación ABC.",
+            }
+
+        filas = [f for f in filas if f["precio_unitario"] > 0]
+
+        if not filas:
+            return {
+                "items": [], "resumen": {}, "confiable": False,
+                "motivo": "Sin productos con precio unitario cargado todavía.",
+            }
+
+        if len(filas) < MIN_PRODUCTOS_ABC:
+            clasificadas, algoritmo = MLService._clasificacion_abc_pareto(filas)
+        else:
+            try:
+                clasificadas, algoritmo = MLService._clasificacion_abc_kmeans(filas)
+            except Exception:
+                clasificadas, algoritmo = MLService._clasificacion_abc_pareto(filas)
+
+        items = []
+        for f in clasificadas:
+            producto = f["producto"]
+            stock_actual = float(producto.stock_actual)
+
+            items.append({
+                "inventario_id": producto.id,
+                "producto_nombre": producto.nombre,
+                "bodega_nombre": producto.bodega.nombre,
+                "precio_unitario": f["precio_unitario"],
+                "rotacion_mensual": round(f["rotacion_mensual"], 1),
+                "stock_actual": stock_actual,
+                "valor_stock_clp": round(stock_actual * f["precio_unitario"], 2),
+                "valor_movido_mensual_clp": round(f["precio_unitario"] * f["rotacion_mensual"], 2),
+                "clase_abc": f["clase_abc"],
+                "es_activo_critico": producto.es_activo_critico,
+                "algoritmo": algoritmo,
+            })
+
+        items.sort(key=lambda i: (i["clase_abc"], -i["valor_stock_clp"]))
+
+        resumen = {
+            clase: {
+                "cantidad": sum(1 for i in items if i["clase_abc"] == clase),
+                "valor_stock_clp": round(sum(i["valor_stock_clp"] for i in items if i["clase_abc"] == clase), 2),
+            }
+            for clase in ("A", "B", "C")
+        }
+
+        return {
+            "items": items,
+            "resumen": resumen,
+            "confiable": True,
+            "algoritmo": algoritmo,
+        }
+
+    # ==================================================================
+    # MÓDULO 8 · Z-score — Consumo Atípico Respecto de la Propia Historia
+    # ==================================================================
+    @staticmethod
+    def detectar_consumo_atipico_historico(fecha_desde, fecha_hasta, rut=None,
+                                            producto=None, mostrar_rut_completo=False):
+        """
+        A diferencia del Módulo 3 (K-Means, compara contra el grupo del mes
+        actual), este módulo compara a cada trabajador contra SU PROPIA
+        historia: ¿retiró en el período consultado más unidades por visita
+        al pañol de lo que acostumbra para ese mismo producto?
+
+        Es el "módulo ML" del reporte de consumo por turno: la salida es un
+        listado de casos a "revisar", nunca bloquea la entrega ni etiqueta a
+        nadie como sospechoso.
+        """
+        from nexofaena.services.reporte_service import ReporteService  # import local: evita ciclo de módulos
+
+        desde = parse_date(fecha_desde) if isinstance(fecha_desde, str) else fecha_desde
+        hasta = parse_date(fecha_hasta) if isinstance(fecha_hasta, str) else fecha_hasta
+
+        periodo_qs = DetalleEntregaEPP.objects.filter(
+            entrega__estado="COMPLETADA",
+            entrega__fecha_entrega__date__gte=desde,
+            entrega__fecha_entrega__date__lte=hasta,
+        )
+
+        if rut:
+            periodo_qs = periodo_qs.filter(entrega__trabajador__rut__icontains=rut)
+        if producto:
+            periodo_qs = periodo_qs.filter(inventario__nombre__icontains=producto)
+
+        pares = (
+            periodo_qs
+            .values("entrega__trabajador_id", "inventario_id")
+            .annotate(total_periodo=Sum("cantidad"), num_entregas_periodo=Count("entrega_id", distinct=True))
+        )
+
+        candidatos = []
+        for par in pares:
+            num_entregas_periodo = par["num_entregas_periodo"] or 1
+            promedio_periodo = float(par["total_periodo"]) / num_entregas_periodo
+
+            historial = list(
+                DetalleEntregaEPP.objects
+                .filter(
+                    entrega__estado="COMPLETADA",
+                    entrega__trabajador_id=par["entrega__trabajador_id"],
+                    inventario_id=par["inventario_id"],
+                    entrega__fecha_entrega__date__lt=desde,
+                )
+                .values_list("cantidad", flat=True)
+            )
+
+            if len(historial) < MIN_ENTREGAS_HISTORICO_PROPIO:
+                continue  # sin historial previo suficiente para juzgar (ej. trabajador nuevo)
+
+            historial_f = [float(h) for h in historial]
+            promedio_historico = mean(historial_f)
+            desviacion_historica = pstdev(historial_f) if len(historial_f) > 1 else 0
+
+            denominador = max(desviacion_historica, promedio_historico * 0.25, 0.5)
+            z_score = (promedio_periodo - promedio_historico) / denominador
+
+            if z_score < UMBRAL_Z_HISTORICO:
+                continue
+
+            candidatos.append({
+                "trabajador_id": par["entrega__trabajador_id"],
+                "inventario_id": par["inventario_id"],
+                "promedio_periodo": round(promedio_periodo, 2),
+                "promedio_historico": round(promedio_historico, 2),
+                "z_score": round(z_score, 2),
+                "num_entregas_periodo": num_entregas_periodo,
+                "num_entregas_historicas": len(historial_f),
+            })
+
+        if not candidatos:
+            return []
+
+        trabajadores = {
+            t.id: t for t in Trabajador.objects.filter(id__in=[c["trabajador_id"] for c in candidatos])
+        }
+        productos = {
+            p.id: p for p in Inventario.objects.filter(id__in=[c["inventario_id"] for c in candidatos])
+        }
+
+        resultados = []
+        for c in candidatos:
+            trabajador = trabajadores.get(c["trabajador_id"])
+            producto = productos.get(c["inventario_id"])
+            if not trabajador or not producto:
+                continue
+
+            rut = trabajador.rut if mostrar_rut_completo else ReporteService.mascarar_rut(trabajador.rut)
+
+            resultados.append({
+                "trabajador_id": trabajador.id,
+                "trabajador_nombre": trabajador.nombre_completo,
+                "rut": rut,
+                "cargo": trabajador.cargo,
+                "inventario_id": producto.id,
+                "producto_nombre": producto.nombre,
+                "promedio_periodo": c["promedio_periodo"],
+                "promedio_historico": c["promedio_historico"],
+                "z_score": c["z_score"],
+                "num_entregas_periodo": c["num_entregas_periodo"],
+                "num_entregas_historicas": c["num_entregas_historicas"],
+                "estado_revision": "revisar",
+                "algoritmo": "Z-score respecto al historial propio",
+            })
+
+        resultados.sort(key=lambda r: r["z_score"], reverse=True)
+        return resultados

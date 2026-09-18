@@ -14,7 +14,7 @@
 /* --- SIDEBAR LATERAL (DESKTOP) --- */
 .sidebar {
     width: 250px; /* Reducido para mayor elegancia */
-    background: #001529; /* Azul corporativo muy profundo y elegante */
+    background: linear-gradient(180deg, #001529 0%, #000e1c 100%);
     color: white;
     display: flex;
     flex-direction: column;
@@ -26,16 +26,28 @@
     box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: 'Inter', sans-serif;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* --- CABECERA BRAND --- */
 .sidebar-brand {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 22px 20px;
     background: #001529; /* Mismo azul base que el resto del sistema, sin overlay negro */
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-brand::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(234, 88, 12, 0.6), transparent);
 }
 
 /* Chip claro: el logo trae texto azul marino que se pierde sobre el fondo oscuro */
@@ -79,6 +91,7 @@
 
 /* Diseño UI tipo "Píldora" */
 .menu-item {
+    position: relative;
     width: calc(100% - 30px); /* Deja márgenes a los lados */
     margin: 4px 15px;
     display: flex;
@@ -92,31 +105,48 @@
     font-weight: 500;
     border-radius: 10px; /* Bordes muy redondeados */
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .menu-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.06);
     color: white;
     transform: translateX(4px); /* Pequeño empuje a la derecha al pasar el mouse */
 }
 
 .menu-item.active {
-    background: #ea580c; /* Naranja corporativo sólido */
+    background: linear-gradient(90deg, #ea580c 0%, #f97316 100%);
     color: white;
     font-weight: 700;
-    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3); /* Resplandor naranja */
+    box-shadow: 0 6px 18px rgba(234, 88, 12, 0.38); /* Resplandor naranja */
+}
+
+/* Barrita luminosa a la izquierda del ítem activo: refuerza cuál sección
+   está abierta incluso de reojo, sin depender solo del color de fondo. */
+.menu-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: #fff;
+    border-radius: 0 4px 4px 0;
+    opacity: 0.85;
 }
 
 .menu-icon {
     font-size: 1.1rem;
     display: flex;
     justify-content: center;
-    transition: color 0.2s;
+    transition: color 0.2s, transform 0.2s;
 }
 
 .menu-item:hover .menu-icon {
     color: white;
+    transform: scale(1.1);
 }
 
 /* --- FOOTER DEL SIDEBAR --- */
@@ -143,6 +173,7 @@
     border-radius: 50%;
     padding: 6px;
     flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.35);
 }
 
 .user-name {
@@ -189,7 +220,12 @@
 /* Sidebar.css */
 .main-content {
     flex: 1;
-    margin-left: 250px; 
+    /* Sin esto, un hijo flex nunca se encoge más allá del ancho natural de
+       su contenido: bastaba una tabla ancha en cualquier página (Entregas,
+       Inventario, Movimientos...) para que TODO .app-layout se estirara y
+       la app entera quedara con scroll horizontal en el celular. */
+    min-width: 0;
+    margin-left: 250px;
     min-height: 100vh;
     background-color: #001529; /* ¡ASEGÚRATE QUE ESTO SEA IGUAL AL DASHBOARD! */
     transition: margin-left 0.3s;
@@ -204,12 +240,24 @@
     align-items: center;
     position: fixed;
     top: 0; left: 0; width: 100%;
-    z-index: 998;
+    /* Por encima del overlay (999) y del sidebar (1000): si no, el overlay
+       tapa el botón de abrir/cerrar y queda sin poder tocarse. */
+    z-index: 1001;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
+/* Mismo chip claro que el logo de escritorio (.brand-logo-wrap): el logo
+   trae texto azul marino que se pierde sobre el fondo oscuro del header. */
+.mobile-brand-logo-wrap {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 6px 12px;
+}
+
 .mobile-brand-logo {
-    height: 30px;
+    height: 22px;
     width: auto;
     object-fit: contain;
     display: block;
@@ -239,4 +287,11 @@
     .main-content { margin-left: 0; padding-top: 65px; }
     .mobile-header { display: flex; }
     .sidebar-overlay { display: block; }
+
+    /* El logo ya se ve arriba en .mobile-header (fijo, siempre visible);
+       repetirlo dentro del panel deslizable solo duplica la marca y, con
+       el header ahora por encima del sidebar (ver z-index), quedaba
+       asomando un pedazo del chip blanco justo debajo del header. */
+    .sidebar-brand { display: none; }
+    .sidebar { padding-top: 65px; }
 }

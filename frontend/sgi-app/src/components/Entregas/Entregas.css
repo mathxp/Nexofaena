@@ -58,7 +58,7 @@
 ===================================== */
 
 .step-card{
-    background:var(--card);
+    background:linear-gradient(160deg, var(--card) 0%, #001c39 100%);
     border-radius:12px;
     margin-bottom:20px;
     border:1px solid var(--border);
@@ -76,6 +76,15 @@
 /* =====================================
    BANNER RESPONSABLE (AUTOMÁTICO)
 ===================================== */
+
+.gps-status-line{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:.82rem;
+    color:var(--text-soft);
+    margin:-8px 0 16px 4px;
+}
 
 .responsable-banner{
     display:flex;
@@ -268,9 +277,9 @@
 }
 
 .epp-item.selected{
-    background:rgba(234,88,12,.08);
+    background:rgba(234,88,12,.1);
     border-color:var(--orange);
-    box-shadow: 0 0 0 3px rgba(234,88,12,.1);
+    box-shadow: 0 0 0 3px rgba(234,88,12,.15), 0 6px 16px rgba(234,88,12,.15);
 }
 
 .epp-item-left{
@@ -510,8 +519,14 @@
     font-weight: 500;
 }
 
+.history-table tbody tr{
+    transition: background-color .2s ease, box-shadow .2s ease;
+    box-shadow: inset 3px 0 0 transparent;
+}
+
 .history-table tbody tr:hover{
-    background:rgba(255,255,255,.02);
+    background:rgba(255,255,255,.03);
+    box-shadow: inset 3px 0 0 var(--orange);
 }
 
 /* Miniaturas de firma */

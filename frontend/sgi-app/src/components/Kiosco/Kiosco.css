@@ -1,0 +1,592 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --k-bg: #001529;
+  --k-card: #002244;
+  --k-orange: #ea580c;
+  --k-orange-light: #fb923c;
+  --k-text: #ffffff;
+  --k-text-soft: #94a3b8;
+  --k-border: rgba(255, 255, 255, 0.1);
+  --k-green: #10b981;
+  --k-red: #ef4444;
+}
+
+.kiosco-wrapper {
+  font-family: 'Inter', sans-serif;
+  width: 100vw;
+  height: 100vh;
+  background: var(--k-bg);
+  color: var(--k-text);
+  overflow: hidden;
+  position: relative;
+}
+
+.kiosco-centrado {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  padding: 24px;
+}
+
+.kiosco-spinner {
+  width: 56px;
+  height: 56px;
+  border: 5px solid var(--k-border);
+  border-top-color: var(--k-orange);
+  border-radius: 50%;
+  animation: kiosco-spin 0.9s linear infinite;
+}
+
+@keyframes kiosco-spin {
+  to { transform: rotate(360deg); }
+}
+
+.kiosco-select {
+  background: var(--k-card);
+  color: var(--k-text);
+  border: 1px solid var(--k-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 1.1rem;
+  min-width: 280px;
+}
+
+.kiosco-titulo {
+  font-size: 1.8rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.kiosco-subtitulo {
+  color: var(--k-text-soft);
+  max-width: 480px;
+}
+
+.kiosco-btn-primario {
+  background: var(--k-orange);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 18px 36px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kiosco-btn-primario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kiosco-btn-primario:not(:disabled):hover {
+  background: var(--k-orange-light);
+}
+
+.kiosco-btn-secundario {
+  background: transparent;
+  color: var(--k-text-soft);
+  border: 1px solid var(--k-border);
+  border-radius: 14px;
+  padding: 18px 28px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kiosco-btn-secundario:hover {
+  color: var(--k-text);
+  border-color: var(--k-text-soft);
+}
+
+/* --- Reconocimiento facial --- */
+
+.kiosco-reconocimiento {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.kiosco-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.kiosco-btn-config {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  background: rgba(0, 21, 41, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--k-text-soft);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.kiosco-btn-config:hover {
+  opacity: 1;
+  color: var(--k-text);
+}
+
+.kiosco-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 21, 41, 0.55) 0%, rgba(0, 21, 41, 0.85) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 24px;
+}
+
+.kiosco-overlay h1 {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.kiosco-overlay p {
+  color: var(--k-text-soft);
+  font-size: 1.05rem;
+  max-width: 480px;
+}
+
+.kiosco-icono-grande {
+  font-size: 4rem;
+  color: var(--k-orange-light);
+}
+
+.kiosco-icono-exito {
+  color: var(--k-green);
+}
+
+.kiosco-enrolar-box {
+  margin-top: 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--k-border);
+  border-radius: 16px;
+  padding: 18px 22px;
+  width: min(90vw, 420px);
+}
+
+.kiosco-enrolar-box p {
+  margin: 0 0 10px 0;
+  color: var(--k-text-soft);
+  font-size: 0.95rem;
+}
+
+.kiosco-enrolar-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--k-bg);
+  border: 1px solid var(--k-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.kiosco-enrolar-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--k-text);
+  font-size: 1rem;
+  min-width: 0;
+}
+
+.kiosco-enrolar-input button {
+  background: var(--k-orange);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.kiosco-debug-info {
+  margin-top: 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  color: var(--k-text-soft);
+  opacity: 0.7;
+}
+
+.kiosco-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-weight: 600;
+  max-width: 480px;
+  margin-top: 10px;
+}
+
+.kiosco-mensaje-ok {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+/* --- Panel (menú / autoservicio / firma) --- */
+
+.kiosco-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.kiosco-header-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 1.6rem;
+  color: var(--k-orange-light);
+}
+
+.kiosco-header-panel h2 {
+  margin: 0;
+  color: var(--k-text);
+  font-size: 1.3rem;
+}
+
+.kiosco-header-panel span {
+  color: var(--k-text-soft);
+  font-size: 0.95rem;
+}
+
+.kiosco-acciones {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.kiosco-acciones-menu {
+  margin-top: auto;
+}
+
+/* --- Devoluciones (radios/equipos devolutivos) --- */
+
+.kiosco-devoluciones-box {
+  background: var(--k-card);
+  border: 1px solid var(--k-border);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+
+.kiosco-devoluciones-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  color: var(--k-orange-light);
+  margin-bottom: 14px;
+}
+
+.kiosco-devolucion-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--k-border);
+}
+
+.kiosco-devolucion-item:first-of-type {
+  border-top: none;
+}
+
+.kiosco-devolucion-nombre {
+  font-weight: 700;
+}
+
+.kiosco-devolucion-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kiosco-estado-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.kiosco-estado-toggle button {
+  background: var(--k-bg);
+  border: 1px solid var(--k-border);
+  color: var(--k-text-soft);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kiosco-estado-toggle button.activo {
+  background: var(--k-green);
+  color: white;
+  border-color: var(--k-green);
+}
+
+.kiosco-estado-toggle button.danio.activo {
+  background: var(--k-red);
+  border-color: var(--k-red);
+}
+
+.kiosco-btn-devolver {
+  background: var(--k-orange);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kiosco-btn-devolver:hover {
+  background: var(--k-orange-light);
+}
+
+/* --- Autoservicio: una única zona con scroll para productos + devolutivos,
+   con altura acotada (min-height:0) para que no se desborde y tape los
+   botones de abajo — el bug clásico de flexbox en pantallas chicas. --- */
+
+.kiosco-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-right: 2px;
+}
+
+.kiosco-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kiosco-seccion-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--k-text-soft);
+}
+
+.kiosco-grid-productos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.kiosco-vacio {
+  color: var(--k-text-soft);
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+}
+
+.kiosco-devolutivos-box {
+  background: var(--k-card);
+  border: 1px solid var(--k-border);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.kiosco-devolutivos-bloqueado {
+  color: var(--k-text-soft);
+  font-size: 0.85rem;
+  padding: 8px 0;
+}
+
+.kiosco-grid-unidades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.kiosco-unidad {
+  background: var(--k-bg);
+  border: 2px solid var(--k-border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--k-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.kiosco-unidad.seleccionada {
+  border-color: var(--k-orange);
+  background: rgba(234, 88, 12, 0.15);
+}
+
+.kiosco-unidad-codigo {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.kiosco-unidad-nombre {
+  color: var(--k-text-soft);
+  font-size: 0.78rem;
+}
+
+.kiosco-producto {
+  background: var(--k-card);
+  border: 2px solid var(--k-border);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.kiosco-producto.seleccionado {
+  border-color: var(--k-orange);
+  background: rgba(234, 88, 12, 0.12);
+}
+
+.kiosco-producto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kiosco-producto-nombre {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.kiosco-producto-stock {
+  color: var(--k-text-soft);
+  font-size: 0.85rem;
+}
+
+.kiosco-cantidad {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--k-bg);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.kiosco-cantidad button {
+  background: var(--k-orange);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  font-size: 1.3rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.kiosco-cantidad span {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+/* --- Firma --- */
+
+.kiosco-firma-wrapper {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  flex: 1;
+  min-height: 220px;
+}
+
+.kiosco-firma-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 480px) {
+  .kiosco-panel {
+    padding: 18px 16px;
+    gap: 14px;
+  }
+
+  .kiosco-header-panel {
+    font-size: 1.3rem;
+    gap: 12px;
+  }
+
+  .kiosco-grid-productos {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .kiosco-grid-unidades {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .kiosco-producto {
+    padding: 12px;
+  }
+
+  .kiosco-acciones {
+    flex-direction: column-reverse;
+  }
+
+  .kiosco-acciones button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .kiosco-overlay h1 {
+    font-size: 1.6rem;
+  }
+
+  .kiosco-enrolar-box {
+    width: 100%;
+  }
+}

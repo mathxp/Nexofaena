@@ -24,9 +24,13 @@ class InventarioViewSet(viewsets.ModelViewSet):
         estado = self.request.GET.get("estado")
         buscar = self.request.GET.get("buscar")
         necesita_reposicion = self.request.GET.get("reposicion")
+        clasificacion_5s = self.request.GET.get("clasificacion_5s")
 
         if bodega:
             queryset = queryset.filter(bodega_id=bodega)
+
+        if clasificacion_5s:
+            queryset = queryset.filter(clasificacion_5s=clasificacion_5s)
 
         if estado is not None:
             estado_bool = estado.lower() in ["true", "1", "si", "sí"]

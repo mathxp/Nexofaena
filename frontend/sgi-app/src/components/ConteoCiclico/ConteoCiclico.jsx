@@ -511,10 +511,14 @@ const ConteoCiclico = () => {
 
   const ejecutarAjusteStock = async (firma) => {
     try {
-      await api.post(`/auditorias-inventario/${auditoria.id}/ajustar_stock/`, {
+      const res = await api.post(`/auditorias-inventario/${auditoria.id}/ajustar_stock/`, {
         firma_autorizacion: firma,
       });
 
+      // Importante: reflejar el nuevo estado ("AJUSTADA") en el estado local.
+      // Si se deja "auditoria" con estado CERRADA, el botón de más abajo
+      // sigue habilitado y permite aplicar el mismo ajuste dos veces.
+      setAuditoria(res.data.data);
       setMensaje("Stock actualizado correctamente según conteo físico.");
       setError("");
       limpiarSesion();
@@ -692,6 +696,7 @@ const ConteoCiclico = () => {
         </div>
       </div>
 
+      <div className="tabla-conteo-wrapper">
       <table>
         <thead>
           <tr>
@@ -756,6 +761,7 @@ const ConteoCiclico = () => {
           )}
         </tbody>
       </table>
+      </div>
 
       <div className="acciones">
         <button

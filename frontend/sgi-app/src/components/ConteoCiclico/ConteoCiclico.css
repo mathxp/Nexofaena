@@ -1,11 +1,18 @@
 .conteo-container {
   padding: 32px;
+  padding-bottom: 100px;
   max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
   background: #001529;
   color: white;
   font-family: 'Inter', sans-serif;
+  animation: fadeIn 0.35s ease-out both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .conteo-container h1 {
@@ -72,7 +79,7 @@
 }
 
 .barra {
-  background: #002244;
+  background: linear-gradient(160deg, #002244 0%, #001c39 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   padding: 22px;
@@ -105,15 +112,40 @@
   color: white;
   background: linear-gradient(135deg, #ea580c, #fb923c);
   text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.barra button:hover:not(:disabled),
+.acciones button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(234, 88, 12, 0.4);
+  filter: brightness(1.05);
+}
+
+.tabla-conteo-wrapper {
+  overflow-x: auto;
+  border-radius: 14px;
 }
 
 .conteo-container table {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
-  background: #002244;
+  background: linear-gradient(160deg, #002244 0%, #001c39 100%);
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.08);
+}
+
+.conteo-container tbody tr {
+  box-shadow: inset 3px 0 0 transparent;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.conteo-container tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 3px 0 0 #ea580c;
 }
 
 .conteo-container th {
@@ -163,17 +195,32 @@
 
 .acciones button:nth-child(2) {
   background: #2563eb;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+}
+
+.acciones button:nth-child(2):hover:not(:disabled) {
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.45);
 }
 
 .acciones button:nth-child(3) {
   background: #10b981;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+}
+
+.acciones button:nth-child(3):hover:not(:disabled) {
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.45);
 }
 
 .btn-scan {
   background: #7c3aed !important;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35) !important;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.btn-scan:hover:not(:disabled) {
+  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.45) !important;
 }
 
 .fila-resaltada {
@@ -299,6 +346,18 @@
   border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
+.estado-ajustada {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+}
+
+.estado-anulada {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
 .acciones button:disabled,
 .barra button:disabled,
 .conteo-container input:disabled {
@@ -308,7 +367,7 @@
 
 .guia-auditoria {
   margin-top: 34px;
-  background: #002244;
+  background: linear-gradient(160deg, #002244 0%, #001c39 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   padding: 26px;
@@ -331,6 +390,12 @@
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 12px;
   padding: 18px;
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.guia-card:hover {
+  border-color: rgba(251, 146, 60, 0.4);
+  transform: translateY(-2px);
 }
 
 .guia-card strong {
@@ -361,13 +426,19 @@
 
 .scanner-modal,
 .firma-modal {
-  background: #002244;
+  background: linear-gradient(160deg, #002244 0%, #001830 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   width: 100%;
   max-width: 480px;
   padding: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  animation: nx-modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes nx-modal-in {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .scanner-header,

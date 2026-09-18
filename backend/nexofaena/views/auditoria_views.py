@@ -1,17 +1,57 @@
+import logging
+
 from django.core.exceptions import ValidationError
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from nexofaena.models.auditoria_inventario import AuditoriaInventario
-from nexofaena.permissions import IsBodeguero
+from nexofaena.permissions import IsBodeguero, IsEncargadoBodega
 from nexofaena.serializers.auditoria_serializer import AuditoriaSerializer
 from nexofaena.services.auditoria_service import AuditoriaInventarioService
+
+logger = logging.getLogger("nexofaena")
 
 
 class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
     serializer_class = AuditoriaSerializer
     permission_classes = [IsBodeguero]
+
+    def update(self, request, *args, **kwargs):
+        # Todo cambio de estado (cerrar/anular/ajustar) tiene reglas de
+        # negocio propias en AuditoriaInventarioService (una sola ABIERTA por
+        # bodega, firma de supervisor si hay descuadre crítico, etc.). Sin
+        # este bloqueo, ModelViewSet permitía un PATCH directo de "estado"
+        # que se saltaba esas validaciones (ej. reabrir una auditoría ya
+        # ajustada, o cerrar una sin haber contado nada).
+        logger.warning(
+            "Intento de edición directa de auditoría bloqueado | usuario=%s | auditoria_id=%s",
+            request.user.username,
+            kwargs.get("pk"),
+        )
+
+        return Response(
+            {"detail": "Una auditoría no se edita directamente: usa cerrar/anular/ajustar-stock."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        # Borrar una auditoría se lleva en cascada sus DetalleAuditoriaInventario
+        # (evidencia de descuadres ya usada para ajustar stock). No hay
+        # razón de negocio para eliminar ese historial.
+        logger.warning(
+            "Intento de eliminación de auditoría bloqueado | usuario=%s | auditoria_id=%s",
+            request.user.username,
+            kwargs.get("pk"),
+        )
+
+        return Response(
+            {"detail": "Las auditorías no pueden eliminarse por razones de trazabilidad: usa anular."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     def get_queryset(self):
         queryset = (
@@ -97,7 +137,7 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[IsEncargadoBodega])
     def cerrar(self, request, pk=None):
         try:
             auditoria = AuditoriaInventarioService.cerrar_auditoria(pk)
@@ -118,7 +158,7 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[IsEncargadoBodega])
     def anular(self, request, pk=None):
         try:
             auditoria = AuditoriaInventarioService.anular_auditoria(pk)
@@ -139,14 +179,8 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[IsEncargadoBodega])
     def ajustar_stock(self, request, pk=None):
-        if request.user.rol.nombre not in ["Administrador", "Supervisor"]:
-            return Response(
-                {"detail": "Solo Administrador o Supervisor pueden aprobar ajustes."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         try:
             auditoria = AuditoriaInventarioService.ajustar_stock(
                 auditoria_id=pk,

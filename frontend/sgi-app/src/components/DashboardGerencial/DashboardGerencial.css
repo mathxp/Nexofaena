@@ -15,17 +15,31 @@
 
 /* --- HEADER --- */
 .gerencial-header {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 25px;
-    background: #002244;
+    background: linear-gradient(135deg, #002244 0%, #001b38 100%);
     padding: 25px 30px;
     border-radius: 12px;
     border-left: 6px solid #ea580c;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     flex-wrap: wrap;
     gap: 15px;
+    overflow: hidden;
+    animation: nx-fade-up 0.4s var(--ease, ease) both;
+}
+
+.gerencial-header::after {
+    content: '';
+    position: absolute;
+    top: -60%;
+    right: -8%;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(234, 88, 12, 0.18), transparent 70%);
+    pointer-events: none;
 }
 
 .title-container h1 {
@@ -49,7 +63,7 @@
 .status-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     color: #10b981;
     font-weight: 800;
     font-size: 0.8rem;
@@ -57,6 +71,13 @@
     padding: 8px 16px;
     border-radius: 30px;
     border: 1px solid #10b981;
+}
+
+.status-badge svg {
+    width: 8px;
+    height: 8px;
+    animation: nx-pulse-ring 1.8s infinite;
+    border-radius: 50%;
 }
 
 .header-actions {
@@ -86,11 +107,26 @@
 
 /* --- MÓDULO DE IA (bloque por algoritmo) --- */
 .modulo-ia {
-    background: #001e38;
+    background: linear-gradient(160deg, #001e38 0%, #001830 100%);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 25px;
     margin-bottom: 25px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    animation: nx-fade-up 0.5s var(--ease, ease) both;
+}
+
+.modulo-ia:nth-of-type(2) { animation-delay: 60ms; }
+.modulo-ia:nth-of-type(3) { animation-delay: 120ms; }
+.modulo-ia:nth-of-type(4) { animation-delay: 180ms; }
+.modulo-ia:nth-of-type(5) { animation-delay: 240ms; }
+.modulo-ia:nth-of-type(6) { animation-delay: 300ms; }
+.modulo-ia:nth-of-type(7) { animation-delay: 360ms; }
+
+.modulo-ia:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
 }
 
 .modulo-header {
@@ -109,6 +145,12 @@
     justify-content: center;
     font-size: 1.4rem;
     color: white;
+    transition: transform 0.3s var(--ease-spring, ease), box-shadow 0.3s ease;
+}
+
+.modulo-ia:hover .modulo-icon {
+    transform: scale(1.08) rotate(-3deg);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 .modulo-icon-blue { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
@@ -186,15 +228,24 @@
 /* --- CHARTS GRID (reutilizado dentro de cada módulo) --- */
 .charts-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, 1fr), no 1fr solo: una celda de grid no se encoge más allá
+       del ancho natural de su contenido (ej. el canvas de Chart.js) a menos
+       que se le fuerce un mínimo de 0 explícito. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 20px;
 }
 
 .chart-card {
-    background: #002244;
+    background: linear-gradient(160deg, #002244 0%, #001c39 100%);
     border-radius: 12px;
     border: 1px solid rgba(255,255,255,0.08);
     padding: 22px;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.chart-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
 }
 
 .chart-header {
@@ -265,6 +316,14 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.ml-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.ml-table tbody tr:hover td {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
 .ml-empty {
     color: #94a3b8;
     font-size: 0.85rem;
@@ -308,11 +367,23 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
+    transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.ml-item:hover {
+    transform: translateX(3px);
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .ml-item-danger {
     background: rgba(239, 68, 68, 0.08);
     border-color: rgba(239, 68, 68, 0.25);
+}
+
+.ml-item-danger:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.4);
 }
 
 .ml-item-icon {
@@ -364,6 +435,8 @@
 
 .bandera-roja { color: #ef4444; font-size: 1rem; }
 
+.fw-bold { font-weight: 800; color: #ffffff; }
+
 /* --- MENSAJE DE FALLBACK (histórico insuficiente para entrenar) --- */
 .fallback-msg {
     background: rgba(148, 163, 184, 0.08);
@@ -387,14 +460,28 @@
 
 /* --- BUSCADOR SEMÁNTICO (NLP) --- */
 .busqueda-card {
-    background: #001e38;
+    position: relative;
+    background: linear-gradient(135deg, #001e38 0%, #001830 100%);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 20px 25px;
     margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.busqueda-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -10%;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.14), transparent 70%);
+    pointer-events: none;
 }
 
 .busqueda-form {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -402,6 +489,12 @@
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 10px;
     padding: 4px 4px 4px 16px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.busqueda-form:focus-within {
+    border-color: rgba(234, 88, 12, 0.5);
+    box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.12);
 }
 
 .busqueda-icon { color: #94a3b8; flex-shrink: 0; }
@@ -432,6 +525,12 @@
     text-transform: uppercase;
     white-space: nowrap;
     flex-shrink: 0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.busqueda-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4);
 }
 
 .busqueda-submit:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -480,7 +579,7 @@
 
 /* --- RESPONSIVE --- */
 @media (max-width: 992px) {
-    .charts-grid { grid-template-columns: 1fr; }
+    .charts-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 768px) {

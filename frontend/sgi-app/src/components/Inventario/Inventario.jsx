@@ -16,13 +16,38 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaExternalLinkAlt,
-  FaBolt,
   FaTools,
 } from 'react-icons/fa';
 import api from '../../api';
 import './Inventario.css';
 
 const PRODUCTOS_POR_PAGINA = 12;
+
+const CLASIFICACIONES_5S = [
+  { value: 'SEIRI', label: 'Seiri - Clasificar' },
+  { value: 'SEITON', label: 'Seiton - Ordenar' },
+  { value: 'SEISO', label: 'Seiso - Limpiar' },
+  { value: 'SEIKETSU', label: 'Seiketsu - Estandarizar' },
+  { value: 'SHITSUKE', label: 'Shitsuke - Disciplina' },
+];
+
+// Cada S con su propio color: antes todas se veían igual (azul), lo que
+// hacía imposible distinguirlas de un vistazo en la tabla.
+const CLASE_BADGE_5S = {
+  SEIRI: 'badge-5s-seiri',
+  SEITON: 'badge-5s-seiton',
+  SEISO: 'badge-5s-seiso',
+  SEIKETSU: 'badge-5s-seiketsu',
+  SHITSUKE: 'badge-5s-shitsuke',
+};
+
+const formatoCLP = new Intl.NumberFormat('es-CL', {
+  style: 'currency',
+  currency: 'CLP',
+  maximumFractionDigits: 0,
+});
+
+const formatearCLP = (valor) => formatoCLP.format(Number(valor) || 0);
 
 const estadoInicial = {
   bodega: '',
@@ -37,7 +62,8 @@ const estadoInicial = {
   vida_util_dias: '',
   es_devolutivo: false,
   es_activo_critico: false,
-  es_despacho_rapido: false,
+  precio_unitario: '',
+  clasificacion_5s: '',
 };
 
 const Inventario = () => {
@@ -51,6 +77,7 @@ const Inventario = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroBodega, setFiltroBodega] = useState('');
+  const [filtro5s, setFiltro5s] = useState('');
   const [soloReposicion, setSoloReposicion] = useState(false);
   const [paginaActual, setPaginaActual] = useState(1);
 
@@ -70,7 +97,7 @@ const Inventario = () => {
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [searchTerm, filtroBodega, soloReposicion]);
+  }, [searchTerm, filtroBodega, filtro5s, soloReposicion]);
 
   const cargarDatos = async () => {
     try {
@@ -203,7 +230,8 @@ const Inventario = () => {
       vida_util_dias: producto.vida_util_dias ?? '',
       es_devolutivo: producto.es_devolutivo ?? false,
       es_activo_critico: producto.es_activo_critico ?? false,
-      es_despacho_rapido: producto.es_despacho_rapido ?? false,
+      precio_unitario: producto.precio_unitario ?? '',
+      clasificacion_5s: producto.clasificacion_5s || '',
     });
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -252,6 +280,12 @@ const Inventario = () => {
       errores.stock_actual = 'El stock inicial no puede superar el máximo.';
     }
 
+    const precioUnitario = Number(formData.precio_unitario);
+
+    if (formData.precio_unitario === '' || Number.isNaN(precioUnitario) || precioUnitario < 0) {
+      errores.precio_unitario = 'Ingresa el precio real del producto (0 o más).';
+    }
+
     setErroresForm(errores);
     return Object.keys(errores).length === 0;
   };
@@ -280,7 +314,8 @@ const Inventario = () => {
       vida_util_dias: formData.vida_util_dias === '' ? null : Number(formData.vida_util_dias),
       es_devolutivo: formData.es_devolutivo,
       es_activo_critico: formData.es_activo_critico,
-      es_despacho_rapido: formData.es_despacho_rapido,
+      precio_unitario: Number(formData.precio_unitario || 0),
+      clasificacion_5s: formData.clasificacion_5s || null,
     };
 
     try {
@@ -329,8 +364,15 @@ const Inventario = () => {
 
     const coincideReposicion = soloReposicion ? p.necesita_reposicion : true;
 
-    return coincideTexto && coincideBodega && coincideReposicion;
+    const coincide5s = filtro5s ? p.clasificacion_5s === filtro5s : true;
+
+    return coincideTexto && coincideBodega && coincideReposicion && coincide5s;
   });
+
+  const valorTotalFiltrado = productosFiltrados.reduce(
+    (total, p) => total + (Number(p.stock_actual) || 0) * (Number(p.precio_unitario) || 0),
+    0
+  );
 
   const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA));
   const paginaSegura = Math.min(paginaActual, totalPaginas);
@@ -359,39 +401,55 @@ const Inventario = () => {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="action-panel">
-        <div className="search-group">
-          <span className="search-icon"><FaSearch /></span>
-          <input
-            type="text"
-            placeholder="Buscar por producto o código..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="filter-input"
-          />
-        </div>
+        <div className="filtros-container">
+          <div className="search-group search-group-texto">
+            <span className="search-icon"><FaSearch /></span>
+            <input
+              type="text"
+              placeholder="Buscar por producto o código..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="filter-input"
+            />
+          </div>
 
-        <div className="search-group">
-          <span className="search-icon"><FaMapMarkerAlt /></span>
-          <select
-            value={filtroBodega}
-            onChange={(e) => setFiltroBodega(e.target.value)}
-            className="filter-input"
-          >
-            <option value="">Todas las Bodegas</option>
-            {bodegas.map((b) => (
-              <option key={b.id} value={b.id}>{b.nombre}</option>
-            ))}
-          </select>
-        </div>
+          <div className="search-group search-group-select">
+            <span className="search-icon"><FaMapMarkerAlt /></span>
+            <select
+              value={filtroBodega}
+              onChange={(e) => setFiltroBodega(e.target.value)}
+              className="filter-input"
+            >
+              <option value="">Todas las Bodegas</option>
+              {bodegas.map((b) => (
+                <option key={b.id} value={b.id}>{b.nombre}</option>
+              ))}
+            </select>
+          </div>
 
-        <label className="toggle-reposicion">
-          <input
-            type="checkbox"
-            checked={soloReposicion}
-            onChange={(e) => setSoloReposicion(e.target.checked)}
-          />
-          Solo necesita reposición
-        </label>
+          <div className="search-group search-group-select">
+            <span className="search-icon"><FaFilter /></span>
+            <select
+              value={filtro5s}
+              onChange={(e) => setFiltro5s(e.target.value)}
+              className="filter-input"
+            >
+              <option value="">Todas las 5S</option>
+              {CLASIFICACIONES_5S.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <label className="toggle-reposicion">
+            <input
+              type="checkbox"
+              checked={soloReposicion}
+              onChange={(e) => setSoloReposicion(e.target.checked)}
+            />
+            Solo necesita reposición
+          </label>
+        </div>
 
         <button className="btn-agregar-main" onClick={abrirCrear}>
           <FaPlus /> Crear Producto
@@ -478,6 +536,31 @@ const Inventario = () => {
             </div>
 
             <div className="input-group">
+              <label>Precio unitario real (CLP)</label>
+              <input
+                type="number"
+                name="precio_unitario"
+                placeholder="Ej: 15990"
+                value={formData.precio_unitario}
+                onChange={handleChange}
+                min="0"
+                step="1"
+              />
+              {erroresForm.precio_unitario && <small className="field-error">{erroresForm.precio_unitario}</small>}
+            </div>
+
+            <div className="input-group">
+              <label>Clasificación 5S</label>
+              <select name="clasificacion_5s" value={formData.clasificacion_5s} onChange={handleChange}>
+                <option value="">Sin clasificar</option>
+                {CLASIFICACIONES_5S.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+              {erroresForm.clasificacion_5s && <small className="field-error">{erroresForm.clasificacion_5s}</small>}
+            </div>
+
+            <div className="input-group">
               <label>Ubicación interna</label>
               <input
                 name="ubicacion"
@@ -526,18 +609,6 @@ const Inventario = () => {
               </label>
             </div>
 
-            <div className="input-group checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  name="es_despacho_rapido"
-                  checked={formData.es_despacho_rapido}
-                  onChange={handleChange}
-                />
-                {' '}Despacho rápido (ej. agua: sin RUT ni firma, un clic)
-              </label>
-            </div>
-
             <div className="input-group full-width">
               <label>Descripción opcional</label>
               <textarea
@@ -565,8 +636,11 @@ const Inventario = () => {
 
       <div className="table-section">
         <div className="table-header-dark">
-          <FaFilter style={{ color: '#ea580c', marginRight: '10px' }} />
+          <FaFilter className="table-header-icon" />
           ESTADO FÍSICO DEL INVENTARIO ({productosFiltrados.length} Registros)
+          <span className="chip-valor-total">
+            Valor total: <strong>{formatearCLP(valorTotalFiltrado)}</strong>
+          </span>
         </div>
 
         <div className="table-responsive">
@@ -578,6 +652,9 @@ const Inventario = () => {
                 <th className="text-center">STOCK</th>
                 <th className="text-center">MÍN.</th>
                 <th className="text-center">MÁX.</th>
+                <th className="text-center">PRECIO UNIT.</th>
+                <th className="text-center">VALOR STOCK</th>
+                <th className="text-center">5S</th>
                 <th className="text-center">ESTADO</th>
                 <th className="text-center">ACCIONES</th>
               </tr>
@@ -586,7 +663,7 @@ const Inventario = () => {
             <tbody>
               {productosPagina.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center empty-state">
+                  <td colSpan="10" className="text-center empty-state">
                     No se encontraron productos en esta ubicación.
                   </td>
                 </tr>
@@ -597,7 +674,7 @@ const Inventario = () => {
                       <div className="item-title">{prod.nombre}</div>
                       <div className="item-subtitle">{prod.codigo}</div>
 
-                      {(prod.es_devolutivo || prod.vida_util_dias || prod.es_activo_critico || prod.es_despacho_rapido) && (
+                      {(prod.es_devolutivo || prod.vida_util_dias || prod.es_activo_critico) && (
                         <div className="item-tags">
                           {prod.es_devolutivo && (
                             <span className="tag-devolutivo"><FaSyncAlt /> Devolutivo</span>
@@ -608,9 +685,6 @@ const Inventario = () => {
                           {prod.es_activo_critico && (
                             <span className="tag-critico"><FaExclamationTriangle /> Alto valor</span>
                           )}
-                          {prod.es_despacho_rapido && (
-                            <span className="tag-despacho"><FaBolt /> Despacho rápido</span>
-                          )}
                         </div>
                       )}
                     </td>
@@ -619,6 +693,19 @@ const Inventario = () => {
                     <td className="text-center stock-number highlight-stock">{prod.stock_actual}</td>
                     <td className="text-center stock-number min-stock">{prod.stock_minimo}</td>
                     <td className="text-center stock-number">{prod.stock_maximo}</td>
+                    <td className="text-center">{formatearCLP(prod.precio_unitario)}</td>
+                    <td className="text-center">
+                      {formatearCLP((Number(prod.stock_actual) || 0) * (Number(prod.precio_unitario) || 0))}
+                    </td>
+                    <td className="text-center">
+                      {prod.clasificacion_5s ? (
+                        <span className={`badge badge-5s ${CLASE_BADGE_5S[prod.clasificacion_5s] || ''}`}>
+                          {prod.clasificacion_5s}
+                        </span>
+                      ) : (
+                        <span className="text-muted">-</span>
+                      )}
+                    </td>
                     <td className="text-center">
                       {obtenerEstadoUI(prod.stock_actual, prod.stock_minimo, prod.stock_maximo)}
                     </td>

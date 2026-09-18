@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { FaSearch, FaFileExcel, FaEye, FaClipboardCheck, FaShieldAlt } from 'react-icons/fa';
+import { FaSearch, FaFileExcel, FaEye, FaClipboardCheck, FaShieldAlt, FaHistory } from 'react-icons/fa';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '../../api';
+import ConteoCiclico from '../ConteoCiclico/ConteoCiclico';
 import './AuditoriasInventario.css';
 
-const AuditoriasInventario = () => {
+const AuditoriasHistorial = () => {
   const [auditorias, setAuditorias] = useState([]);
   const [detalle, setDetalle] = useState(null);
   const [busqueda, setBusqueda] = useState('');
@@ -94,7 +95,7 @@ const AuditoriasInventario = () => {
     <div className="auditorias-wrapper">
       <div className="auditorias-header">
         <div>
-          <h1><FaClipboardCheck /> Auditorías de Inventario</h1>
+          <h1><FaClipboardCheck /> Historial de Auditorías</h1>
           <p>Historial y revisión de conteos cíclicos realizados.</p>
         </div>
 
@@ -119,6 +120,7 @@ const AuditoriasInventario = () => {
           <option value="">Todos los estados</option>
           <option value="ABIERTA">Abierta</option>
           <option value="CERRADA">Cerrada</option>
+          <option value="AJUSTADA">Ajustada</option>
           <option value="ANULADA">Anulada</option>
         </select>
       </div>
@@ -199,6 +201,31 @@ const AuditoriasInventario = () => {
           </table>
         </div>
       )}
+    </div>
+  );
+};
+
+const AuditoriasInventario = () => {
+  const [tab, setTab] = useState('conteo');
+
+  return (
+    <div className="auditorias-page">
+      <div className="auditorias-tabs">
+        <button
+          className={`auditorias-tab ${tab === 'conteo' ? 'active' : ''}`}
+          onClick={() => setTab('conteo')}
+        >
+          <FaClipboardCheck /> Conteo Cíclico
+        </button>
+        <button
+          className={`auditorias-tab ${tab === 'historial' ? 'active' : ''}`}
+          onClick={() => setTab('historial')}
+        >
+          <FaHistory /> Historial de Auditorías
+        </button>
+      </div>
+
+      {tab === 'conteo' ? <ConteoCiclico /> : <AuditoriasHistorial />}
     </div>
   );
 };

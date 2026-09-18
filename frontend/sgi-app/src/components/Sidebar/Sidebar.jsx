@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaTachometerAlt, FaChartPie, FaTools, FaBoxes, FaBuilding,
-  FaExchangeAlt, FaUserFriends, FaBell,
-  FaFileAlt, FaSignOutAlt, FaUserCircle, FaBars, FaTimes, FaUndo, FaBolt
+  FaExchangeAlt, FaUserFriends, FaBell, FaClipboardCheck,
+  FaFileAlt, FaSignOutAlt, FaUserCircle, FaBars, FaTimes, FaUndo
 } from 'react-icons/fa';
 
 import api from '../../api';
@@ -74,12 +74,6 @@ const Sidebar = () => {
       roles: ['Administrador', 'Bodeguero'],
     },
     {
-      path: '/despacho-rapido',
-      icon: <FaBolt />,
-      label: 'Despacho Rápido',
-      roles: ['Administrador', 'Bodeguero'],
-    },
-    {
       path: '/inventario',
       icon: <FaBoxes />,
       label: 'Inventario',
@@ -110,14 +104,8 @@ const Sidebar = () => {
       roles: ['Administrador', 'Supervisor', 'Bodeguero'],
     },
     {
-      path: '/conteo-ciclico',
-      icon: <FaBoxes />,
-      label: 'Conteo Cíclico',
-      roles: ['Administrador', 'Supervisor', 'Bodeguero'],
-    },
-    {
       path: '/auditorias-inventario',
-      icon: <FaFileAlt />,
+      icon: <FaClipboardCheck />,
       label: 'Auditorías',
       roles: ['Administrador', 'Supervisor', 'Bodeguero'],
     },
@@ -136,7 +124,9 @@ const Sidebar = () => {
   return (
     <>
       <div className="mobile-header">
-        <img src="/logo.png" alt="NexoFaena" className="mobile-brand-logo" />
+        <div className="mobile-brand-logo-wrap">
+          <img src="/logo.png" alt="NexoFaena" className="mobile-brand-logo" />
+        </div>
 
         <button className="mobile-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)}>
           {isMobileOpen ? <FaTimes /> : <FaBars />}

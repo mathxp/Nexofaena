@@ -91,9 +91,16 @@ class DetalleEntregaEPPViewSet(viewsets.ReadOnlyModelViewSet):
 
         bodega = self.request.GET.get("bodega")
         pendientes = self.request.GET.get("pendientes")
+        trabajador = self.request.GET.get("trabajador")
 
         if bodega:
             queryset = queryset.filter(entrega__bodega_id=bodega)
+
+        if trabajador:
+            # Usado por el kiosco de autoservicio: apenas reconoce a alguien,
+            # le muestra sus propios equipos devolutivos pendientes (ej.
+            # radios) para que pueda devolverlos ahí mismo, sin bodeguero.
+            queryset = queryset.filter(entrega__trabajador_id=trabajador)
 
         if pendientes is not None:
             es_pendiente = pendientes.lower() in ["true", "1", "si", "sí"]
