@@ -6,3 +6,5 @@ set -o errexit
 pip install -r requirements.txt
 python manage.py collectstatic --noinput
 python manage.py migrate
+python manage.py createsuperuser --noinput || true
+Add-Content -Path build.sh -Value "python manage.py createsuperuser --noinput || true" -Encoding utf8
