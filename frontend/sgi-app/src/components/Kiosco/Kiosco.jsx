@@ -97,12 +97,53 @@ const Kiosco = () => {
   const intentosFallidosRef = useRef({});
   const trabajadoresRef = useRef([]);
   const sigCanvas = useRef({});
+  const wakeLockRef = useRef(null);
+  const reintentoCamaraRef = useRef(null);
+  const faseRef = useRef(fase);
 
   const { capturar: capturarGeolocalizacion } = useGeolocalizacion();
 
   useEffect(() => {
     trabajadoresRef.current = trabajadores;
   }, [trabajadores]);
+
+  useEffect(() => {
+    faseRef.current = fase;
+  }, [fase]);
+
+  // --- Pantalla siempre encendida ---
+  // Un kiosco desatendido no sirve si el dispositivo apaga la pantalla solo
+  // a mitad de turno: nadie hay ahí para tocarla y despertarla. El Wake
+  // Lock se libera solo cuando la pestaña pasa a segundo plano (ej. se
+  // bloquea el dispositivo) — hay que volver a pedirlo cuando vuelve a
+  // primer plano, si no queda perdido para el resto de la sesión.
+  useEffect(() => {
+    const solicitarWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        // No soportado, o el navegador lo negó (ej. batería baja en
+        // algunos Android) — el kiosco debe seguir funcionando igual,
+        // solo sin esta protección extra.
+        console.warn('No se pudo mantener la pantalla encendida:', err);
+      }
+    };
+
+    solicitarWakeLock();
+
+    const alVolverAPrimerPlano = () => {
+      if (document.visibilityState === 'visible') solicitarWakeLock();
+    };
+    document.addEventListener('visibilitychange', alVolverAPrimerPlano);
+
+    return () => {
+      document.removeEventListener('visibilitychange', alVolverAPrimerPlano);
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+    };
+  }, []);
 
   // --- Carga inicial: modelos de face-api.js + caché de datos ---
 
@@ -206,13 +247,34 @@ const Kiosco = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fase]);
 
+  const RETRASO_REINTENTO_CAMARA_MS = 5000;
+
   const iniciarCamara = async () => {
     if (streamRef.current) return;
+
+    if (reintentoCamaraRef.current) {
+      clearTimeout(reintentoCamaraRef.current);
+      reintentoCamaraRef.current = null;
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
+
+      // Detecta si la cámara se pierde en pleno uso (se desconecta el USB,
+      // el SO se la quita para otra app, etc.): sin esto, el kiosco se
+      // queda mostrando "Buscando rostro..." para siempre sin procesar
+      // ningún frame, y nadie hay ahí para reiniciarlo a mano.
+      stream.getVideoTracks().forEach((track) => {
+        track.onended = () => {
+          if (streamRef.current === stream) {
+            console.warn('La cámara se desconectó — reintentando.');
+            detenerCamara();
+            programarReintentoCamara();
+          }
+        };
+      });
 
       candidatoRef.current = { id: null, veces: 0 };
       verificacionRef.current = null;
@@ -228,10 +290,26 @@ const Kiosco = () => {
     } catch (err) {
       console.error(err);
       setError(
-        'No se pudo acceder a la cámara. Revisa el permiso del navegador. ' +
+        'No se pudo acceder a la cámara. Reintentando automáticamente — revisa el permiso del navegador. ' +
         'Si el kiosco se abre por IP de red (no localhost/https), el navegador puede bloquear la cámara por ser un origen no seguro.'
       );
+      programarReintentoCamara();
     }
+  };
+
+  const programarReintentoCamara = () => {
+    if (reintentoCamaraRef.current) return;
+
+    reintentoCamaraRef.current = setTimeout(() => {
+      reintentoCamaraRef.current = null;
+      // Reintenta solo si seguimos en la pantalla de reconocimiento: si
+      // mientras tanto se reconoció a alguien por otra vía o se cambió de
+      // pantalla, no tiene sentido volver a prender la cámara acá. Se lee
+      // de un ref (no del "fase" cerrado en esta función) porque pueden
+      // pasar varios renders entre que se programó este reintento y que
+      // efectivamente se dispare.
+      if (faseRef.current === 'reconociendo') iniciarCamara();
+    }, RETRASO_REINTENTO_CAMARA_MS);
   };
 
   const detenerCamara = () => {
@@ -239,8 +317,16 @@ const Kiosco = () => {
     intervaloDeteccionRef.current = null;
     procesandoDeteccionRef.current = false;
 
+    if (reintentoCamaraRef.current) {
+      clearTimeout(reintentoCamaraRef.current);
+      reintentoCamaraRef.current = null;
+    }
+
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current.getTracks().forEach((t) => {
+        t.onended = null;
+        t.stop();
+      });
       streamRef.current = null;
     }
 
