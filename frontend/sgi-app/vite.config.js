@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from "fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // Certificado autofirmado para probar la cámara del kiosco (reconocimiento
 // facial) en un dispositivo real por IP de LAN: los navegadores bloquean
@@ -40,6 +41,12 @@ const servidorConfig = {
 export default defineConfig({
   server: servidorConfig,
   preview: servidorConfig,
+  // Genera source maps sin el comentario "//# sourceMappingURL" (no se
+  // sirven al navegador) para que sentryVitePlugin los suba y los errores
+  // de producción en Sentry muestren código real en vez de JS minificado.
+  build: {
+    sourcemap: "hidden",
+  },
   plugins: [
     react(),
     VitePWA({
@@ -74,6 +81,19 @@ export default defineConfig({
         // queda sin reconocimiento facial en modo offline.
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}", "models/**/*"],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+      },
+    }),
+    // Sube los source maps a Sentry para que los stack traces de producción
+    // (JS minificado) muestren el código real. Sin SENTRY_AUTH_TOKEN (dev
+    // local, o si nunca se agrega en el hosting) el plugin no sube nada y
+    // el build sigue igual — no rompe nada.
+    sentryVitePlugin({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      telemetry: false,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ["./dist/**/*.map"],
       },
     }),
   ],
