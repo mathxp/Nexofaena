@@ -22,6 +22,26 @@ ALLOWED_HOSTS_RAW = config(
 )
 
 ALLOWED_HOSTS = [host.strip() for host in str(ALLOWED_HOSTS_RAW).split(",")]
+
+# ==========================================
+# SENTRY (monitoreo de errores en producción)
+# ==========================================
+# Sin SENTRY_DSN configurado (dev local, o si nunca se agrega en Render)
+# esto no hace nada: no manda eventos ni cambia el comportamiento normal.
+SENTRY_DSN = config("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        environment="development" if DEBUG else "production",
+        # 10% de las requests con traza de performance: suficiente para ver
+        # cuellos de botella sin agotar la cuota gratuita.
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
 # ==========================================
 # APLICACIONES INSTALADAS
 # ==========================================
