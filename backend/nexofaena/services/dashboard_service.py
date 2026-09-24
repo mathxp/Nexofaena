@@ -19,6 +19,11 @@ CACHE_KEY_ML_AVANZADO = "nexofaena:dashboard:ml_avanzado"
 # movimientos, traspasos, ajustes de auditoría) ya llama a
 # invalidar_cache() de inmediato — este TTL es solo la red de seguridad para
 # cambios que no pasan por esos servicios (ej. edición directa en el admin).
+#
+# El comando "recalcular_dashboard" (pensado para un Render Cron Job cada
+# 8 min, ver README del comando) llama a recalcular_cache() para repoblar
+# el cache ANTES de que este TTL expire — así el entrenamiento corre en el
+# cron, nunca en la request de un usuario real.
 CACHE_TTL_SEGUNDOS = 600
 
 
@@ -37,20 +42,13 @@ class DashboardService:
         cache.delete(CACHE_KEY_ML_AVANZADO)
 
     @staticmethod
-    def obtener_dashboard():
-        """
-        Entrena Random Forest, Regresión Logística y K-Means en cada llamada,
-        así que se cachea brevemente: sin esto, cada carga del Dashboard
-        Gerencial (o refresco de varios usuarios a la vez) reentrena los tres
-        modelos desde cero.
-        """
-        cacheado = cache.get(CACHE_KEY_DASHBOARD)
-        if cacheado is not None:
-            return cacheado
-
+    def _calcular_dashboard():
+        """Cómputo puro (sin tocar el cache): entrena Random Forest,
+        Regresión Logística y K-Means. Lo llaman tanto obtener_dashboard()
+        (cache-miss) como recalcular_cache() (cron)."""
         analitica_stock = MLService.analitica_stock()
 
-        data = {
+        return {
             "kpis": DashboardService.obtener_kpis(),
             "entregas_mensuales": DashboardService.obtener_entregas_mensuales(),
             "top_productos": DashboardService.obtener_top_productos(),
@@ -66,9 +64,29 @@ class DashboardService:
             "capital_inmovilizado": analitica_stock["capital_inmovilizado"],
         }
 
+    @staticmethod
+    def obtener_dashboard():
+        """
+        Entrena Random Forest, Regresión Logística y K-Means en cada llamada,
+        así que se cachea brevemente: sin esto, cada carga del Dashboard
+        Gerencial (o refresco de varios usuarios a la vez) reentrena los tres
+        modelos desde cero.
+        """
+        cacheado = cache.get(CACHE_KEY_DASHBOARD)
+        if cacheado is not None:
+            return cacheado
+
+        data = DashboardService._calcular_dashboard()
         cache.set(CACHE_KEY_DASHBOARD, data, CACHE_TTL_SEGUNDOS)
 
         return data
+
+    @staticmethod
+    def _calcular_ml_avanzado():
+        """Cómputo puro del bloque ML "extendido" (clasificación ABC)."""
+        return {
+            "clasificacion_abc": MLService.clasificacion_abc_dinamica(),
+        }
 
     @staticmethod
     def obtener_ml_avanzado():
@@ -82,13 +100,21 @@ class DashboardService:
         if cacheado is not None:
             return cacheado
 
-        data = {
-            "clasificacion_abc": MLService.clasificacion_abc_dinamica(),
-        }
-
+        data = DashboardService._calcular_ml_avanzado()
         cache.set(CACHE_KEY_ML_AVANZADO, data, CACHE_TTL_SEGUNDOS)
 
         return data
+
+    @staticmethod
+    def recalcular_cache():
+        """
+        Fuerza el reentrenamiento y repuebla el cache sin importar si el TTL
+        sigue vigente — a diferencia de obtener_dashboard()/obtener_ml_avanzado(),
+        que solo calculan en un cache-miss. Pensado para el comando
+        "recalcular_dashboard" (Render Cron Job), no para servir requests.
+        """
+        cache.set(CACHE_KEY_DASHBOARD, DashboardService._calcular_dashboard(), CACHE_TTL_SEGUNDOS)
+        cache.set(CACHE_KEY_ML_AVANZADO, DashboardService._calcular_ml_avanzado(), CACHE_TTL_SEGUNDOS)
 
     @staticmethod
     def obtener_kpis():

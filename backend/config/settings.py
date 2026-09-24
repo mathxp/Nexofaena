@@ -132,6 +132,25 @@ DATABASES = {
 }
 
 # ==========================================
+# CACHE (Dashboard Gerencial)
+# ==========================================
+# DatabaseCache sobre la misma Postgres: sin esto, Django cae al backend
+# por defecto (LocMemCache), que vive en memoria DE UN SOLO PROCESO — el
+# cron que repuebla el cache (comando recalcular_dashboard) correría en su
+# propio proceso y ese resultado nunca llegaría a los workers de gunicorn
+# que sirven el Dashboard. DatabaseCache sí es compartido entre procesos,
+# y para un cache de 10 min (CACHE_TTL_SEGUNDOS en dashboard_service.py)
+# el rendimiento de Postgres sobra — no amerita levantar Redis solo para
+# esto. La tabla se crea con "python manage.py createcachetable" (ver
+# build.sh).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "nexofaena_cache",
+    }
+}
+
+# ==========================================
 # REPORTES OPERATIVOS
 # ==========================================
 # Umbral configurable para derivar el turno (día/noche) desde la hora de
