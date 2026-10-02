@@ -12,6 +12,7 @@ import {
   FaHourglassHalf,
   FaTools,
   FaUserClock,
+  FaDesktop,
 } from 'react-icons/fa';
 
 import { jsPDF } from 'jspdf';
@@ -21,6 +22,7 @@ import { saveAs } from 'file-saver';
 
 import api from '../../api';
 import ReporteConsumoTurno from '../ReporteConsumoTurno/ReporteConsumoTurno';
+import ReporteUsoKiosco from '../ReporteUsoKiosco/ReporteUsoKiosco';
 import './Reportes.css';
 
 const REGISTROS_POR_PAGINA = 15;
@@ -532,9 +534,17 @@ const Reportes = () => {
         >
           <FaUserClock /> Consumo por Turno
         </button>
+        <button
+          className={`reportes-tab ${tab === 'kiosco' ? 'active' : ''}`}
+          onClick={() => setTab('kiosco')}
+        >
+          <FaDesktop /> Uso del Kiosco
+        </button>
       </div>
 
-      {tab === 'entregas' ? <ReporteEntregas /> : <ReporteConsumoTurno />}
+      {tab === 'entregas' && <ReporteEntregas />}
+      {tab === 'turno' && <ReporteConsumoTurno />}
+      {tab === 'kiosco' && <ReporteUsoKiosco />}
     </div>
   );
 };

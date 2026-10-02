@@ -12,7 +12,7 @@ from .views.unidad_activo_views import UnidadActivoViewSet
 from .views.auth_views import MeView
 from .views.password_views import PasswordResetRequestView, PasswordResetConfirmView
 from .views.auditoria_views import AuditoriaInventarioViewSet
-from .views.reporte_views import ReporteEppPorTurnoView, ReportePrestamosPendientesView
+from .views.reporte_views import ReporteEppPorTurnoView, ReportePrestamosPendientesView, ReporteUsoKioscoView
 from .views.telegram_views import TelegramEstadoVinculacionView, TelegramGenerarCodigoView
 from .views.telegram_webhook_views import telegram_webhook
 
@@ -37,6 +37,7 @@ urlpatterns = [
     path("dashboard/ml-busqueda/", MLBusquedaView.as_view(), name="dashboard_ml_busqueda"),
     path("reportes/epp-por-turno/", ReporteEppPorTurnoView.as_view(), name="reporte_epp_por_turno"),
     path("reportes/prestamos-pendientes/", ReportePrestamosPendientesView.as_view(), name="reporte_prestamos_pendientes"),
+    path("reportes/uso-kiosco/", ReporteUsoKioscoView.as_view(), name="reporte_uso_kiosco"),
     path("register/", RegistroConInvitacionView.as_view(), name="register"),
     path("me/", MeView.as_view(), name="me"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="password_reset"),

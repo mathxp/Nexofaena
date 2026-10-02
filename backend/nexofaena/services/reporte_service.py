@@ -17,6 +17,7 @@ from decimal import Decimal
 from statistics import mean, pstdev
 
 from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
@@ -304,4 +305,88 @@ class ReporteService:
             "trabajadores": resultado,
             "total_trabajadores": len(resultado),
             "total_items": sum(g["total_pendientes"] for g in resultado),
+        }
+
+    @staticmethod
+    def uso_kiosco_por_turno(fecha_desde=None, fecha_hasta=None, bodega_id=None):
+        """
+        Cuánto se usa el kiosco de autoservicio frente al registro manual del
+        bodeguero, día a día y por turno — la pregunta de adopción que no se
+        puede responder solo con el total mensual del Dashboard Gerencial.
+        No captura nada nuevo: agrega EntregaEPP.canal (ver crear_entrega),
+        igual que el resto de los reportes de este service.
+        """
+        desde, hasta = ReporteService._resolver_periodo(fecha_desde, fecha_hasta)
+
+        entregas = EntregaEPP.objects.filter(
+            estado="COMPLETADA",
+            fecha_entrega__date__gte=desde,
+            fecha_entrega__date__lte=hasta,
+        )
+
+        if bodega_id:
+            entregas = entregas.filter(bodega_id=bodega_id)
+
+        def _acumular(filas, clave_grupo, etiqueta_grupo):
+            grupos = {}
+            for fila in filas:
+                clave = fila[clave_grupo]
+                grupo = grupos.setdefault(clave, {etiqueta_grupo: clave, "kiosco": 0, "bodega": 0})
+                campo = "kiosco" if fila["canal"] == "KIOSCO" else "bodega"
+                grupo[campo] = fila["total"]
+            return grupos
+
+        por_dia_qs = (
+            entregas.annotate(dia=TruncDate("fecha_entrega"))
+            .values("dia", "canal")
+            .annotate(total=Count("id"))
+        )
+        por_dia_map = _acumular(por_dia_qs, "dia", "fecha")
+        por_dia = sorted(por_dia_map.values(), key=lambda f: f["fecha"])
+        for fila in por_dia:
+            fila["fecha"] = fila["fecha"].isoformat()
+            fila["total"] = fila["kiosco"] + fila["bodega"]
+
+        por_turno_qs = entregas.values("turno", "canal").annotate(total=Count("id"))
+        por_turno = {
+            "dia": {"turno": "dia", "kiosco": 0, "bodega": 0, "total": 0},
+            "noche": {"turno": "noche", "kiosco": 0, "bodega": 0, "total": 0},
+        }
+        for fila in por_turno_qs:
+            turno = fila["turno"] or "dia"
+            campo = "kiosco" if fila["canal"] == "KIOSCO" else "bodega"
+            por_turno.setdefault(turno, {"turno": turno, "kiosco": 0, "bodega": 0, "total": 0})[campo] = fila["total"]
+        for grupo in por_turno.values():
+            grupo["total"] = grupo["kiosco"] + grupo["bodega"]
+
+        por_bodega_qs = entregas.values("bodega_id", "bodega__nombre", "canal").annotate(total=Count("id"))
+        por_bodega_map = {}
+        for fila in por_bodega_qs:
+            grupo = por_bodega_map.setdefault(fila["bodega_id"], {
+                "bodega_id": fila["bodega_id"],
+                "bodega_nombre": fila["bodega__nombre"],
+                "kiosco": 0,
+                "bodega": 0,
+            })
+            campo = "kiosco" if fila["canal"] == "KIOSCO" else "bodega"
+            grupo[campo] = fila["total"]
+        por_bodega = sorted(por_bodega_map.values(), key=lambda f: f["bodega_nombre"] or "")
+        for fila in por_bodega:
+            fila["total"] = fila["kiosco"] + fila["bodega"]
+
+        total_kiosco = sum(f["kiosco"] for f in por_dia)
+        total_bodega = sum(f["bodega"] for f in por_dia)
+        total = total_kiosco + total_bodega
+
+        return {
+            "periodo": {"fecha_desde": desde.isoformat(), "fecha_hasta": hasta.isoformat()},
+            "resumen_general": {
+                "total_entregas": total,
+                "total_kiosco": total_kiosco,
+                "total_bodega": total_bodega,
+                "porcentaje_kiosco": round(total_kiosco / total * 100, 1) if total else 0,
+            },
+            "por_dia": por_dia,
+            "por_turno": list(por_turno.values()),
+            "por_bodega": por_bodega,
         }

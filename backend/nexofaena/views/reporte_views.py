@@ -54,6 +54,35 @@ class ReporteEppPorTurnoView(APIView):
             )
 
 
+class ReporteUsoKioscoView(APIView):
+    """
+    Adopción del kiosco de autoservicio: cuántas entregas por día/turno/bodega
+    vinieron del kiosco frente al registro manual del bodeguero. Mismo nivel
+    de acceso que el resto de los reportes gerenciales (Supervisor/Administrador).
+    """
+    permission_classes = [IsSupervisor]
+
+    def get(self, request):
+        try:
+            reporte = ReporteService.uso_kiosco_por_turno(
+                fecha_desde=request.GET.get("fecha_desde"),
+                fecha_hasta=request.GET.get("fecha_hasta"),
+                bodega_id=request.GET.get("bodega"),
+            )
+
+            return Response(reporte, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Error al generar el reporte de uso del kiosco.",
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 class ReportePrestamosPendientesView(APIView):
     """
     "No saber quién tiene una radio que nunca devolvió" (Carlos Guerrero,
