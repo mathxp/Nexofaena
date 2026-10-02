@@ -98,6 +98,7 @@ class EntregaEPPSerializer(serializers.ModelSerializer):
             "observacion",
             "firma_base64",
             "estado",
+            "canal",
             "latitud",
             "longitud",
             "precision_metros",

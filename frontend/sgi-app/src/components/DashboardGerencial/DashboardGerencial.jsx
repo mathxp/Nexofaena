@@ -16,6 +16,8 @@ import {
   FaCoins,
   FaBoxes,
   FaLayerGroup,
+  FaDesktop,
+  FaUserTie,
 } from 'react-icons/fa';
 
 import {
@@ -91,6 +93,7 @@ const DashboardGerencial = () => {
   const [recomendaciones, setRecomendaciones] = useState([]);
   const [anomalias, setAnomalias] = useState([]);
   const [capitalInmovilizado, setCapitalInmovilizado] = useState({ items: [], total_clp: 0, cantidad_items: 0 });
+  const [entregasPorCanal, setEntregasPorCanal] = useState({ kiosco: 0, bodega: 0 });
 
   const [clasificacionAbc, setClasificacionAbc] = useState([]);
   const [resumenAbc, setResumenAbc] = useState({});
@@ -130,6 +133,7 @@ const DashboardGerencial = () => {
         setRecomendaciones(Array.isArray(data.recomendaciones_reposicion) ? data.recomendaciones_reposicion : []);
         setAnomalias(Array.isArray(data.anomalias_consumo) ? data.anomalias_consumo : []);
         setCapitalInmovilizado(data.capital_inmovilizado || { items: [], total_clp: 0, cantidad_items: 0 });
+        setEntregasPorCanal(data.entregas_por_canal || { kiosco: 0, bodega: 0 });
       } else {
         console.error(resumenRes.reason);
         setError('No se pudo cargar el Modelo Predictivo de Inteligencia Artificial.');
@@ -358,6 +362,23 @@ const DashboardGerencial = () => {
     ],
   };
 
+  const totalEntregasCanal = (entregasPorCanal.kiosco || 0) + (entregasPorCanal.bodega || 0);
+  const porcentajeKiosco = totalEntregasCanal > 0
+    ? Math.round((entregasPorCanal.kiosco / totalEntregasCanal) * 100)
+    : 0;
+
+  const chartDataCanal = {
+    labels: ['Kiosco (autoservicio)', 'Bodeguero (manual)'],
+    datasets: [
+      {
+        data: [entregasPorCanal.kiosco || 0, entregasPorCanal.bodega || 0],
+        backgroundColor: ['#22d3ee', '#64748b'],
+        borderColor: '#001e38',
+        borderWidth: 2,
+      },
+    ],
+  };
+
   return (
     <div className="gerencial-wrapper">
       <div className="gerencial-header">
@@ -437,6 +458,54 @@ const DashboardGerencial = () => {
             )}
           </div>
         )}
+      </div>
+
+      {/* ============ CANAL DE ENTREGA: KIOSCO VS. BODEGUERO ============ */}
+      <div className="modulo-ia">
+        <div className="modulo-header">
+          <div className="modulo-icon modulo-icon-cyan"><FaDesktop /></div>
+          <div>
+            <div className="modulo-badge">Métrica operativa</div>
+            <h2 className="modulo-title">Canal de Entrega: Kiosco vs. Bodeguero</h2>
+            <p className="modulo-desc">
+              Cuántas entregas de este mes vinieron del kiosco de autoservicio versus las que
+              registró un bodeguero a mano — la métrica que indica si el kiosco realmente está
+              bajando la carga de trabajo del pañol.
+            </p>
+          </div>
+        </div>
+
+        <div className="charts-grid">
+          <div className="chart-card">
+            <div className="chart-header">
+              <div className="chart-title"><FaChartPie /> Entregas del mes por canal</div>
+              <div className="chart-subtitle">{totalEntregasCanal} entrega(s) completada(s)</div>
+            </div>
+
+            <div className="chart-container">
+              {totalEntregasCanal === 0 ? (
+                <div className="ml-empty">Sin entregas completadas este mes todavía.</div>
+              ) : (
+                <Doughnut
+                  data={chartDataCanal}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 14 } } },
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="prediction-box">
+              <FaDesktop /> Kiosco: <strong>{entregasPorCanal.kiosco || 0}</strong>
+              {totalEntregasCanal > 0 && ` (${porcentajeKiosco}%)`}
+              {' · '}
+              <FaUserTie /> Bodeguero: <strong>{entregasPorCanal.bodega || 0}</strong>
+              {totalEntregasCanal > 0 && ` (${100 - porcentajeKiosco}%)`}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ============ MÓDULO 1: REGRESIÓN LINEAL / RANDOM FOREST ============ */}

@@ -21,6 +21,10 @@ export async function sincronizarEntregasPendientes() {
         firma_base64: entrega.firma_base64,
         observacion: entrega.observacion || 'Entrega sincronizada desde modo offline',
         estado: 'COMPLETADA',
+        // Entregas guardadas offline antes de este campo no tienen "canal"
+        // en IndexedDB — caen a BODEGA (el valor por defecto del backend)
+        // en vez de perder la sincronización.
+        canal: entrega.canal || 'BODEGA',
         // La coordenada viaja tal cual se capturó en terreno al momento de
         // la entrega, no la del dispositivo al reconectar: eso es lo que
         // la hace válida como evidencia de auditoría.

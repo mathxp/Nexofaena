@@ -31,6 +31,19 @@ class EntregaEPP(models.Model):
     firma_base64 = models.TextField(blank=True, null=True, verbose_name="Firma Digital")
     estado = models.CharField(max_length=20, choices=ESTADOS_ENTREGA, default='PENDIENTE', verbose_name="Estado")
 
+    # Quién originó la entrega: un bodeguero registrándola a mano, o el
+    # trabajador sirviéndose solo en el kiosco. Antes de este campo no había
+    # forma de distinguirlas (ambas pasan por el mismo EntregaService con la
+    # cuenta de staff logueada en el kiosco), y es justo la métrica que
+    # importa para medir si el kiosco redujo la carga del pañol.
+    CANALES_ENTREGA = (
+        ('BODEGA', 'Bodeguero (registro manual)'),
+        ('KIOSCO', 'Kiosco (autoservicio)'),
+    )
+    canal = models.CharField(
+        max_length=10, choices=CANALES_ENTREGA, default='BODEGA', verbose_name="Canal",
+    )
+
     # Geolocalización inmutable de auditoría (SERNAC/SERNATUR/MINSAL/Mandante):
     # coordenadas capturadas en el dispositivo al momento del acto de entrega,
     # no al momento de sincronizar. Por eso van junto con

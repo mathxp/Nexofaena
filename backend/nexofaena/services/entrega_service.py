@@ -27,7 +27,7 @@ class EntregaService:
     @staticmethod
     @transaction.atomic
     def crear_entrega(*, trabajador_id, usuario_id, bodega_id, detalles,
-                       firma_base64=None, observacion="", estado="COMPLETADA"):
+                       firma_base64=None, observacion="", estado="COMPLETADA", canal="BODEGA"):
         if not trabajador_id or not usuario_id or not bodega_id:
             raise ValidationError("Trabajador, usuario y bodega son obligatorios.")
 
@@ -46,6 +46,7 @@ class EntregaService:
             firma_base64=firma_base64,
             observacion=observacion,
             estado=estado,
+            canal=canal if canal in dict(EntregaEPP.CANALES_ENTREGA) else "BODEGA",
         )
         entrega.trabajador = trabajador  # evita re-consultar el trabajador por cada detalle
 

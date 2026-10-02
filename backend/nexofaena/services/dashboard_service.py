@@ -62,6 +62,7 @@ class DashboardService:
             "quiebre_stock": analitica_stock["quiebre_stock"],
             "recomendaciones_reposicion": analitica_stock["recomendaciones_reposicion"],
             "capital_inmovilizado": analitica_stock["capital_inmovilizado"],
+            "entregas_por_canal": DashboardService.obtener_entregas_por_canal(),
         }
 
     @staticmethod
@@ -153,6 +154,29 @@ class DashboardService:
             "productos_criticos": productos_criticos,
             "productos_bajo_minimo": productos_bajo_minimo,
             "productos_sobre_stock": productos_sobre_stock,
+        }
+
+    @staticmethod
+    def obtener_entregas_por_canal():
+        """
+        Cuántas entregas del mes vinieron del kiosco de autoservicio vs. las
+        que registró un bodeguero a mano — la métrica que le importa a
+        quien evalúa si el kiosco realmente bajó la carga del pañol. Solo
+        cuenta entregas COMPLETADA (una PENDIENTE/ANULADA no es una entrega
+        real todavía).
+        """
+        inicio_mes = timezone.now().replace(day=1)
+
+        conteo = dict(
+            EntregaEPP.objects.filter(estado="COMPLETADA", fecha_entrega__gte=inicio_mes)
+            .values("canal")
+            .annotate(total=Count("id"))
+            .values_list("canal", "total")
+        )
+
+        return {
+            "kiosco": conteo.get("KIOSCO", 0),
+            "bodega": conteo.get("BODEGA", 0),
         }
 
     @staticmethod

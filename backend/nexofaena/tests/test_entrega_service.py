@@ -41,6 +41,38 @@ class CrearEntregaTests(TestCase):
         self.producto.refresh_from_db()
         self.assertEqual(self.producto.stock_actual, Decimal("10"), "el stock no debe tocarse si la entrega se rechaza")
 
+    def test_canal_por_defecto_es_bodega(self):
+        entrega = EntregaService.crear_entrega(
+            trabajador_id=self.trabajador.id,
+            usuario_id=self.usuario.id,
+            bodega_id=self.bodega.id,
+            detalles=[{"inventario": self.producto.id, "cantidad": 1}],
+        )
+
+        self.assertEqual(entrega.canal, "BODEGA")
+
+    def test_canal_kiosco_se_guarda_explicito(self):
+        entrega = EntregaService.crear_entrega(
+            trabajador_id=self.trabajador.id,
+            usuario_id=self.usuario.id,
+            bodega_id=self.bodega.id,
+            detalles=[{"inventario": self.producto.id, "cantidad": 1}],
+            canal="KIOSCO",
+        )
+
+        self.assertEqual(entrega.canal, "KIOSCO")
+
+    def test_canal_invalido_cae_a_bodega(self):
+        entrega = EntregaService.crear_entrega(
+            trabajador_id=self.trabajador.id,
+            usuario_id=self.usuario.id,
+            bodega_id=self.bodega.id,
+            detalles=[{"inventario": self.producto.id, "cantidad": 1}],
+            canal="ALGO_RARO",
+        )
+
+        self.assertEqual(entrega.canal, "BODEGA")
+
     def test_rechaza_sin_detalles(self):
         with self.assertRaises(ValidationError):
             EntregaService.crear_entrega(

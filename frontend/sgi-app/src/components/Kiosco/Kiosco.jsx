@@ -703,6 +703,7 @@ const Kiosco = () => {
       firma_base64: firmaBase64,
       observacion: `Autoservicio kiosco — ${trabajadorActual.nombres} ${trabajadorActual.apellido_paterno} (RUT ${trabajadorActual.rut})`,
       estado: 'COMPLETADA',
+      canal: 'KIOSCO',
       latitud: geolocalizacion?.latitud ?? null,
       longitud: geolocalizacion?.longitud ?? null,
       precision_metros: geolocalizacion?.precision_metros ?? null,
@@ -722,6 +723,7 @@ const Kiosco = () => {
       longitud: payloadServidor.longitud,
       precision_metros: payloadServidor.precision_metros,
       geolocalizacion_capturada_en: payloadServidor.geolocalizacion_capturada_en,
+      canal: 'KIOSCO',
       sincronizado: 0,
     };
 

@@ -40,6 +40,7 @@ class EntregaEPPViewSet(viewsets.ModelViewSet):
                 firma_base64=data.get("firma_base64"),
                 observacion=data.get("observacion", ""),
                 estado=data.get("estado", "COMPLETADA"),
+                canal=data.get("canal", "BODEGA"),
                 detalles=data.get("detalles", []),
             )
         except ValidationError as e:

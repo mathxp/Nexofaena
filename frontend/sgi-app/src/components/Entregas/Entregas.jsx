@@ -350,6 +350,7 @@ const Entregas = () => {
       longitud: geolocalizacion?.longitud ?? null,
       precision_metros: geolocalizacion?.precision_metros ?? null,
       geolocalizacion_capturada_en: geolocalizacion?.geolocalizacion_capturada_en ?? null,
+      canal: 'BODEGA',
       sincronizado: 0,
     };
 
@@ -360,6 +361,7 @@ const Entregas = () => {
       firma_base64: payloadLocal.firma_base64,
       observacion: `Entrega a ${trabajadorSeleccionado.nombres} ${trabajadorSeleccionado.apellido_paterno} | RUT ${trabajadorSeleccionado.rut}`,
       estado: 'COMPLETADA',
+      canal: 'BODEGA',
       latitud: payloadLocal.latitud,
       longitud: payloadLocal.longitud,
       precision_metros: payloadLocal.precision_metros,
