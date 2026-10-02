@@ -11,6 +11,8 @@ import {
   FaBroadcastTower,
   FaTools,
   FaUndo,
+  FaWifi,
+  FaSignal,
 } from 'react-icons/fa';
 
 import api from '../../api';
@@ -67,6 +69,7 @@ const Kiosco = () => {
   const [fase, setFase] = useState('cargando-modelos');
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   const [bodegaId, setBodegaId] = useState(localStorage.getItem('kiosco_bodega_id') || '');
   const [bodegas, setBodegas] = useState([]);
@@ -142,6 +145,28 @@ const Kiosco = () => {
       document.removeEventListener('visibilitychange', alVolverAPrimerPlano);
       wakeLockRef.current?.release().catch(() => {});
       wakeLockRef.current = null;
+    };
+  }, []);
+
+  // --- Indicador de conexión ---
+  // Antes esto solo se revisaba al tocar una acción puntual (retirar un
+  // radio, confirmar firma, etc.), así que un trabajador sin señal no tenía
+  // forma de saberlo de antemano — se enteraba recién al chocar con un
+  // mensaje de error a mitad de flujo. Con el badge siempre visible, lo sabe
+  // antes de empezar.
+  useEffect(() => {
+    const alConectar = () => {
+      setIsOffline(false);
+      sincronizarEntregasPendientes();
+    };
+    const alDesconectar = () => setIsOffline(true);
+
+    window.addEventListener('online', alConectar);
+    window.addEventListener('offline', alDesconectar);
+
+    return () => {
+      window.removeEventListener('online', alConectar);
+      window.removeEventListener('offline', alDesconectar);
     };
   }, []);
 
@@ -766,9 +791,16 @@ const Kiosco = () => {
 
   // --- Render ---
 
+  const badgeConexion = (
+    <div className={`kiosco-network-badge ${isOffline ? 'kiosco-badge-offline' : 'kiosco-badge-online'}`}>
+      {isOffline ? (<><FaSignal /> Sin conexión</>) : (<><FaWifi /> Conectado</>)}
+    </div>
+  );
+
   if (fase === 'cargando-modelos') {
     return (
       <div className="kiosco-wrapper kiosco-centrado">
+        {badgeConexion}
         <div className="kiosco-spinner" />
         <p>Cargando reconocimiento facial…</p>
         {error && <div className="kiosco-error">{error}</div>}
@@ -779,6 +811,7 @@ const Kiosco = () => {
   if (fase === 'configurar-bodega') {
     return (
       <div className="kiosco-wrapper kiosco-centrado">
+        {badgeConexion}
         <h1 className="kiosco-titulo">Configuración del kiosco</h1>
         <p className="kiosco-subtitulo">Selecciona a qué bodega atiende este kiosco (se guarda en este dispositivo).</p>
 
@@ -798,6 +831,8 @@ const Kiosco = () => {
 
   return (
     <div className="kiosco-wrapper">
+      {badgeConexion}
+
       {(fase === 'reconociendo') && (
         <div className="kiosco-reconocimiento">
           <video ref={videoRef} autoPlay muted playsInline className="kiosco-video" />
