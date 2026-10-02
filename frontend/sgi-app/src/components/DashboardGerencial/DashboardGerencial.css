@@ -590,3 +590,42 @@
     .busqueda-input { width: 100%; order: 1; }
     .busqueda-submit { width: 100%; order: 2; }
 }
+
+/* Tabla -> tarjetas apiladas en celular: las 4 tablas chicas de este
+   dashboard (consumo esperado, reposición, capital inmovilizado, clase A)
+   tenían 4-5 columnas numéricas que no entraban en 390px. */
+@media (max-width: 640px) {
+    .ml-table-wrapper { max-height: none; }
+    .ml-table thead { display: none; }
+
+    .ml-table, .ml-table tbody, .ml-table tr, .ml-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .ml-table tbody tr {
+        margin-bottom: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .ml-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: right;
+    }
+
+    .ml-table td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        text-align: left;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        font-size: 0.68rem;
+        letter-spacing: 0.02em;
+    }
+}

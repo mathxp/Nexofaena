@@ -574,6 +574,63 @@ select.filter-input option {
     .tab-btn { flex: 1; text-align: center; }
 }
 
+/* Tabla -> tarjetas apiladas en celular. La tabla principal tiene 10
+   columnas (Mín/Máx/Precio/Valor/5S/Estado/Acciones quedaban fuera de
+   pantalla, Acciones incluido — sin eso no se podía ni editar ni borrar un
+   producto desde el celular). La celda de Ítem/Código ya trae su propio
+   título visual, así que queda sin etiqueta repetida (ver .celda-item). */
+@media (max-width: 640px) {
+    /* min-width de la tabla de escritorio (línea ~340) seguía aplicando
+       con display:block, empujando el valor de cada celda fuera de la
+       pantalla aunque la etiqueta (::before) se viera bien. */
+    .styled-table { min-width: 0; }
+
+    .styled-table thead { display: none; }
+
+    .styled-table, .styled-table tbody, .styled-table tr, .styled-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .styled-table tbody tr {
+        margin-bottom: 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .styled-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: right;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .styled-table td:last-child { border-bottom: none; }
+
+    .styled-table td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-soft);
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
+    }
+
+    .styled-table td.celda-item {
+        display: block;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .styled-table td.celda-item::before { content: none; }
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }

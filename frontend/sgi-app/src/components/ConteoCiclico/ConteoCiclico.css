@@ -305,6 +305,55 @@
   }
 }
 
+/* Tabla -> tarjetas apiladas en celular: min-width: 560px forzaba scroll
+   horizontal en cualquier pantalla de celular, cortando "Producto",
+   "Conteo" y "Diferencia" fuera de vista durante el conteo físico. */
+@media (max-width: 640px) {
+  .conteo-container table { min-width: 0; }
+
+  .conteo-container thead { display: none; }
+
+  .conteo-container table,
+  .conteo-container tbody,
+  .conteo-container tr,
+  .conteo-container td {
+    display: block;
+    width: 100%;
+  }
+
+  .conteo-container tbody tr {
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .conteo-container td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .conteo-container td:last-child { border-bottom: none; }
+
+  .conteo-container td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    text-align: left;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+  }
+
+  .conteo-container input { width: 100%; max-width: 160px; }
+}
+
 .conteo-msg {
   padding: 14px 18px;
   border-radius: 10px;

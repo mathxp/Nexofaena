@@ -146,15 +146,15 @@ const Bodegas = () => {
                             ) : (
                                 bodegas.map((b) => (
                                     <tr key={b.id} className={!b.estado ? 'fila-inactiva' : ''}>
-                                        <td><strong>{b.nombre}</strong></td>
-                                        <td>{b.ubicacion || 'N/A'}</td>
-                                        <td>{b.responsable || 'N/A'}</td>
-                                        <td>
+                                        <td data-label="Nombre"><strong>{b.nombre}</strong></td>
+                                        <td data-label="Ubicación">{b.ubicacion || 'N/A'}</td>
+                                        <td data-label="Responsable">{b.responsable || 'N/A'}</td>
+                                        <td data-label="Estado">
                                             <span className={`badge-estado ${b.estado ? 'badge-activa' : 'badge-inactiva'}`}>
                                                 {b.estado ? 'Activa' : 'Inactiva'}
                                             </span>
                                         </td>
-                                        <td>
+                                        <td data-label="Acciones">
                                             <div className="action-buttons">
                                                 <button onClick={() => cargarParaEdicion(b)} className="btn-icon btn-edit" title="Editar"><FaEdit /></button>
                                                 {b.estado ? (

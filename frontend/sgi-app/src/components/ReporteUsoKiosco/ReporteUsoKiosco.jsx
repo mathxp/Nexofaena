@@ -319,10 +319,10 @@ const ReporteUsoKiosco = () => {
               ) : (
                 reporte.por_turno.map((f) => (
                   <tr key={f.turno}>
-                    <td>{etiquetaTurno(f.turno)}</td>
-                    <td className="text-center">{f.kiosco}</td>
-                    <td className="text-center">{f.bodega}</td>
-                    <td className="text-center"><strong>{f.total}</strong></td>
+                    <td data-label="Turno">{etiquetaTurno(f.turno)}</td>
+                    <td className="text-center" data-label="Kiosco">{f.kiosco}</td>
+                    <td className="text-center" data-label="Bodeguero">{f.bodega}</td>
+                    <td className="text-center" data-label="Total"><strong>{f.total}</strong></td>
                   </tr>
                 ))
               )}
@@ -354,10 +354,10 @@ const ReporteUsoKiosco = () => {
               ) : (
                 reporte.por_bodega.map((f) => (
                   <tr key={f.bodega_id}>
-                    <td>{f.bodega_nombre || 'Sin bodega'}</td>
-                    <td className="text-center">{f.kiosco}</td>
-                    <td className="text-center">{f.bodega}</td>
-                    <td className="text-center"><strong>{f.total}</strong></td>
+                    <td data-label="Bodega">{f.bodega_nombre || 'Sin bodega'}</td>
+                    <td className="text-center" data-label="Kiosco">{f.kiosco}</td>
+                    <td className="text-center" data-label="Bodeguero">{f.bodega}</td>
+                    <td className="text-center" data-label="Total"><strong>{f.total}</strong></td>
                   </tr>
                 ))
               )}

@@ -261,14 +261,14 @@ const Movimientos = () => {
                             ) : (
                                 movimientosPagina.map((mov) => (
                                     <tr key={mov.id}>
-                                        <td>{renderBadge(mov.tipo_movimiento)}</td>
-                                        <td style={{ fontWeight: '700' }}>{mov.producto_nombre || 'Desconocido'}</td>
-                                        <td>{mov.bodega_nombre || 'N/A'}</td>
-                                        <td style={{ fontWeight: '900', fontSize: '1.1rem' }}>{mov.cantidad}</td>
-                                        <td style={{ color: '#94a3b8' }}>{mov.stock_anterior} → {mov.stock_actual}</td>
-                                        <td>{mov.usuario_nombre || 'N/A'}</td>
-                                        <td style={{ color: '#94a3b8' }}>{mov.observacion || '—'}</td>
-                                        <td style={{ color: '#94a3b8' }}>{new Date(mov.fecha).toLocaleString()}</td>
+                                        <td data-label="Tipo">{renderBadge(mov.tipo_movimiento)}</td>
+                                        <td data-label="Producto" style={{ fontWeight: '700' }}>{mov.producto_nombre || 'Desconocido'}</td>
+                                        <td data-label="Bodega">{mov.bodega_nombre || 'N/A'}</td>
+                                        <td data-label="Cantidad" style={{ fontWeight: '900', fontSize: '1.1rem' }}>{mov.cantidad}</td>
+                                        <td data-label="Stock resultante" style={{ color: '#94a3b8' }}>{mov.stock_anterior} → {mov.stock_actual}</td>
+                                        <td data-label="Responsable">{mov.usuario_nombre || 'N/A'}</td>
+                                        <td data-label="Observación" style={{ color: '#94a3b8' }}>{mov.observacion || '—'}</td>
+                                        <td data-label="Fecha y Hora" style={{ color: '#94a3b8' }}>{new Date(mov.fecha).toLocaleString()}</td>
                                     </tr>
                                 ))
                             )}

@@ -451,19 +451,19 @@ const ReporteEntregas = () => {
 
                       return (
                         <tr key={e.id}>
-                          <td><strong>#{e.id}</strong></td>
-                          <td>{e.trabajador_nombre || 'No registrado'}</td>
-                          <td>{e.trabajador_rut || 'N/A'}</td>
-                          <td>{e.bodega_nombre || 'N/A'}</td>
-                          <td>{obtenerProductos(e)}</td>
-                          <td>{obtenerCantidadTotal(e)}</td>
-                          <td>{e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleDateString() : 'N/A'}</td>
-                          <td>
+                          <td data-label="ID"><strong>#{e.id}</strong></td>
+                          <td data-label="Trabajador">{e.trabajador_nombre || 'No registrado'}</td>
+                          <td data-label="RUT">{e.trabajador_rut || 'N/A'}</td>
+                          <td data-label="Bodega">{e.bodega_nombre || 'N/A'}</td>
+                          <td data-label="Productos">{obtenerProductos(e)}</td>
+                          <td data-label="Cantidad">{obtenerCantidadTotal(e)}</td>
+                          <td data-label="Fecha">{e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleDateString() : 'N/A'}</td>
+                          <td data-label="Estado">
                             <span className={`estado-etiqueta ${e.estado === 'COMPLETADA' ? 'estado-ok' : 'estado-pendiente'}`}>
                               {e.estado || 'COMPLETADA'}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="Indicadores">
                             <div className="indicadores-cell">
                               {pendiente && (
                                 <span className="tag-pendiente"><FaSyncAlt /> Por devolver</span>

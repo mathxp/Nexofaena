@@ -469,3 +469,50 @@
     .grid-form { grid-template-columns: 1fr; gap: 20px; }
     .form-actions { flex-direction: column; }
 }
+
+/* Tabla -> tarjetas apiladas en celular: antes solo se veían RUT y Nombre,
+   el resto (Cargo, Estado y sobre todo Acciones — sin eso no hay forma de
+   editar a nadie) quedaba fuera de pantalla a la derecha. */
+@media (max-width: 640px) {
+    /* min-width de la tabla de escritorio (línea ~305) seguía aplicando
+       con display:block, empujando el valor de cada celda fuera de la
+       pantalla aunque la etiqueta (::before) se viera bien. */
+    .styled-table { min-width: 0; }
+
+    .styled-table thead { display: none; }
+
+    .styled-table, .styled-table tbody, .styled-table tr, .styled-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .styled-table tbody tr {
+        margin-bottom: 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .styled-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: right;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .styled-table td:last-child { border-bottom: none; }
+
+    .styled-table td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-soft);
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
+    }
+}

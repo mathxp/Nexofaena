@@ -722,8 +722,8 @@ const ConteoCiclico = () => {
                 ref={(el) => { filaRefs.current[p.id] = el; }}
                 className={filaResaltada === p.id ? "fila-resaltada" : ""}
               >
-                <td>{p.codigo}</td>
-                <td>
+                <td data-label="Código">{p.codigo}</td>
+                <td data-label="Producto">
                   {p.nombre}
                   {p.es_activo_critico && (
                     <span className="tag-critico-inline" title="Activo crítico / alto valor">
@@ -731,8 +731,8 @@ const ConteoCiclico = () => {
                     </span>
                   )}
                 </td>
-                <td>{p.stock_actual}</td>
-                <td>
+                <td data-label="Sistema">{p.stock_actual}</td>
+                <td data-label="Conteo">
                   <input
                     ref={(el) => { inputRefs.current[p.id] = el; }}
                     type="number"
@@ -743,6 +743,7 @@ const ConteoCiclico = () => {
                   />
                 </td>
                 <td
+                  data-label="Diferencia"
                   className={
                     Number(p.diferencia) === 0
                       ? "ok"

@@ -670,7 +670,7 @@ const Inventario = () => {
               ) : (
                 productosPagina.map((prod) => (
                   <tr key={prod.id}>
-                    <td>
+                    <td data-label="Ítem / Código" className="celda-item">
                       <div className="item-title">{prod.nombre}</div>
                       <div className="item-subtitle">{prod.codigo}</div>
 
@@ -689,15 +689,15 @@ const Inventario = () => {
                       )}
                     </td>
 
-                    <td>{prod.bodega_nombre || 'Sin bodega'}</td>
-                    <td className="text-center stock-number highlight-stock">{prod.stock_actual}</td>
-                    <td className="text-center stock-number min-stock">{prod.stock_minimo}</td>
-                    <td className="text-center stock-number">{prod.stock_maximo}</td>
-                    <td className="text-center">{formatearCLP(prod.precio_unitario)}</td>
-                    <td className="text-center">
+                    <td data-label="Bodega">{prod.bodega_nombre || 'Sin bodega'}</td>
+                    <td className="text-center stock-number highlight-stock" data-label="Stock">{prod.stock_actual}</td>
+                    <td className="text-center stock-number min-stock" data-label="Mín.">{prod.stock_minimo}</td>
+                    <td className="text-center stock-number" data-label="Máx.">{prod.stock_maximo}</td>
+                    <td className="text-center" data-label="Precio unit.">{formatearCLP(prod.precio_unitario)}</td>
+                    <td className="text-center" data-label="Valor stock">
                       {formatearCLP((Number(prod.stock_actual) || 0) * (Number(prod.precio_unitario) || 0))}
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="5S">
                       {prod.clasificacion_5s ? (
                         <span className={`badge badge-5s ${CLASE_BADGE_5S[prod.clasificacion_5s] || ''}`}>
                           {prod.clasificacion_5s}
@@ -706,11 +706,11 @@ const Inventario = () => {
                         <span className="text-muted">-</span>
                       )}
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="Estado">
                       {obtenerEstadoUI(prod.stock_actual, prod.stock_minimo, prod.stock_maximo)}
                     </td>
 
-                    <td className="text-center">
+                    <td className="text-center" data-label="Acciones">
                       <div className="action-buttons">
                         {prod.es_devolutivo && (
                           <button
@@ -791,11 +791,11 @@ const Inventario = () => {
               ) : (
                 movimientos.slice(0, 5).map((mov) => (
                   <tr key={mov.id}>
-                    <td>{new Date(mov.fecha).toLocaleString()}</td>
-                    <td>
+                    <td data-label="Fecha y hora">{new Date(mov.fecha).toLocaleString()}</td>
+                    <td data-label="Tipo de movimiento">
                       <strong>{mov.tipo_movimiento}</strong>: {mov.cantidad} unidades
                     </td>
-                    <td>{mov.usuario_nombre || 'Sistema Automático'}</td>
+                    <td data-label="Responsable">{mov.usuario_nombre || 'Sistema Automático'}</td>
                   </tr>
                 ))
               )}

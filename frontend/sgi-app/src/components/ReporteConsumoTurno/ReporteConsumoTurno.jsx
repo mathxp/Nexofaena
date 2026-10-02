@@ -378,20 +378,28 @@ const ReporteConsumoTurno = () => {
                       f.estado_revision === 'revisar' ? 'fila-fuera-promedio' : '',
                       f._inicioGrupo ? 'fila-inicio-grupo' : '',
                     ].join(' ').trim()}
+                    // En mobile la fila se arma como tarjeta (ver CSS): el
+                    // rowSpan de trabajador/turno no tiene equivalente ahí,
+                    // así que ambos datos quedan disponibles en cada fila
+                    // vía estos atributos para que el encabezado de la
+                    // tarjeta los muestre aunque esta no sea la fila que
+                    // abre el grupo.
+                    data-trabajador={f.trabajador_nombre}
+                    data-turno={etiquetaTurno(f.turno)}
                   >
                     {f._inicioGrupo && (
                       <>
-                        <td rowSpan={f._tamanoGrupo}>
+                        <td rowSpan={f._tamanoGrupo} className="td-grupo">
                           {f.trabajador_nombre}
                           <div className="ml-table-subtext">{f.cargo}</div>
                         </td>
-                        <td rowSpan={f._tamanoGrupo}>{etiquetaTurno(f.turno)}</td>
+                        <td rowSpan={f._tamanoGrupo} className="td-grupo">{etiquetaTurno(f.turno)}</td>
                       </>
                     )}
-                    <td>{f.producto_nombre}</td>
-                    <td className="text-center">{f.cantidad}</td>
-                    <td className="text-center">{f.promedio_cuadrilla}</td>
-                    <td className="text-center">
+                    <td data-label="Producto">{f.producto_nombre}</td>
+                    <td className="text-center" data-label="Cantidad">{f.cantidad}</td>
+                    <td className="text-center" data-label="Promedio del grupo">{f.promedio_cuadrilla}</td>
+                    <td className="text-center" data-label="Estado">
                       {f.estado_revision === 'revisar' ? (
                         <span className="badge-revisar"><FaFlag /> Fuera del promedio</span>
                       ) : (
@@ -433,14 +441,14 @@ const ReporteConsumoTurno = () => {
               <tbody>
                 {reporte.casos_revisar_historico.map((c, idx) => (
                   <tr key={idx} className="fila-fuera-promedio">
-                    <td>
+                    <td data-label="Trabajador">
                       {c.trabajador_nombre}
                       <div className="ml-table-subtext">{c.cargo}</div>
                     </td>
-                    <td>{c.producto_nombre}</td>
-                    <td className="text-center">{c.promedio_periodo}</td>
-                    <td className="text-center">{c.promedio_historico}</td>
-                    <td className="text-center">
+                    <td data-label="Producto">{c.producto_nombre}</td>
+                    <td className="text-center" data-label="Promedio del período">{c.promedio_periodo}</td>
+                    <td className="text-center" data-label="Promedio histórico propio">{c.promedio_historico}</td>
+                    <td className="text-center" data-label="Z-score">
                       <span className="badge-revisar"><FaFlag /> {c.z_score}</span>
                     </td>
                   </tr>

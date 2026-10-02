@@ -308,3 +308,67 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
     .filters-container { flex-direction: column; align-items: stretch; }
     .filter-group { width: 100%; }
 }
+
+/* Tabla -> tarjetas apiladas en celular: antes la tabla de escritorio se
+   achicaba tal cual y la mayoría de las columnas quedaban cortadas fuera
+   de pantalla. La primera tabla agrupa filas por trabajador+turno con
+   rowSpan (sin equivalente en una lista de tarjetas) — por eso cada <tr>
+   trae data-trabajador/data-turno (ver JSX) para armar un encabezado de
+   tarjeta propio, y las celdas con rowSpan (.td-grupo) se ocultan acá. */
+@media (max-width: 640px) {
+    .reportes-table thead { display: none; }
+
+    .reportes-table, .reportes-table tbody, .reportes-table tr, .reportes-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .reportes-table tr {
+        margin-bottom: 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.02);
+        box-shadow: none !important;
+    }
+
+    .reportes-table tr[data-trabajador]::before {
+        content: attr(data-trabajador) " · " attr(data-turno);
+        display: block;
+        padding: 10px 14px;
+        background: var(--input);
+        color: var(--orange-light);
+        font-weight: 800;
+        font-size: 0.82rem;
+    }
+
+    .reportes-table td.td-grupo { display: none; }
+
+    .reportes-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: right;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .reportes-table td:last-child { border-bottom: none; }
+
+    .reportes-table td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-soft);
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
+    }
+
+    /* Acento de "fuera del promedio": antes era un borde en la celda de
+       trabajador (que ahora está oculta); se mueve al borde de la tarjeta. */
+    .reportes-table tr.fila-fuera-promedio { border-color: rgba(251, 191, 36, 0.4); }
+    .reportes-table tr.fila-fuera-promedio td { background-color: transparent; }
+}

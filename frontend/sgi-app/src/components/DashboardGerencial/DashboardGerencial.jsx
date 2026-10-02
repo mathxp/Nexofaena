@@ -568,11 +568,11 @@ const DashboardGerencial = () => {
                   ) : (
                     prediccionProducto.slice(0, 6).map((p) => (
                       <tr key={p.inventario_id}>
-                        <td>{p.producto_nombre}</td>
-                        <td>{p.proyeccion_semana}</td>
-                        <td>{p.proyeccion_mes}</td>
-                        <td className="fw-bold">{formatearCLP(p.proyeccion_gasto_mensual_clp)}</td>
-                        <td><span className="tag-algoritmo">{p.algoritmo}</span></td>
+                        <td data-label="Producto">{p.producto_nombre}</td>
+                        <td data-label="Semana">{p.proyeccion_semana}</td>
+                        <td data-label="Mes">{p.proyeccion_mes}</td>
+                        <td className="fw-bold" data-label="Gasto proyectado">{formatearCLP(p.proyeccion_gasto_mensual_clp)}</td>
+                        <td data-label="Modelo"><span className="tag-algoritmo">{p.algoritmo}</span></td>
                       </tr>
                     ))
                   )}
@@ -645,10 +645,10 @@ const DashboardGerencial = () => {
                   ) : (
                     recomendaciones.slice(0, 6).map((r) => (
                       <tr key={r.inventario_id}>
-                        <td>{r.producto_nombre}</td>
-                        <td>{new Date(r.fecha_sugerida_pedido).toLocaleDateString()}</td>
-                        <td>{r.cantidad_sugerida} un.</td>
-                        <td><span className={`badge-riesgo ${badgeRiesgo(r.probabilidad_quiebre)}`}>{r.probabilidad_quiebre}%</span></td>
+                        <td data-label="Producto">{r.producto_nombre}</td>
+                        <td data-label="Pedir antes de">{new Date(r.fecha_sugerida_pedido).toLocaleDateString()}</td>
+                        <td data-label="Cantidad">{r.cantidad_sugerida} un.</td>
+                        <td data-label="Riesgo"><span className={`badge-riesgo ${badgeRiesgo(r.probabilidad_quiebre)}`}>{r.probabilidad_quiebre}%</span></td>
                       </tr>
                     ))
                   )}
@@ -679,11 +679,11 @@ const DashboardGerencial = () => {
               <tbody>
                 {capitalInmovilizado.items.slice(0, 6).map((c) => (
                   <tr key={c.inventario_id}>
-                    <td>{c.producto_nombre}</td>
-                    <td>{c.bodega_nombre}</td>
-                    <td>{c.stock_actual} un.</td>
-                    <td>{c.dias_cobertura_estimados ? `${c.dias_cobertura_estimados} días` : 'Sin consumo reciente'}</td>
-                    <td className="fw-bold">{formatearCLP(c.capital_inmovilizado_clp)}</td>
+                    <td data-label="Producto">{c.producto_nombre}</td>
+                    <td data-label="Bodega">{c.bodega_nombre}</td>
+                    <td data-label="Stock actual">{c.stock_actual} un.</td>
+                    <td data-label="Cobertura">{c.dias_cobertura_estimados ? `${c.dias_cobertura_estimados} días` : 'Sin consumo reciente'}</td>
+                    <td className="fw-bold" data-label="Capital inmovilizado">{formatearCLP(c.capital_inmovilizado_clp)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -813,10 +813,10 @@ const DashboardGerencial = () => {
                       .slice(0, 6)
                       .map((i) => (
                         <tr key={i.inventario_id}>
-                          <td>{i.producto_nombre}</td>
-                          <td>{formatearCLP(i.precio_unitario)}</td>
-                          <td>{i.rotacion_mensual} un.</td>
-                          <td className="fw-bold">{formatearCLP(i.valor_stock_clp)}</td>
+                          <td data-label="Producto">{i.producto_nombre}</td>
+                          <td data-label="Precio unit.">{formatearCLP(i.precio_unitario)}</td>
+                          <td data-label="Rotación/mes">{i.rotacion_mensual} un.</td>
+                          <td className="fw-bold" data-label="Valor stock">{formatearCLP(i.valor_stock_clp)}</td>
                         </tr>
                       ))
                   )}

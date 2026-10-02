@@ -251,10 +251,10 @@ const Trabajadores = () => {
                         ) : (
                             trabajadoresPagina.map((t) => (
                                 <tr key={t.id} className={!t.activo ? 'fila-inactiva' : ''}>
-                                    <td><strong>{t.rut}</strong></td>
-                                    <td>{t.nombres} {t.apellido_paterno} {t.apellido_materno}</td>
-                                    <td>{t.cargo}</td>
-                                    <td>
+                                    <td data-label="RUT"><strong>{t.rut}</strong></td>
+                                    <td data-label="Nombre completo">{t.nombres} {t.apellido_paterno} {t.apellido_materno}</td>
+                                    <td data-label="Cargo">{t.cargo}</td>
+                                    <td data-label="Estado">
                                         <div className="estado-badge">
                                             {t.activo ? (
                                                 <><FaCircle className="dot-activo" /> Activo</>
@@ -263,7 +263,7 @@ const Trabajadores = () => {
                                             )}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Acciones">
                                         <div className="action-buttons">
                                             <button onClick={() => cargarParaEdicion(t)} className="btn-icon btn-edit" title="Editar">
                                                 <FaEdit />
