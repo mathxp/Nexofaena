@@ -554,12 +554,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     .export-buttons-container { flex-direction: column; align-items: stretch; }
 }
 
-/* Tabla -> tarjetas apiladas en celular: antes la tabla de escritorio se
-   achicaba tal cual y la mayoría de las columnas (Bodega, Productos,
-   Estado...) quedaban cortadas fuera de pantalla. Cada <td> necesita su
-   atributo data-label (el nombre de su columna) para que el ::before lo
-   pinte como etiqueta — sin eso, la celda queda sin título visible. */
-@media (max-width: 640px) {
+/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos: 9
+   columnas miden ~1085px de ancho real (medido con Playwright) — no cabe
+   con el sidebar descontado hasta bien pasado 1300px. Antes la mayoría de
+   las columnas (Bodega, Productos, Estado...) quedaban cortadas fuera de
+   pantalla. Cada <td> necesita su atributo data-label (el nombre de su
+   columna) para que el ::before lo pinte como etiqueta — sin eso, la
+   celda queda sin título visible. */
+@media (max-width: 1420px) {
     .reportes-table thead { display: none; }
 
     .reportes-table, .reportes-table tbody, .reportes-table tr, .reportes-table td {

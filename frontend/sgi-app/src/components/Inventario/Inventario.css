@@ -574,12 +574,16 @@ select.filter-input option {
     .tab-btn { flex: 1; text-align: center; }
 }
 
-/* Tabla -> tarjetas apiladas en celular. La tabla principal tiene 10
-   columnas (Mín/Máx/Precio/Valor/5S/Estado/Acciones quedaban fuera de
-   pantalla, Acciones incluido — sin eso no se podía ni editar ni borrar un
-   producto desde el celular). La celda de Ítem/Código ya trae su propio
-   título visual, así que queda sin etiqueta repetida (ver .celda-item). */
-@media (max-width: 640px) {
+/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos. La
+   tabla principal tiene 10 columnas y mide ~1130px de ancho real — medido
+   con Playwright, no cabe ni a 1280px con el sidebar descontado (recién a
+   ~1440px deja de desbordar). Por eso el corte queda en 1250px, no en
+   640px: abajo de eso, Mín/Máx/Precio/Valor/5S/Estado/Acciones quedaban
+   fuera de pantalla sin ningún aviso de que había que hacer scroll
+   horizontal — Acciones incluido, así que no se podía ni editar ni
+   borrar un producto. La celda de Ítem/Código ya trae su propio título
+   visual, así que queda sin etiqueta repetida (ver .celda-item). */
+@media (max-width: 1480px) {
     /* min-width de la tabla de escritorio (línea ~340) seguía aplicando
        con display:block, empujando el valor de cada celda fuera de la
        pantalla aunque la etiqueta (::before) se viera bien. */

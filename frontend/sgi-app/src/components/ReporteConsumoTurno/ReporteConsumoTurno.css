@@ -309,13 +309,13 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
     .filter-group { width: 100%; }
 }
 
-/* Tabla -> tarjetas apiladas en celular: antes la tabla de escritorio se
-   achicaba tal cual y la mayoría de las columnas quedaban cortadas fuera
-   de pantalla. La primera tabla agrupa filas por trabajador+turno con
-   rowSpan (sin equivalente en una lista de tarjetas) — por eso cada <tr>
-   trae data-trabajador/data-turno (ver JSX) para armar un encabezado de
-   tarjeta propio, y las celdas con rowSpan (.td-grupo) se ocultan acá. */
-@media (max-width: 640px) {
+/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos (ver
+   Reportes.css para las medidas reales). La primera tabla agrupa filas
+   por trabajador+turno con rowSpan (sin equivalente en una lista de
+   tarjetas) — por eso cada <tr> trae data-trabajador/data-turno (ver
+   JSX) para armar un encabezado de tarjeta propio, y las celdas con
+   rowSpan (.td-grupo) se ocultan acá. */
+@media (max-width: 1420px) {
     .reportes-table thead { display: none; }
 
     .reportes-table, .reportes-table tbody, .reportes-table tr, .reportes-table td {

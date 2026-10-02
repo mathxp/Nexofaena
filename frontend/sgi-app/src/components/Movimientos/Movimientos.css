@@ -376,10 +376,12 @@
     .full-width { grid-column: span 1; }
 }
 
-/* Tabla -> tarjetas apiladas en celular: 8 columnas no caben ni de cerca,
-   antes solo se veían Tipo/Producto/Bodega y el resto quedaba fuera de
-   pantalla a la derecha (incluida la fecha). */
-@media (max-width: 640px) {
+/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos: 8
+   columnas miden ~970px de ancho real (medido con Playwright) — no cabe
+   con el sidebar descontado hasta ~1280px. Antes solo se veían
+   Tipo/Producto/Bodega y el resto quedaba fuera de pantalla a la derecha
+   (incluida la fecha), sin aviso de que había que hacer scroll. */
+@media (max-width: 1320px) {
     /* min-width de la tabla de escritorio (línea ~328) seguía aplicando
        con display:block, empujando el valor de cada celda fuera de la
        pantalla aunque la etiqueta (::before) se viera bien. */

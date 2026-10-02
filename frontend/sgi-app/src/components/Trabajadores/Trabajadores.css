@@ -470,10 +470,12 @@
     .form-actions { flex-direction: column; }
 }
 
-/* Tabla -> tarjetas apiladas en celular: antes solo se veían RUT y Nombre,
+/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos: la
+   tabla mide ~800px de ancho real (medido con Playwright) — no cabe con
+   el sidebar descontado hasta ~1150px. Antes solo se veían RUT y Nombre,
    el resto (Cargo, Estado y sobre todo Acciones — sin eso no hay forma de
    editar a nadie) quedaba fuera de pantalla a la derecha. */
-@media (max-width: 640px) {
+@media (max-width: 1180px) {
     /* min-width de la tabla de escritorio (línea ~305) seguía aplicando
        con display:block, empujando el valor de cada celda fuera de la
        pantalla aunque la etiqueta (::before) se viera bien. */

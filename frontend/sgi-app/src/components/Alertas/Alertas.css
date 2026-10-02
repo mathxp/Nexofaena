@@ -582,11 +582,13 @@
   background-color: transparent !important;
 }
 
-@media (max-width: 1200px) {
-  .cards-grid {
-    grid-template-columns: 1fr;
-  }
-
+/* Antes esto forzaba .cards-grid a una sola columna en cualquier pantalla
+   bajo 1200px, aunque 682px de ancho (un laptop chico típico) sobra para
+   2 columnas de 300px — el "auto-fit, minmax(300px, 1fr)" de .cards-grid
+   ya decide solo cuántas columnas entran, no hacía falta forzarlo. Sin
+   esto, cada sección (Quiebre/Bajo/Óptimo/Sobre stock) se veía a todo el
+   ancho de la pantalla en vez de compacta junto a las demás. */
+@media (max-width: 680px) {
   .stock-card {
     min-height: auto;
   }

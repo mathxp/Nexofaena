@@ -416,6 +416,7 @@
 
 .guia-auditoria {
   margin-top: 34px;
+  margin-bottom: 24px;
   background: linear-gradient(160deg, #002244 0%, #001c39 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;

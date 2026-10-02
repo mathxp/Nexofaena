@@ -591,10 +591,13 @@
     .busqueda-submit { width: 100%; order: 2; }
 }
 
-/* Tabla -> tarjetas apiladas en celular: las 4 tablas chicas de este
-   dashboard (consumo esperado, reposición, capital inmovilizado, clase A)
-   tenían 4-5 columnas numéricas que no entraban en 390px. */
-@media (max-width: 640px) {
+/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos: las
+   4 tablas chicas de este dashboard (consumo esperado, reposición,
+   capital inmovilizado, clase A) viven en charts-grid de 2 columnas
+   (activo entre 992-1300px aprox.), así que cada una queda apretada en
+   ~400px de ancho de celda — no entran sus 4-5 columnas numéricas ahí
+   tampoco, no solo en celular. */
+@media (max-width: 1300px) {
     .ml-table-wrapper { max-height: none; }
     .ml-table thead { display: none; }
 

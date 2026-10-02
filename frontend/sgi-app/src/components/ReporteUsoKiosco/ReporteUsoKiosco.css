@@ -249,8 +249,9 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
     .filter-group { width: 100%; }
 }
 
-/* Tabla -> tarjetas apiladas en celular, mismo patrón que Reportes.css. */
-@media (max-width: 640px) {
+/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos,
+   mismo patrón y mismo breakpoint que Reportes.css. */
+@media (max-width: 1420px) {
     .reportes-table thead { display: none; }
 
     .reportes-table, .reportes-table tbody, .reportes-table tr, .reportes-table td {
