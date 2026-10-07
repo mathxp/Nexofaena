@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fa';
 
 import api from '../../api';
+import LogoNexoFaena from '../Marca/LogoNexoFaena';
 import './Sidebar.css';
 
 const Sidebar = () => {
@@ -124,9 +125,7 @@ const Sidebar = () => {
   return (
     <>
       <div className="mobile-header">
-        <div className="mobile-brand-logo-wrap">
-          <img src="/logo.png" alt="NexoFaena" className="mobile-brand-logo" />
-        </div>
+        <LogoNexoFaena tamano="sm" />
 
         <button className="mobile-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)}>
           {isMobileOpen ? <FaTimes /> : <FaBars />}
@@ -139,9 +138,7 @@ const Sidebar = () => {
 
       <aside className={`sidebar ${isMobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
-          <div className="brand-logo-wrap">
-            <img src="/logo.png" alt="NexoFaena" className="brand-logo" />
-          </div>
+          <LogoNexoFaena tamano="md" conBajada bajada="SGI · Pañol" />
         </div>
 
         <div className="sidebar-menu">

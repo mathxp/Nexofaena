@@ -184,7 +184,7 @@ const DashboardGerencial = () => {
     workbook.creator = 'NexoFaena SGI';
     workbook.created = new Date();
 
-    const estiloTitulo = (cell, texto, color = 'FF001529') => {
+    const estiloTitulo = (cell, texto, color = 'FF0F2647') => {
       cell.value = texto;
       cell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
@@ -194,7 +194,7 @@ const DashboardGerencial = () => {
     const estiloHeader = (row) => {
       row.eachCell((cell) => {
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6FD1' } };
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
       });
     };
@@ -254,7 +254,7 @@ const DashboardGerencial = () => {
     prevencion.addRow([]);
     const headerReco = prevencion.addRow(['Recomendaciones de reposición']);
     headerReco.getCell(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    headerReco.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF001529' } };
+    headerReco.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2647' } };
     const headerReco2 = prevencion.addRow(['Producto', 'Bodega', 'Pedir antes de', 'Cantidad sugerida', 'Riesgo']);
     estiloHeader(headerReco2);
     recomendaciones.forEach((r) => {
@@ -298,7 +298,7 @@ const DashboardGerencial = () => {
     saveAs(blob, `NexoFaena_Modelo_IA_${Date.now()}.xlsx`);
   };
 
-  ChartJS.defaults.color = '#94a3b8';
+  ChartJS.defaults.color = '#9aabc4';
   ChartJS.defaults.font.family = "'Inter', sans-serif";
 
   const chartOptionsBase = {
@@ -317,8 +317,8 @@ const DashboardGerencial = () => {
       {
         label: 'Unidades consumidas',
         data: [...prediccionSemanal.historico.data, null],
-        borderColor: '#ea580c',
-        backgroundColor: 'rgba(234, 88, 12, 0.15)',
+        borderColor: '#3d8ff0',
+        backgroundColor: 'rgba(61, 143, 240, 0.15)',
         fill: true,
         tension: 0.35,
       },
@@ -328,8 +328,8 @@ const DashboardGerencial = () => {
           ...prediccionSemanal.historico.data.map(() => null),
           prediccionSemanal.proyeccion_proxima_semana,
         ],
-        borderColor: '#60a5fa',
-        backgroundColor: '#60a5fa',
+        borderColor: '#22d3ee',
+        backgroundColor: '#22d3ee',
         pointRadius: 6,
         showLine: false,
       },
@@ -356,7 +356,7 @@ const DashboardGerencial = () => {
       {
         data: ['A', 'B', 'C'].map((clase) => resumenAbc[clase]?.cantidad || 0),
         backgroundColor: ['A', 'B', 'C'].map(claseAbcColor),
-        borderColor: '#001e38',
+        borderColor: '#081429',
         borderWidth: 2,
       },
     ],
@@ -372,8 +372,8 @@ const DashboardGerencial = () => {
     datasets: [
       {
         data: [entregasPorCanal.kiosco || 0, entregasPorCanal.bodega || 0],
-        backgroundColor: ['#22d3ee', '#64748b'],
-        borderColor: '#001e38',
+        backgroundColor: ['#22d3ee', '#6b7d99'],
+        borderColor: '#081429',
         borderWidth: 2,
       },
     ],
@@ -491,7 +491,7 @@ const DashboardGerencial = () => {
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 14 } } },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#9aabc4', padding: 14 } } },
                   }}
                 />
               )}
@@ -695,7 +695,7 @@ const DashboardGerencial = () => {
       {/* ============ MÓDULO 3: K-MEANS ============ */}
       <div className="modulo-ia">
         <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-orange"><FaProjectDiagram /></div>
+          <div className="modulo-icon modulo-icon-brand"><FaProjectDiagram /></div>
           <div>
             <div className="modulo-badge">K-Means (Clustering)</div>
             <h2 className="modulo-title">Auditoría y "Robo Hormiga"</h2>
@@ -706,7 +706,7 @@ const DashboardGerencial = () => {
           </div>
         </div>
 
-        <div className="modulo-impacto modulo-impacto-orange">
+        <div className="modulo-impacto modulo-impacto-brand">
           <FaUserSecret /> Impacto: el sistema marca automáticamente una alerta de consumo anormal,
           frenando mermas, mal uso y robo hormiga sin revisar los registros uno por uno.
         </div>
@@ -736,7 +736,7 @@ const DashboardGerencial = () => {
       {/* ============ MÓDULO 7: K-MEANS (CLASIFICACIÓN ABC) ============ */}
       <div className="modulo-ia">
         <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-orange"><FaLayerGroup /></div>
+          <div className="modulo-icon modulo-icon-brand"><FaLayerGroup /></div>
           <div>
             <div className="modulo-badge">K-Means (Clustering)</div>
             <h2 className="modulo-title">Clasificación ABC Dinámica de Inventario</h2>
@@ -748,7 +748,7 @@ const DashboardGerencial = () => {
           </div>
         </div>
 
-        <div className="modulo-impacto modulo-impacto-orange">
+        <div className="modulo-impacto modulo-impacto-brand">
           <FaBoxes /> Impacto: prioriza el control físico y las firmas de autorización en los
           productos de Clase A, mientras deja el despacho de Clase C sin fricción administrativa.
         </div>
@@ -775,7 +775,7 @@ const DashboardGerencial = () => {
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 14 } } },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#9aabc4', padding: 14 } } },
                   }}
                 />
               )}

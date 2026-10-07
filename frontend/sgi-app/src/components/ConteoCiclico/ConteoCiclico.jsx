@@ -840,7 +840,7 @@ const ConteoCiclico = () => {
             <div className="firma-canvas-wrapper">
               <SignatureCanvas
                 ref={sigCanvas}
-                penColor="#001529"
+                penColor="#0f2647"
                 canvasProps={{ className: "firma-canvas" }}
               />
             </div>

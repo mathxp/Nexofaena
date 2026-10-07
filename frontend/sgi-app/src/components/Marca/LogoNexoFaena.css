@@ -1,0 +1,45 @@
+.nx-logo {
+    --nx-logo-alto: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--nx-logo-alto) * 0.3);
+    color: var(--text);
+    line-height: 1;
+}
+
+.nx-logo-sm { --nx-logo-alto: 28px; }
+.nx-logo-md { --nx-logo-alto: 40px; }
+.nx-logo-lg { --nx-logo-alto: 56px; }
+
+.nx-marca {
+    width: var(--nx-logo-alto);
+    height: var(--nx-logo-alto);
+    flex-shrink: 0;
+    color: #ffffff;
+}
+
+.nx-logo-texto {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--nx-logo-alto) * 0.14);
+}
+
+.nx-logo-nombre {
+    font-size: calc(var(--nx-logo-alto) * 0.62);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.nx-logo-nombre strong {
+    font-weight: 800;
+}
+
+.nx-logo-bajada {
+    font-size: calc(var(--nx-logo-alto) * 0.19);
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+    white-space: nowrap;
+}

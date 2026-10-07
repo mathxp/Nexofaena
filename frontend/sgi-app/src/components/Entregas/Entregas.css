@@ -4,16 +4,8 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-:root{
-    --bg:#001529;
-    --card:#002244;
-    --card-hover:#002c59;
-    --input:#001a33;
-    --orange:#ea580c;
-    --orange-light:#fb923c;
-    --text:#ffffff;
-    --text-soft:#94a3b8;
-    --border:rgba(255,255,255,0.08);
+:root {
+    --card-hover:var(--card-alt);
 }
 
 .entregas-wrapper{
@@ -58,7 +50,7 @@
 ===================================== */
 
 .step-card{
-    background:linear-gradient(160deg, var(--card) 0%, #001c39 100%);
+    background:linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius:12px;
     margin-bottom:20px;
     border:1px solid var(--border);
@@ -68,7 +60,7 @@
 }
 
 .step-card:hover{
-    border-color:rgba(234,88,12,.4);
+    border-color:rgba(31, 111, 209, .4);
     transform:translateY(-2px);
     box-shadow: 0 8px 22px rgba(0,0,0,0.22);
 }
@@ -90,12 +82,12 @@
     display:flex;
     align-items:center;
     gap:14px;
-    background:linear-gradient(135deg, rgba(234,88,12,.12), rgba(234,88,12,.04));
-    border:1px solid rgba(234,88,12,.3);
+    background:linear-gradient(135deg, rgba(31, 111, 209, .12), rgba(31, 111, 209, .04));
+    border:1px solid rgba(31, 111, 209, .3);
     border-radius:12px;
     padding:14px 20px;
     margin-bottom:20px;
-    color:var(--orange-light);
+    color:var(--brand-light);
     font-size:1.3rem;
 }
 
@@ -152,8 +144,8 @@
 
 .custom-select:focus,
 .epp-qty-input:focus{
-    border-color:var(--orange);
-    box-shadow:0 0 0 3px rgba(234,88,12,.15);
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(31, 111, 209, .15);
 }
 
 .custom-select option{
@@ -177,8 +169,8 @@
 }
 
 .search-input-wrapper:focus-within{
-    border-color:var(--orange);
-    box-shadow:0 0 0 3px rgba(234,88,12,.15);
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(31, 111, 209, .15);
 }
 
 .search-icon-box{
@@ -208,7 +200,7 @@
     width:120px;
     height:100%;
     border:none;
-    background:var(--orange);
+    background:var(--brand);
     color:white;
     font-size:.9rem;
     font-weight:800;
@@ -217,7 +209,7 @@
 }
 
 .btn-buscar-rut:hover{
-    background:var(--orange-light);
+    background:var(--brand-light);
 }
 
 /* =====================================
@@ -272,14 +264,14 @@
 }
 
 .epp-item:hover{
-    border-color:rgba(234,88,12,.4);
+    border-color:rgba(31, 111, 209, .4);
     transform:translateY(-1px);
 }
 
 .epp-item.selected{
-    background:rgba(234,88,12,.1);
-    border-color:var(--orange);
-    box-shadow: 0 0 0 3px rgba(234,88,12,.15), 0 6px 16px rgba(234,88,12,.15);
+    background:rgba(31, 111, 209, .1);
+    border-color:var(--brand);
+    box-shadow: 0 0 0 3px rgba(31, 111, 209, .15), 0 6px 16px rgba(31, 111, 209, .15);
 }
 
 .epp-item-left{
@@ -334,7 +326,7 @@
     display:flex;
     align-items:center;
     gap:10px;
-    color:var(--orange-light);
+    color:var(--brand-light);
     font-weight:800;
     font-size:.95rem;
     text-transform:uppercase;
@@ -375,7 +367,7 @@
 .link-devoluciones{
     background:none;
     border:none;
-    color:var(--orange-light);
+    color:var(--brand-light);
     font-weight:800;
     cursor:pointer;
     text-decoration:underline;
@@ -393,7 +385,7 @@
 .epp-checkbox{
     width:18px;
     height:18px;
-    accent-color:var(--orange);
+    accent-color:var(--brand);
     cursor: pointer;
 }
 
@@ -462,19 +454,19 @@
     height:55px;
     border:none;
     border-radius:12px;
-    background:linear-gradient(135deg, #ea580c, #fb923c);
+    background:linear-gradient(135deg, var(--brand), var(--brand-light));
     color:white;
     font-size:1rem;
     font-weight:900;
     letter-spacing:1px;
     cursor:pointer;
     transition:.2s;
-    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+    box-shadow: 0 4px 15px rgba(31, 111, 209, 0.3);
 }
 
 .btn-confirmar-main:hover{
     transform:translateY(-2px);
-    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4);
+    box-shadow: 0 6px 20px rgba(31, 111, 209, 0.4);
 }
 
 /* =====================================
@@ -526,7 +518,7 @@
 
 .history-table tbody tr:hover{
     background:rgba(255,255,255,.03);
-    box-shadow: inset 3px 0 0 var(--orange);
+    box-shadow: inset 3px 0 0 var(--brand);
 }
 
 /* Miniaturas de firma */
@@ -574,8 +566,8 @@
     color: #10b981;
 }
 .badge-offline {
-    background-color: rgba(234, 88, 12, 0.15);
-    color: #ea580c;
+    background-color: rgba(31, 111, 209, 0.15);
+    color: var(--brand);
 }
 
 /* Alertas extraídas de los estilos en línea */
@@ -598,7 +590,7 @@
 
 /* Tipografía e imágenes extraídas */
 .epp-stock-info {
-    color: #64748b;
+    color: var(--text-faint);
     font-weight: 500;
 }
 .step-body-padded {

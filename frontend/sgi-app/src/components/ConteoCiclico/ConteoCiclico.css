@@ -4,7 +4,7 @@
   max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
-  background: #001529;
+  background: var(--bg);
   color: white;
   font-family: 'Inter', sans-serif;
   animation: fadeIn 0.35s ease-out both;
@@ -59,7 +59,7 @@
 }
 
 .badge-online { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-.badge-offline { background: rgba(234, 88, 12, 0.15); color: #ea580c; }
+.badge-offline { background: rgba(31, 111, 209, 0.15); color: var(--brand); }
 
 .btn-forzar-sync {
   height: 36px;
@@ -79,7 +79,7 @@
 }
 
 .barra {
-  background: linear-gradient(160deg, #002244 0%, #001c39 100%);
+  background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   padding: 22px;
@@ -93,7 +93,7 @@
   flex: 1;
   min-width: 260px;
   height: 48px;
-  background: #001a33;
+  background: var(--input);
   color: white;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
@@ -110,16 +110,16 @@
   font-weight: 900;
   cursor: pointer;
   color: white;
-  background: linear-gradient(135deg, #ea580c, #fb923c);
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   text-transform: uppercase;
-  box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+  box-shadow: 0 4px 15px rgba(31, 111, 209, 0.3);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .barra button:hover:not(:disabled),
 .acciones button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(234, 88, 12, 0.4);
+  box-shadow: 0 8px 22px rgba(31, 111, 209, 0.4);
   filter: brightness(1.05);
 }
 
@@ -132,7 +132,7 @@
   width: 100%;
   min-width: 560px;
   border-collapse: collapse;
-  background: linear-gradient(160deg, #002244 0%, #001c39 100%);
+  background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.08);
@@ -145,13 +145,13 @@
 
 .conteo-container tbody tr:hover {
   background-color: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 3px 0 0 #ea580c;
+  box-shadow: inset 3px 0 0 var(--brand);
 }
 
 .conteo-container th {
   padding: 16px;
   text-align: left;
-  color: #94a3b8;
+  color: var(--text-soft);
   font-size: 0.8rem;
   text-transform: uppercase;
   background: rgba(255,255,255,0.04);
@@ -166,7 +166,7 @@
 .conteo-container input {
   width: 120px;
   height: 42px;
-  background: #001a33;
+  background: var(--input);
   color: white;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
@@ -194,7 +194,7 @@
 }
 
 .acciones button:nth-child(2) {
-  background: #2563eb;
+  background: var(--brand);
   box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
 }
 
@@ -290,7 +290,7 @@
   text-transform: none;
 }
 
-.btn-reanudar { background: #2563eb; color: white; }
+.btn-reanudar { background: var(--brand); color: white; }
 .btn-anular { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 .btn-anular:hover { background: #ef4444; color: white; }
 
@@ -345,7 +345,7 @@
     flex-shrink: 0;
     text-align: left;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--text-soft);
     text-transform: uppercase;
     font-size: 0.7rem;
     letter-spacing: 0.02em;
@@ -403,7 +403,7 @@
 
 .estado-anulada {
   background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
+  color: var(--text-soft);
   border: 1px solid rgba(148, 163, 184, 0.35);
 }
 
@@ -417,7 +417,7 @@
 .guia-auditoria {
   margin-top: 34px;
   margin-bottom: 24px;
-  background: linear-gradient(160deg, #002244 0%, #001c39 100%);
+  background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   padding: 26px;
@@ -436,7 +436,7 @@
 }
 
 .guia-card {
-  background: #001a33;
+  background: var(--input);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 12px;
   padding: 18px;
@@ -444,19 +444,19 @@
 }
 
 .guia-card:hover {
-  border-color: rgba(251, 146, 60, 0.4);
+  border-color: rgba(91, 178, 255, 0.4);
   transform: translateY(-2px);
 }
 
 .guia-card strong {
-  color: #fb923c;
+  color: var(--brand-light);
   display: block;
   margin-bottom: 8px;
 }
 
 .guia-card p {
   margin: 0;
-  color: #94a3b8;
+  color: var(--text-soft);
   font-weight: 600;
   line-height: 1.45;
 }
@@ -476,7 +476,7 @@
 
 .scanner-modal,
 .firma-modal {
-  background: linear-gradient(160deg, #002244 0%, #001830 100%);
+  background: linear-gradient(160deg, var(--card) 0%, var(--input) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   width: 100%;
@@ -527,7 +527,7 @@
 .scanner-hint {
   margin: 14px 0 0 0;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-soft);
   font-size: 0.85rem;
   font-weight: 600;
 }

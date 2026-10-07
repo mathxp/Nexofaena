@@ -4,17 +4,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-:root {
-    --bg: #001529;
-    --card: #002244;
-    --input: #001a33;
-    --orange: #ea580c;
-    --orange-light: #fb923c;
-    --text: #ffffff;
-    --text-soft: #94a3b8;
-    --border: rgba(255, 255, 255, 0.08);
-}
-
 .bodegas-wrapper {
     font-family: 'Inter', sans-serif;
     padding: 30px;
@@ -40,7 +29,7 @@
 }
 
 .page-title svg {
-    color: var(--orange);
+    color: var(--brand);
 }
 
 .error-message {
@@ -55,7 +44,7 @@
 
 /* --- FORMULARIO DESPLEGABLE --- */
 .form-container {
-    background: linear-gradient(160deg, #001e38 0%, #001830 100%);
+    background: linear-gradient(160deg, var(--bg-soft) 0%, var(--input) 100%);
     border: 1px solid var(--border);
     padding: 25px;
     border-radius: 12px;
@@ -65,9 +54,9 @@
 }
 
 .form-container.edit-mode { 
-    border-color: var(--orange); 
-    background: rgba(234, 88, 12, 0.03); 
-    box-shadow: 0 0 20px rgba(234, 88, 12, 0.05);
+    border-color: var(--brand); 
+    background: rgba(31, 111, 209, 0.03); 
+    box-shadow: 0 0 20px rgba(31, 111, 209, 0.05);
 }
 
 .form-header {
@@ -118,8 +107,8 @@
 }
 
 .form-input:focus { 
-    border-color: var(--orange); 
-    box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.15);
+    border-color: var(--brand); 
+    box-shadow: 0 0 0 2px rgba(31, 111, 209, 0.15);
 }
 
 .form-input::placeholder { color: var(--text-soft); }
@@ -132,7 +121,7 @@
 }
 
 .btn-guardar { 
-    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    background: linear-gradient(135deg, var(--brand), var(--brand-light));
     color: white; 
     padding: 14px 25px; 
     border: none; 
@@ -144,7 +133,7 @@
     transition: all 0.2s;
 }
 
-.btn-guardar:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(234, 88, 12, 0.3); }
+.btn-guardar:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(31, 111, 209, 0.3); }
 
 .btn-cancelar { 
     background: rgba(255, 255, 255, 0.1); 
@@ -162,7 +151,7 @@
 
 /* --- TABLAS DE BODEGAS --- */
 .table-section {
-    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius: 12px;
     border: 1px solid var(--border);
     overflow: hidden;
@@ -216,7 +205,7 @@
 
 .styled-table tbody tr:hover {
     background-color: rgba(255, 255, 255, 0.03) !important;
-    box-shadow: inset 3px 0 0 var(--orange);
+    box-shadow: inset 3px 0 0 var(--brand);
 }
 
 /* --- BOTONES DE ACCIÓN EN TABLA --- */
@@ -236,7 +225,7 @@
 }
 
 .btn-edit { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-.btn-edit:hover { background: #3b82f6; color: white; transform: translateY(-2px); }
+.btn-edit:hover { background: #3d8ff0; color: white; transform: translateY(-2px); }
 
 .btn-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 .btn-delete:hover { background: #ef4444; color: white; transform: translateY(-2px); }

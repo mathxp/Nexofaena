@@ -94,7 +94,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card kpi-orange">
+                <div className="kpi-card kpi-brand">
                     <div className="kpi-icon-box"><FaBoxes /></div>
                     <div className="kpi-info">
                         <p className="kpi-label">Stock Disponible</p>

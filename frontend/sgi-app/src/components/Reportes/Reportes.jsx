@@ -186,7 +186,7 @@ const ReporteEntregas = () => {
       startY: 34,
       theme: 'grid',
       headStyles: {
-        fillColor: [234, 88, 12],
+        fillColor: [15, 38, 71],
         textColor: [255, 255, 255],
         fontStyle: 'bold',
       },
@@ -223,7 +223,7 @@ const ReporteEntregas = () => {
     titleCell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF001529' },
+      fgColor: { argb: 'FF0F2647' },
     };
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     worksheet.getRow(1).height = 28;
@@ -269,7 +269,7 @@ const ReporteEntregas = () => {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FFEA580C' },
+        fgColor: { argb: 'FF1F6FD1' },
       };
       cell.font = {
         bold: true,
@@ -280,8 +280,8 @@ const ReporteEntregas = () => {
         vertical: 'middle',
       };
       cell.border = {
-        top: { style: 'thin', color: { argb: 'FF001529' } },
-        bottom: { style: 'medium', color: { argb: 'FF001529' } },
+        top: { style: 'thin', color: { argb: 'FF0F2647' } },
+        bottom: { style: 'medium', color: { argb: 'FF0F2647' } },
       };
     });
 

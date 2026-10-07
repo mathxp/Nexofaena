@@ -180,7 +180,7 @@ const ReporteConsumoTurno = () => {
     detalle.columns = columnasBase;
     detalle.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     detalle.getRow(1).eachCell((cell) => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6FD1' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
     });
 
@@ -208,7 +208,7 @@ const ReporteConsumoTurno = () => {
     ];
     revisar.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     revisar.getRow(1).eachCell((cell) => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF001529' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2647' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
     });
 

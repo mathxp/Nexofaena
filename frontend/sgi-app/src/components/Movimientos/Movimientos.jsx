@@ -163,7 +163,7 @@ const Movimientos = () => {
             {/* FORMULARIO */}
             <div className="form-container">
                 <div className="form-header">
-                    <FaPlus style={{ color: '#ea580c' }} /> Registrar Nueva Entrada / Salida
+                    <FaPlus style={{ color: 'var(--brand-light)' }} /> Registrar Nueva Entrada / Salida
                 </div>
 
                 <form onSubmit={handleSubmit} className="form-grid">
@@ -221,7 +221,7 @@ const Movimientos = () => {
             {/* TABLA DE HISTORIAL */}
             <div className="table-section">
                 <div className="table-header">
-                    <FaHistory style={{ color: '#94a3b8' }} /> Historial de Movimientos
+                    <FaHistory style={{ color: '#9aabc4' }} /> Historial de Movimientos
 
                     <div className="filtros-historial">
                         <FaFilter className="filtro-icon" />
@@ -254,7 +254,7 @@ const Movimientos = () => {
                         <tbody>
                             {movimientosPagina.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                                    <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#9aabc4' }}>
                                         No hay movimientos que coincidan con el filtro.
                                     </td>
                                 </tr>
@@ -265,10 +265,10 @@ const Movimientos = () => {
                                         <td data-label="Producto" style={{ fontWeight: '700' }}>{mov.producto_nombre || 'Desconocido'}</td>
                                         <td data-label="Bodega">{mov.bodega_nombre || 'N/A'}</td>
                                         <td data-label="Cantidad" style={{ fontWeight: '900', fontSize: '1.1rem' }}>{mov.cantidad}</td>
-                                        <td data-label="Stock resultante" style={{ color: '#94a3b8' }}>{mov.stock_anterior} → {mov.stock_actual}</td>
+                                        <td data-label="Stock resultante" style={{ color: '#9aabc4' }}>{mov.stock_anterior} → {mov.stock_actual}</td>
                                         <td data-label="Responsable">{mov.usuario_nombre || 'N/A'}</td>
-                                        <td data-label="Observación" style={{ color: '#94a3b8' }}>{mov.observacion || '—'}</td>
-                                        <td data-label="Fecha y Hora" style={{ color: '#94a3b8' }}>{new Date(mov.fecha).toLocaleString()}</td>
+                                        <td data-label="Observación" style={{ color: '#9aabc4' }}>{mov.observacion || '—'}</td>
+                                        <td data-label="Fecha y Hora" style={{ color: '#9aabc4' }}>{new Date(mov.fecha).toLocaleString()}</td>
                                     </tr>
                                 ))
                             )}

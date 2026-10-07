@@ -607,7 +607,7 @@ const Kiosco = () => {
           {error && <div className="kiosco-error">{error}</div>}
 
           <div className="kiosco-firma-wrapper">
-            <SignatureCanvas ref={sigCanvas} penColor="#001529" canvasProps={{ className: 'kiosco-firma-canvas' }} />
+            <SignatureCanvas ref={sigCanvas} penColor="#0f2647" canvasProps={{ className: 'kiosco-firma-canvas' }} />
           </div>
 
           <button className="kiosco-btn-secundario" onClick={limpiarFirma}>Borrar firma</button>

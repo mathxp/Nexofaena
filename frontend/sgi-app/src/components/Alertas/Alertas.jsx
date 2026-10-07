@@ -176,7 +176,7 @@ const Alertas = () => {
     resumen.getCell('A1').fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF001529' },
+      fgColor: { argb: 'FF0F2647' },
     };
     resumen.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
     resumen.getRow(1).height = 30;
@@ -228,7 +228,7 @@ const Alertas = () => {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FFEA580C' },
+        fgColor: { argb: 'FF1F6FD1' },
       };
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -293,7 +293,7 @@ const Alertas = () => {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FF001529' },
+        fgColor: { argb: 'FF0F2647' },
       };
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -360,7 +360,7 @@ const Alertas = () => {
     grafico.getCell('A1').fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF001529' },
+      fgColor: { argb: 'FF0F2647' },
     };
     grafico.getCell('A1').alignment = { horizontal: 'center' };
 
@@ -381,7 +381,7 @@ const Alertas = () => {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FFEA580C' },
+        fgColor: { argb: 'FF1F6FD1' },
       };
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.alignment = { horizontal: 'center' };
@@ -713,7 +713,7 @@ const Alertas = () => {
               <tbody>
                 {alertasPagina.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#9aabc4' }}>
                       No hay notificaciones que coincidan con el filtro.
                     </td>
                   </tr>

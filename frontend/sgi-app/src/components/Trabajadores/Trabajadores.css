@@ -4,17 +4,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-:root {
-    --bg: #001529;
-    --card: #002244;
-    --input: #001a33;
-    --orange: #ea580c;
-    --orange-light: #fb923c;
-    --text: #ffffff;
-    --text-soft: #94a3b8;
-    --border: rgba(255, 255, 255, 0.08);
-}
-
 .trabajadores-wrapper {
     font-family: 'Inter', sans-serif;
     padding: 30px;
@@ -40,12 +29,12 @@
 }
 
 .page-title svg {
-    color: var(--orange);
+    color: var(--brand);
 }
 
 /* --- PANEL DE ACCIÓN Y BÚSQUEDA --- */
 .action-panel {
-    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius: 12px;
     padding: 25px;
     margin-bottom: 35px;
@@ -102,8 +91,8 @@
 }
 
 .search-input-wrapper:focus-within {
-    border-color: var(--orange);
-    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(31, 111, 209, 0.15);
     background: rgba(0, 0, 0, 0.4);
 }
 
@@ -132,7 +121,7 @@
 }
 
 .btn-agregar-main {
-    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    background: linear-gradient(135deg, var(--brand), var(--brand-light));
     color: white;
     border: none;
     height: 48px;
@@ -141,7 +130,7 @@
     font-weight: 800;
     font-size: 0.95rem;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+    box-shadow: 0 4px 15px rgba(31, 111, 209, 0.3);
     transition: transform 0.2s, box-shadow 0.2s;
     white-space: nowrap;
     text-transform: uppercase;
@@ -152,12 +141,12 @@
 
 .btn-agregar-main:hover { 
     transform: translateY(-2px); 
-    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4); 
+    box-shadow: 0 6px 20px rgba(31, 111, 209, 0.4); 
 }
 
 /* --- FORMULARIO DESPLEGABLE --- */
 .form-container {
-    background: linear-gradient(160deg, #001e38 0%, #001830 100%);
+    background: linear-gradient(160deg, var(--bg-soft) 0%, var(--input) 100%);
     border: 1px solid var(--border);
     padding: 30px;
     border-radius: 12px;
@@ -166,9 +155,9 @@
 }
 
 .form-container.edit-mode { 
-    border-color: var(--orange); 
-    background: rgba(234, 88, 12, 0.03); 
-    box-shadow: 0 0 20px rgba(234, 88, 12, 0.05);
+    border-color: var(--brand); 
+    background: rgba(31, 111, 209, 0.03); 
+    box-shadow: 0 0 20px rgba(31, 111, 209, 0.05);
 }
 
 .form-title {
@@ -222,13 +211,13 @@
 
 .form-input:disabled {
     background: rgba(255, 255, 255, 0.02);
-    color: #64748b;
+    color: var(--text-faint);
     cursor: not-allowed;
 }
 
 .form-input:focus { 
-    border-color: var(--orange); 
-    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    border-color: var(--brand); 
+    box-shadow: 0 0 0 3px rgba(31, 111, 209, 0.15);
     background: rgba(0, 0, 0, 0.4);
 }
 
@@ -287,7 +276,7 @@
 
 /* --- TABLA DE TRABAJADORES --- */
 .table-responsive {
-    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius: 12px;
     border: 1px solid var(--border);
     overflow-x: auto;
@@ -337,7 +326,7 @@
 
 .styled-table tbody tr:hover {
     background-color: rgba(255, 255, 255, 0.03) !important;
-    box-shadow: inset 3px 0 0 var(--orange);
+    box-shadow: inset 3px 0 0 var(--brand);
 }
 
 /* Estado del trabajador */
@@ -370,7 +359,7 @@
 }
 
 .btn-edit { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-.btn-edit:hover { background: #3b82f6; color: white; transform: translateY(-2px); }
+.btn-edit:hover { background: #3d8ff0; color: white; transform: translateY(-2px); }
 
 .btn-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 .btn-delete:hover { background: #ef4444; color: white; transform: translateY(-2px); }
@@ -398,8 +387,8 @@
 }
 
 .filtro-estado-select:focus {
-    border-color: var(--orange);
-    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(31, 111, 209, 0.15);
 }
 
 .filtro-estado-select option { background: var(--bg); color: white; }
@@ -429,7 +418,7 @@
     transition: 0.2s;
 }
 
-.btn-paginacion:hover:not(:disabled) { background: var(--orange); border-color: var(--orange); }
+.btn-paginacion:hover:not(:disabled) { background: var(--brand); border-color: var(--brand); }
 .btn-paginacion:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .paginacion-info {

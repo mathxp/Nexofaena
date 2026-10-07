@@ -2,17 +2,6 @@
    NEXOFAENA SGI - USO DEL KIOSCO (DARK PREMIUM)
    ========================================= */
 
-:root {
-    --bg: #001529;
-    --card: #002244;
-    --input: #001a33;
-    --orange: #ea580c;
-    --orange-light: #fb923c;
-    --text: #ffffff;
-    --text-soft: #94a3b8;
-    --border: rgba(255, 255, 255, 0.08);
-}
-
 .reportes-wrapper {
     font-family: 'Inter', sans-serif;
     padding: 30px;
@@ -34,7 +23,7 @@
     gap: 12px;
 }
 
-.page-title svg { color: var(--orange); }
+.page-title svg { color: var(--brand); }
 
 .page-subtitle {
     color: var(--text-soft);
@@ -87,7 +76,7 @@
     height: 45px;
 }
 
-.filter-icon { color: var(--orange); margin-right: 10px; }
+.filter-icon { color: var(--brand); margin-right: 10px; }
 
 .filter-input {
     background: transparent;
@@ -99,7 +88,7 @@
     font-family: 'Inter', sans-serif;
 }
 
-.filter-input::placeholder { color: #64748b; }
+.filter-input::placeholder { color: var(--text-faint); }
 
 select.filter-input { cursor: pointer; }
 select.filter-input option { background: var(--bg); color: #ffffff; }
@@ -110,7 +99,7 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
     display: flex;
     align-items: center;
     gap: 10px;
-    background: linear-gradient(90deg, var(--orange), var(--orange-light));
+    background: linear-gradient(90deg, var(--brand), var(--brand-light));
     color: white;
     border: none;
     padding: 0 22px;
@@ -119,7 +108,7 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
     font-weight: bold;
     font-size: 0.9rem;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
+    box-shadow: 0 4px 10px rgba(31, 111, 209, 0.3);
 }
 
 .btn-buscar-reporte:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -152,7 +141,7 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
 }
 
 .kpi-card-reporte {
-    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 18px 20px;
@@ -178,12 +167,12 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
     to { opacity: 1; transform: translateY(0); }
 }
 
-.kpi-icon-reporte { font-size: 1.6rem; color: var(--orange); }
+.kpi-icon-reporte { font-size: 1.6rem; color: var(--brand); }
 .kpi-value-reporte { font-size: 1.5rem; font-weight: 900; color: white; }
 .kpi-label-reporte { font-size: 0.8rem; color: var(--text-soft); font-weight: 600; }
 
 .reportes-card {
-    background: linear-gradient(160deg, var(--card) 0%, #001c39 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius: 12px;
     border: 1px solid var(--border);
     overflow: hidden;
@@ -199,7 +188,7 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
 .reportes-card-header {
     background-color: rgba(0, 0, 0, 0.2);
     padding: 15px 20px;
-    color: #94a3b8;
+    color: var(--text-soft);
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -218,7 +207,7 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
 
 .reportes-table th {
     background-color: var(--input);
-    color: #94a3b8;
+    color: var(--text-soft);
     padding: 14px 20px;
     text-align: left;
     font-weight: 600;
@@ -235,12 +224,12 @@ select.filter-input option { background: var(--bg); color: #ffffff; }
 }
 
 .reportes-table tr { box-shadow: inset 3px 0 0 transparent; transition: box-shadow 0.2s ease; }
-.reportes-table tr:hover { box-shadow: inset 3px 0 0 var(--orange); }
+.reportes-table tr:hover { box-shadow: inset 3px 0 0 var(--brand); }
 .reportes-table tr:hover td { background-color: rgba(255, 255, 255, 0.03); }
 
 .reportes-table .text-center { text-align: center; }
 
-.loading-state, .empty-state { padding: 40px; text-align: center; color: #64748b; }
+.loading-state, .empty-state { padding: 40px; text-align: center; color: var(--text-faint); }
 
 @media (max-width: 900px) {
     .reportes-wrapper { padding: 15px; }

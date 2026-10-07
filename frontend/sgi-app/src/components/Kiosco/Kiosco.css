@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
 :root {
-  --k-bg: #001529;
-  --k-card: #002244;
-  --k-orange: #ea580c;
-  --k-orange-light: #fb923c;
+  --k-bg: var(--bg);
+  --k-card: var(--card);
+  --k-brand: var(--brand);
+  --k-brand-light: var(--brand-light);
   --k-text: #ffffff;
-  --k-text-soft: #94a3b8;
+  --k-text-soft: var(--text-soft);
   --k-border: rgba(255, 255, 255, 0.1);
   --k-green: #10b981;
   --k-red: #ef4444;
@@ -37,7 +37,7 @@
   width: 56px;
   height: 56px;
   border: 5px solid var(--k-border);
-  border-top-color: var(--k-orange);
+  border-top-color: var(--k-brand);
   border-radius: 50%;
   animation: kiosco-spin 0.9s linear infinite;
 }
@@ -68,7 +68,7 @@
 }
 
 .kiosco-btn-primario {
-  background: var(--k-orange);
+  background: var(--k-brand);
   color: white;
   border: none;
   border-radius: 14px;
@@ -87,7 +87,7 @@
 }
 
 .kiosco-btn-primario:not(:disabled):hover {
-  background: var(--k-orange-light);
+  background: var(--k-brand-light);
 }
 
 .kiosco-btn-secundario {
@@ -156,7 +156,7 @@
   top: 14px;
   right: 14px;
   z-index: 2;
-  background: rgba(0, 21, 41, 0.55);
+  background: rgba(5, 11, 24, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: var(--k-text-soft);
   border-radius: 20px;
@@ -175,7 +175,7 @@
 .kiosco-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 21, 41, 0.55) 0%, rgba(0, 21, 41, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(5, 11, 24, 0.55) 0%, rgba(5, 11, 24, 0.85) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -199,7 +199,7 @@
 
 .kiosco-icono-grande {
   font-size: 4rem;
-  color: var(--k-orange-light);
+  color: var(--k-brand-light);
 }
 
 .kiosco-icono-exito {
@@ -242,7 +242,7 @@
 }
 
 .kiosco-enrolar-input button {
-  background: var(--k-orange);
+  background: var(--k-brand);
   color: white;
   border: none;
   border-radius: 8px;
@@ -296,7 +296,7 @@
   align-items: center;
   gap: 16px;
   font-size: 1.6rem;
-  color: var(--k-orange-light);
+  color: var(--k-brand-light);
 }
 
 .kiosco-header-panel h2 {
@@ -334,7 +334,7 @@
   align-items: center;
   gap: 10px;
   font-weight: 800;
-  color: var(--k-orange-light);
+  color: var(--k-brand-light);
   margin-bottom: 14px;
 }
 
@@ -394,7 +394,7 @@
 }
 
 .kiosco-btn-devolver {
-  background: var(--k-orange);
+  background: var(--k-brand);
   color: white;
   border: none;
   border-radius: 8px;
@@ -408,7 +408,7 @@
 }
 
 .kiosco-btn-devolver:hover {
-  background: var(--k-orange-light);
+  background: var(--k-brand-light);
 }
 
 /* --- Autoservicio: una única zona con scroll para productos + devolutivos,
@@ -488,8 +488,8 @@
 }
 
 .kiosco-unidad.seleccionada {
-  border-color: var(--k-orange);
-  background: rgba(234, 88, 12, 0.15);
+  border-color: var(--k-brand);
+  background: rgba(31, 111, 209, 0.15);
 }
 
 .kiosco-unidad-codigo {
@@ -514,8 +514,8 @@
 }
 
 .kiosco-producto.seleccionado {
-  border-color: var(--k-orange);
-  background: rgba(234, 88, 12, 0.12);
+  border-color: var(--k-brand);
+  background: rgba(31, 111, 209, 0.12);
 }
 
 .kiosco-producto-info {
@@ -544,7 +544,7 @@
 }
 
 .kiosco-cantidad button {
-  background: var(--k-orange);
+  background: var(--k-brand);
   color: white;
   border: none;
   border-radius: 8px;

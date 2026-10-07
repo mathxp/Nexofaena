@@ -51,13 +51,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
+      includeAssets: ["favicon.svg", "favicon-32x32.png", "apple-touch-icon.png"],
       manifest: {
         name: "NexoFaena SGI",
         short_name: "NexoFaena",
         description: "Sistema de Gestión de Inventario NexoFaena",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
+        theme_color: "#050b18",
+        background_color: "#050b18",
         display: "standalone",
         start_url: "/",
         icons: [
@@ -70,6 +70,14 @@ export default defineConfig({
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
+          },
+          // Versión sin esquinas redondeadas y con margen de seguridad:
+          // Android la recorta con su propia máscara (círculo, gota, etc.).
+          {
+            src: "/pwa-maskable-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },

@@ -98,7 +98,7 @@ const ReporteUsoKiosco = () => {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  ChartJS.defaults.color = '#94a3b8';
+  ChartJS.defaults.color = '#9aabc4';
   ChartJS.defaults.font.family = "'Inter', sans-serif";
 
   const chartDataPorDia = {
@@ -113,7 +113,7 @@ const ReporteUsoKiosco = () => {
       {
         label: 'Bodeguero (manual)',
         data: reporte.por_dia.map((f) => f.bodega),
-        backgroundColor: '#64748b',
+        backgroundColor: '#6b7d99',
         borderRadius: 4,
       },
     ],
@@ -129,7 +129,7 @@ const ReporteUsoKiosco = () => {
     workbook.creator = 'NexoFaena SGI';
     workbook.created = new Date();
 
-    const estiloHeader = (row, color = 'FFEA580C') => {
+    const estiloHeader = (row, color = 'FF1F6FD1') => {
       row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       row.eachCell((cell) => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
@@ -156,7 +156,7 @@ const ReporteUsoKiosco = () => {
       { header: 'Bodeguero', key: 'bodega', width: 14 },
       { header: 'Total', key: 'total', width: 14 },
     ];
-    estiloHeader(porTurno.getRow(1), 'FF001529');
+    estiloHeader(porTurno.getRow(1), 'FF0F2647');
     reporte.por_turno.forEach((f) => {
       porTurno.addRow({ turno: etiquetaTurno(f.turno), kiosco: f.kiosco, bodega: f.bodega, total: f.total });
     });
@@ -285,7 +285,7 @@ const ReporteUsoKiosco = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 14 } } },
+                plugins: { legend: { position: 'bottom', labels: { color: '#9aabc4', padding: 14 } } },
                 scales: {
                   y: { beginAtZero: true, stacked: true, grid: { color: 'rgba(255,255,255,0.08)' }, ticks: { precision: 0 } },
                   x: { stacked: true, grid: { display: false } },

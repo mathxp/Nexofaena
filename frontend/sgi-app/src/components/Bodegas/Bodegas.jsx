@@ -139,7 +139,7 @@ const Bodegas = () => {
                         <tbody>
                             {bodegas.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#9aabc4' }}>
                                         No hay bodegas registradas en el sistema.
                                     </td>
                                 </tr>

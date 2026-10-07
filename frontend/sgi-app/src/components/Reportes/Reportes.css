@@ -4,17 +4,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-:root {
-    --bg: #001529;
-    --card: #002244;
-    --input: #001a33;
-    --orange: #ea580c;
-    --orange-light: #fb923c;
-    --text: #ffffff;
-    --text-soft: #94a3b8;
-    --border: rgba(255, 255, 255, 0.08);
-}
-
 .reportes-page {
     background: var(--bg);
     min-height: 100vh;
@@ -35,7 +24,7 @@
     padding: 12px 22px;
     background: var(--card);
     color: var(--text-soft);
-    border: 1px solid #003366;
+    border: 1px solid var(--card-alt);
     border-bottom: none;
     border-radius: 10px 10px 0 0;
     font-weight: 700;
@@ -49,9 +38,9 @@
 }
 
 .reportes-tab.active {
-    background: #001c39;
-    color: var(--orange-light);
-    border-color: var(--orange);
+    background: var(--bg-soft);
+    color: var(--brand-light);
+    border-color: var(--brand);
 }
 
 .reportes-header {
@@ -65,7 +54,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(160deg, #002244 0%, #001c39 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 25px;
@@ -83,7 +72,7 @@
 .filter-group {
     display: flex;
     align-items: center;
-    background-color: #001a33; /* Inputs Oscuros */
+    background-color: var(--input); /* Inputs Oscuros */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 0 15px;
@@ -91,7 +80,7 @@
 }
 
 .filter-icon {
-    color: #ea580c; /* Acento Naranja */
+    color: var(--brand); /* Acento Naranja */
     margin-right: 10px;
 }
 
@@ -106,7 +95,7 @@
 }
 
 .filter-input::placeholder {
-    color: #64748b;
+    color: var(--text-faint);
 }
 
 select.filter-input {
@@ -115,7 +104,7 @@ select.filter-input {
 }
 
 select.filter-input option {
-    background: #001529;
+    background: var(--bg);
     color: #ffffff;
 }
 
@@ -155,7 +144,7 @@ select.filter-input option {
 
 /* Tarjeta y Tabla */
 .reportes-card {
-    background: linear-gradient(160deg, #002244 0%, #001c39 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
@@ -170,7 +159,7 @@ select.filter-input option {
 .reportes-card-header {
     background-color: rgba(0, 0, 0, 0.2);
     padding: 15px 20px;
-    color: #94a3b8;
+    color: var(--text-soft);
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -189,8 +178,8 @@ select.filter-input option {
 }
 
 .reportes-table th {
-    background-color: #001a33;
-    color: #94a3b8;
+    background-color: var(--input);
+    color: var(--text-soft);
     padding: 15px 20px;
     text-align: left;
     font-weight: 600;
@@ -211,7 +200,7 @@ select.filter-input option {
 }
 
 .reportes-table tr:hover {
-    box-shadow: inset 3px 0 0 var(--orange);
+    box-shadow: inset 3px 0 0 var(--brand);
 }
 
 .reportes-table tr:hover td {
@@ -283,7 +272,7 @@ select.filter-input option {
     transition: 0.2s;
 }
 
-.btn-paginacion:hover:not(:disabled) { background: var(--orange); border-color: var(--orange); }
+.btn-paginacion:hover:not(:disabled) { background: var(--brand); border-color: var(--brand); }
 .btn-paginacion:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .paginacion-info {
@@ -295,7 +284,7 @@ select.filter-input option {
 .loading-state, .empty-state, .error-state {
     padding: 40px;
     text-align: center;
-    color: #64748b;
+    color: var(--text-faint);
 }
 
 .error-state {
@@ -327,7 +316,7 @@ select.filter-input option {
 }
 
 .page-title svg {
-    color: var(--orange);
+    color: var(--brand);
 }
 
 /* --- SECCIÓN DE FILTROS --- */
@@ -370,8 +359,8 @@ select.filter-input option {
 }
 
 .input-with-icon:focus-within {
-    border-color: var(--orange);
-    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(31, 111, 209, 0.15);
 }
 
 .input-icon {
@@ -435,13 +424,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .report-card:hover {
-    border-color: rgba(234, 88, 12, 0.4);
+    border-color: rgba(31, 111, 209, 0.4);
     transform: translateY(-2px);
 }
 
 .report-header-orange {
-    background: rgba(234, 88, 12, 0.1);
-    color: var(--orange-light);
+    background: rgba(31, 111, 209, 0.1);
+    color: var(--brand-light);
     padding: 15px 20px;
     font-weight: 900;
     font-size: 1rem;
@@ -449,7 +438,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     align-items: center;
     gap: 12px;
     text-transform: uppercase;
-    border-bottom: 1px solid rgba(234, 88, 12, 0.2);
+    border-bottom: 1px solid rgba(31, 111, 209, 0.2);
 }
 
 .report-body {
@@ -476,7 +465,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .metric-icon {
-    color: var(--orange);
+    color: var(--brand);
     font-size: 1.3rem;
     margin-top: 2px;
 }
@@ -489,7 +478,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .metric-highlight {
     font-weight: 900;
-    color: var(--orange-light);
+    color: var(--brand-light);
     font-size: 1.05rem;
     margin-left: 5px;
 }

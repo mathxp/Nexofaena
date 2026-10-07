@@ -14,7 +14,7 @@
 /* --- SIDEBAR LATERAL (DESKTOP) --- */
 .sidebar {
     width: 250px; /* Reducido para mayor elegancia */
-    background: linear-gradient(180deg, #001529 0%, #000e1c 100%);
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%);
     color: white;
     display: flex;
     flex-direction: column;
@@ -34,9 +34,9 @@
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 22px 20px;
-    background: #001529; /* Mismo azul base que el resto del sistema, sin overlay negro */
+    justify-content: flex-start;
+    padding: 22px 22px;
+    background: var(--bg);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -47,26 +47,9 @@
     left: 20%;
     right: 20%;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(234, 88, 12, 0.6), transparent);
+    background: linear-gradient(90deg, transparent, rgba(31, 111, 209, 0.6), transparent);
 }
 
-/* Chip claro: el logo trae texto azul marino que se pierde sobre el fondo oscuro */
-.brand-logo-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 10px 18px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
-}
-
-.brand-logo {
-    width: 160px;
-    height: 34px;
-    object-fit: contain;
-    display: block;
-}
 
 /* --- MENÚ --- */
 .sidebar-menu {
@@ -82,7 +65,7 @@
 .menu-label {
     padding: 0 20px;
     font-size: 0.7rem;
-    color: #64748b;
+    color: var(--text-faint);
     text-transform: uppercase;
     font-weight: 800;
     letter-spacing: 1.5px;
@@ -100,7 +83,7 @@
     padding: 12px 15px;
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: var(--text-soft);
     font-size: 0.9rem;
     font-weight: 500;
     border-radius: 10px; /* Bordes muy redondeados */
@@ -116,10 +99,10 @@
 }
 
 .menu-item.active {
-    background: linear-gradient(90deg, #ea580c 0%, #f97316 100%);
+    background: linear-gradient(90deg, var(--brand) 0%, #3d8ff0 100%);
     color: white;
     font-weight: 700;
-    box-shadow: 0 6px 18px rgba(234, 88, 12, 0.38); /* Resplandor naranja */
+    box-shadow: 0 6px 18px rgba(31, 111, 209, 0.38); /* Resplandor naranja */
 }
 
 /* Barrita luminosa a la izquierda del ítem activo: refuerza cuál sección
@@ -152,7 +135,7 @@
 /* --- FOOTER DEL SIDEBAR --- */
 .sidebar-footer {
     padding: 20px;
-    background: #000c17; /* Más oscuro para cerrar el diseño */
+    background: var(--bg); /* Más oscuro para cerrar el diseño */
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     color: #f8fafc; /* Defensivo: nada en este bloque debe heredar negro por defecto */
 }
@@ -173,7 +156,7 @@
     border-radius: 50%;
     padding: 6px;
     flex-shrink: 0;
-    box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.35);
+    box-shadow: 0 0 0 2px rgba(31, 111, 209, 0.35);
 }
 
 .user-name {
@@ -184,7 +167,7 @@
 
 .user-role {
     font-size: 0.68rem;
-    color: #64748b; /* Mismo tono que .menu-label: es una etiqueta, no un estado de conexión */
+    color: var(--text-faint); /* Mismo tono que .menu-label: es una etiqueta, no un estado de conexión */
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -227,14 +210,14 @@
     min-width: 0;
     margin-left: 250px;
     min-height: 100vh;
-    background-color: #001529; /* ¡ASEGÚRATE QUE ESTO SEA IGUAL AL DASHBOARD! */
+    background-color: var(--bg); /* ¡ASEGÚRATE QUE ESTO SEA IGUAL AL DASHBOARD! */
     transition: margin-left 0.3s;
 }
 
 /* --- HEADER MÓVIL --- */
 .mobile-header {
     display: none;
-    background: #001529;
+    background: var(--bg);
     padding: 15px 20px;
     justify-content: space-between;
     align-items: center;
@@ -244,23 +227,6 @@
        tapa el botón de abrir/cerrar y queda sin poder tocarse. */
     z-index: 1001;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-}
-
-/* Mismo chip claro que el logo de escritorio (.brand-logo-wrap): el logo
-   trae texto azul marino que se pierde sobre el fondo oscuro del header. */
-.mobile-brand-logo-wrap {
-    display: flex;
-    align-items: center;
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 6px 12px;
-}
-
-.mobile-brand-logo {
-    height: 22px;
-    width: auto;
-    object-fit: contain;
-    display: block;
 }
 
 .mobile-toggle {

@@ -1,5 +1,5 @@
 .auditorias-page {
-  background: #001529;
+  background: var(--bg);
   min-height: 100vh;
 }
 
@@ -14,9 +14,9 @@
   align-items: center;
   gap: 8px;
   padding: 12px 22px;
-  background: #002244;
-  color: #94a3b8;
-  border: 1px solid #003366;
+  background: var(--card);
+  color: var(--text-soft);
+  border: 1px solid var(--card-alt);
   border-bottom: none;
   border-radius: 10px 10px 0 0;
   font-weight: 700;
@@ -30,15 +30,15 @@
 }
 
 .auditorias-tab.active {
-  background: #001b38;
-  color: #fb923c;
-  border-color: #ea580c;
+  background: var(--bg-soft);
+  color: var(--brand-light);
+  border-color: var(--brand);
 }
 
 .auditorias-wrapper {
   padding: 32px;
   padding-bottom: 100px;
-  background: #001529;
+  background: var(--bg);
   min-height: 100vh;
   color: white;
   font-family: 'Inter', sans-serif;
@@ -51,8 +51,8 @@
 }
 
 .auditorias-header {
-  background: linear-gradient(135deg, #002244 0%, #001b38 100%);
-  border-left: 6px solid #ea580c;
+  background: linear-gradient(135deg, var(--card) 0%, var(--bg-soft) 100%);
+  border-left: 6px solid var(--brand);
   border-radius: 14px;
   padding: 24px;
   margin-bottom: 24px;
@@ -72,13 +72,13 @@
 
 .auditorias-header p {
   margin: 6px 0 0;
-  color: #94a3b8;
+  color: var(--text-soft);
   font-weight: 600;
 }
 
 .btn-excel,
 .btn-detalle {
-  background: linear-gradient(135deg, #ea580c, #fb923c);
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: white;
   border: none;
   border-radius: 10px;
@@ -88,18 +88,18 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+  box-shadow: 0 4px 15px rgba(31, 111, 209, 0.3);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-excel:hover,
 .btn-detalle:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(234, 88, 12, 0.4);
+  box-shadow: 0 8px 22px rgba(31, 111, 209, 0.4);
 }
 
 .auditoria-filtros {
-  background: #002244;
+  background: var(--card);
   border: 1px solid rgba(255,255,255,0.08);
   padding: 20px;
   border-radius: 14px;
@@ -112,7 +112,7 @@
 .filter-box {
   flex: 1;
   min-width: 280px;
-  background: #001a33;
+  background: var(--input);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
   height: 48px;
@@ -124,7 +124,7 @@
 
 .filter-box input,
 .auditoria-filtros select {
-  background: #001a33;
+  background: var(--input);
   color: white;
   border: 1px solid rgba(255,255,255,0.08);
   outline: none;
@@ -146,7 +146,7 @@
 }
 
 .auditoria-card {
-  background: linear-gradient(160deg, #002244 0%, #001c39 100%);
+  background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   padding: 22px;
@@ -207,7 +207,7 @@
 
 .detalle-panel {
   margin-top: 30px;
-  background: linear-gradient(160deg, #002244 0%, #001830 100%);
+  background: linear-gradient(160deg, var(--card) 0%, var(--input) 100%);
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.08);
   overflow: hidden;
@@ -256,7 +256,7 @@
 }
 
 .detalle-table th {
-  color: #94a3b8;
+  color: var(--text-soft);
   text-transform: uppercase;
   font-size: 0.8rem;
 }
@@ -293,7 +293,7 @@
 .auditoria-error {
   text-align: center;
   padding: 24px;
-  color: #94a3b8;
+  color: var(--text-soft);
 }
 
 @media (max-width: 768px) {

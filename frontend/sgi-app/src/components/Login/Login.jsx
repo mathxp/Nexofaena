@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fa';
 
 import api from '../../api';
+import LogoNexoFaena from '../Marca/LogoNexoFaena';
 import './Login.css';
 
 const Login = () => {
@@ -60,11 +61,7 @@ const Login = () => {
 
             <div className="login-card">
                 <div className="login-logo-container">
-                    <img
-                        src="/logo.png"
-                        alt="NexoFaena Logo"
-                        className="login-logo"
-                    />
+                    <LogoNexoFaena tamano="lg" conBajada />
                 </div>
 
                 <h2 className="login-title">INICIAR SESIÓN</h2>

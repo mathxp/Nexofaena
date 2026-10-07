@@ -247,7 +247,7 @@ const Trabajadores = () => {
                     </thead>
                     <tbody>
                         {trabajadoresPagina.length === 0 ? (
-                            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No se encontraron trabajadores.</td></tr>
+                            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#9aabc4' }}>No se encontraron trabajadores.</td></tr>
                         ) : (
                             trabajadoresPagina.map((t) => (
                                 <tr key={t.id} className={!t.activo ? 'fila-inactiva' : ''}>

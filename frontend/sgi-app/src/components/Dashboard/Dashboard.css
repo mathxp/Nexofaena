@@ -9,7 +9,7 @@
     padding: 30px;
     max-width: 1300px;
     margin: 0 auto;
-    background-color: #001529; /* Fondo azul oscuro corporativo */
+    background-color: var(--bg); /* Fondo azul oscuro corporativo */
     min-height: 100vh;
     animation: fadeIn 0.3s ease-out;
 }
@@ -33,7 +33,7 @@
 }
 
 .header-titles p {
-    color: #94a3b8 !important;
+    color: var(--text-soft) !important;
     margin: 0;
     font-size: 0.95rem;
     font-weight: 500;
@@ -71,7 +71,7 @@
 
 .kpi-card {
     position: relative;
-    background: linear-gradient(160deg, #002244 0%, #001b38 100%);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius: 12px;
     padding: 20px;
     display: flex;
@@ -114,12 +114,12 @@
 
 /* Colores de íconos */
 .kpi-blue .kpi-icon-box { background: rgba(59, 130, 246, 0.15); color: #60a5fa; box-shadow: 0 0 0 1px rgba(96,165,250,0.15); }
-.kpi-orange .kpi-icon-box { background: rgba(249, 115, 22, 0.15); color: #fb923c; box-shadow: 0 0 0 1px rgba(251,146,60,0.15); }
+.kpi-brand .kpi-icon-box { background: rgba(31, 111, 209, 0.15); color: var(--brand-light); box-shadow: 0 0 0 1px rgba(91, 178, 255, 0.15); }
 .kpi-red .kpi-icon-box { background: rgba(239, 68, 68, 0.15); color: #f87171; box-shadow: 0 0 0 1px rgba(248,113,113,0.15); }
 
 .kpi-label {
     font-size: 0.75rem;
-    color: #94a3b8 !important;
+    color: var(--text-soft) !important;
     font-weight: 700;
     text-transform: uppercase;
     margin: 0 0 2px 0;
@@ -137,7 +137,7 @@
 .alert-section {
     margin-bottom: 30px;
     border-radius: 12px;
-    background: #001e38;
+    background: var(--bg-soft);
     padding: 20px 25px;
     border: 1px solid rgba(255,255,255,0.05);
 }
@@ -192,15 +192,15 @@
 .badge-info { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
 
 .alert-empty {
-    color: #94a3b8;
+    color: var(--text-soft);
     margin: 0;
     font-size: 0.9rem;
 }
 
 .btn-ver-todas {
     background: transparent;
-    color: #ea580c;
-    border: 1px solid #ea580c;
+    color: var(--brand);
+    border: 1px solid var(--brand);
     width: 100%;
     padding: 10px;
     border-radius: 8px;
@@ -211,7 +211,7 @@
 }
 
 .btn-ver-todas:hover {
-    background: #ea580c;
+    background: var(--brand);
     color: white;
 }
 
@@ -230,7 +230,7 @@
 }
 
 .qa-btn {
-    background: #002244;
+    background: var(--card);
     color: white !important; /* FORZADO BLANCO */
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 12px;
@@ -244,10 +244,10 @@
 }
 
 .qa-btn:hover {
-    background: linear-gradient(135deg, #ea580c, #f97316);
-    border-color: #ea580c;
+    background: linear-gradient(135deg, var(--brand), #3d8ff0);
+    border-color: var(--brand);
     transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(234, 88, 12, 0.35);
+    box-shadow: 0 10px 24px rgba(31, 111, 209, 0.35);
 }
 
 .qa-icon-wrapper {

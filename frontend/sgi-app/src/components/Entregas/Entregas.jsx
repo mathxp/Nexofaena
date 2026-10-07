@@ -707,7 +707,7 @@ const Entregas = () => {
                 <div className="signature-pad-wrapper">
                   <SignatureCanvas
                     ref={sigCanvas}
-                    penColor="#001529"
+                    penColor="#0f2647"
                     canvasProps={{ className: 'sigCanvas' }}
                   />
                 </div>
