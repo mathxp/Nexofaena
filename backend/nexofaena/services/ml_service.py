@@ -854,16 +854,20 @@ class MLService:
         clasificadas = []
 
         for f in ordenado:
-            acumulado += f["precio_unitario"] * f["rotacion_mensual"]
-            porcentaje_acumulado = (acumulado / valor_total * 100) if valor_total > 0 else 100
+            # Se clasifica por el acumulado ANTES de sumar este producto: así
+            # el que cruza el 80% sigue siendo A. Con el acumulado incluyéndolo,
+            # un producto que concentra >80% del valor quedaba como B y la
+            # clase A vacía.
+            porcentaje_previo = (acumulado / valor_total * 100) if valor_total > 0 else 100
 
-            if porcentaje_acumulado <= 80:
+            if porcentaje_previo < 80:
                 clase = "A"
-            elif porcentaje_acumulado <= 95:
+            elif porcentaje_previo < 95:
                 clase = "B"
             else:
                 clase = "C"
 
+            acumulado += f["precio_unitario"] * f["rotacion_mensual"]
             clasificadas.append({**f, "clase_abc": clase})
 
         return clasificadas, "Regla de Pareto 80/15/5 (fallback: catálogo pequeño)"
