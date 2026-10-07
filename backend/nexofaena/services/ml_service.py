@@ -14,6 +14,8 @@ Modelos, cada uno resolviendo un problema de negocio distinto:
 """
 
 import math
+import re
+import unicodedata
 from collections import Counter
 from datetime import timedelta
 from difflib import SequenceMatcher
@@ -55,6 +57,19 @@ MIN_TRABAJADORES_KMEANS = 6
 MIN_PRODUCTOS_TFIDF = 5
 TOP_N_BUSQUEDA_SEMANTICA = 5
 UMBRAL_SIMILITUD_MINIMA = 0.1
+UMBRAL_SIMILITUD_DIFFLIB = 0.75  # difflib puntúa alto incluso entre palabras sin relación
+# Palabras vacías del español y verbos/palabras de "intención" típicas de
+# una consulta gerencial ("resume el consumo de ... del mes"): no describen
+# el producto y, si se dejan, hacen que cualquier ítem con "de" en el nombre
+# matchee más que el producto buscado.
+PALABRAS_VACIAS_BUSQUEDA = {
+    "a", "al", "algo", "como", "con", "cual", "cuales", "cuanto", "cuanta", "cuantos", "cuantas",
+    "de", "del", "el", "en", "es", "esta", "este", "hay", "la", "las", "lo", "los", "me", "mi",
+    "o", "para", "por", "que", "se", "sobre", "su", "sus", "un", "una", "unos", "unas", "y",
+    "consumo", "consumido", "consumidos", "dame", "dia", "dias", "entrega", "entregas",
+    "hoy", "inventario", "mes", "meses", "mostrar", "muestra", "muestrame", "queda", "quedan",
+    "resume", "resumen", "resumir", "semana", "stock", "ultimo", "ultimos", "ver",
+}
 
 MIN_PRODUCTOS_ABC = 6
 DIAS_VENTANA_ROTACION_ABC = 90
@@ -631,13 +646,28 @@ class MLService:
     # MÓDULO 6 · TF-IDF + Similitud de Coseno — Búsqueda Semántica de KPIs
     # ==================================================================
     @staticmethod
+    def _normalizar_texto_busqueda(texto, quitar_palabras_vacias=False):
+        """Minúsculas, sin tildes y solo alfanuméricos, para que "Cascos",
+        "cascos" y "cásco" caigan en los mismos n-gramas."""
+        texto = unicodedata.normalize("NFKD", (texto or "").lower())
+        texto = "".join(c for c in texto if not unicodedata.combining(c))
+        palabras = re.findall(r"[a-z0-9]+", texto)
+
+        if quitar_palabras_vacias:
+            palabras = [p for p in palabras if p not in PALABRAS_VACIAS_BUSQUEDA]
+
+        return " ".join(palabras)
+
+    @staticmethod
     def _corpus_inventario():
         productos = list(Inventario.objects.filter(estado=True).select_related("bodega"))
 
+        # El nombre va dos veces para que pese más que bodega/ubicación,
+        # que se repiten entre muchos productos y solo meten ruido.
         documentos = [
-            " ".join(filter(None, [
-                p.nombre, p.codigo, p.marca, p.modelo, p.bodega.nombre, p.ubicacion,
-            ]))
+            MLService._normalizar_texto_busqueda(" ".join(filter(None, [
+                p.nombre, p.nombre, p.codigo, p.marca, p.modelo, p.bodega.nombre, p.ubicacion,
+            ])))
             for p in productos
         ]
 
@@ -645,7 +675,10 @@ class MLService:
 
     @staticmethod
     def _similitud_tfidf(consulta, documentos):
-        vectorizador = TfidfVectorizer(strip_accents="unicode", lowercase=True)
+        # N-gramas de caracteres (no palabras completas): tolera plurales y
+        # errores de tipeo ("cascos" vs "Casco", "guante" vs "Guantes"), que
+        # con TF-IDF por palabra daban similitud 0.
+        vectorizador = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5))
         matriz = vectorizador.fit_transform(documentos + [consulta])
 
         vector_consulta = matriz[-1]
@@ -660,13 +693,19 @@ class MLService:
     def _similitud_difflib(consulta, documentos):
         """Fallback sin vocabulario: similitud de secuencias de caracteres
         directa (fuzzy-match), útil cuando el catálogo es tan chico que el
-        TF-IDF no tiene señal suficiente para ser confiable."""
-        consulta_normalizada = consulta.lower()
+        TF-IDF no tiene señal suficiente para ser confiable. Se compara cada
+        palabra de la consulta contra cada palabra del documento (y no la
+        frase completa contra el documento completo, que diluye el puntaje)."""
+        palabras_consulta = consulta.split()
 
-        puntajes = np.array([
-            SequenceMatcher(None, consulta_normalizada, doc.lower()).ratio()
-            for doc in documentos
-        ])
+        def puntaje(doc):
+            palabras_doc = doc.split() or [""]
+            return mean(
+                max(SequenceMatcher(None, pc, pd).ratio() for pd in palabras_doc)
+                for pc in palabras_consulta
+            )
+
+        puntajes = np.array([puntaje(doc) for doc in documentos])
         orden = np.argsort(puntajes)[::-1]
 
         return orden, puntajes[orden]
@@ -715,16 +754,26 @@ class MLService:
                 "motivo": "No hay productos activos en el inventario.",
             }
 
+        terminos = MLService._normalizar_texto_busqueda(consulta, quitar_palabras_vacias=True)
+        if not terminos:
+            return {
+                "consulta": consulta, "resultados": [], "confiable": False,
+                "motivo": "Indica qué producto buscas (ej: \"cascos\", \"guantes de nitrilo\").",
+            }
+
+        umbral = UMBRAL_SIMILITUD_MINIMA
         if len(productos) >= MIN_PRODUCTOS_TFIDF:
             try:
-                indices, puntajes = MLService._similitud_tfidf(consulta, documentos)
+                indices, puntajes = MLService._similitud_tfidf(terminos, documentos)
                 algoritmo = "TF-IDF + Similitud de Coseno"
             except Exception:
-                indices, puntajes = MLService._similitud_difflib(consulta, documentos)
+                indices, puntajes = MLService._similitud_difflib(terminos, documentos)
                 algoritmo = "difflib (fallback por error en TF-IDF)"
+                umbral = UMBRAL_SIMILITUD_DIFFLIB
         else:
-            indices, puntajes = MLService._similitud_difflib(consulta, documentos)
+            indices, puntajes = MLService._similitud_difflib(terminos, documentos)
             algoritmo = "difflib (fallback: catálogo pequeño)"
+            umbral = UMBRAL_SIMILITUD_DIFFLIB
 
         try:
             consumo_diario_map = MLService._consumo_diario_reciente()
@@ -733,20 +782,28 @@ class MLService:
 
         resultados = []
         for idx, puntaje in zip(indices, puntajes):
-            if puntaje < UMBRAL_SIMILITUD_MINIMA:
-                continue
+            # Vienen ordenados de mayor a menor: el primero bajo el umbral corta.
+            if puntaje < umbral:
+                break
 
             resultados.append(MLService._kpi_producto(productos[idx], puntaje, consumo_diario_map))
 
             if len(resultados) >= top_n:
                 break
 
-        return {
+        respuesta = {
             "consulta": consulta,
             "resultados": resultados,
             "confiable": len(resultados) > 0,
             "algoritmo": algoritmo,
         }
+        if not resultados:
+            respuesta["motivo"] = (
+                f"Ningún producto activo se parece a \"{terminos}\". "
+                "Prueba con el nombre, código o marca del producto."
+            )
+
+        return respuesta
 
     # ==================================================================
     # MÓDULO 7 · K-Means — Clasificación ABC Dinámica de Inventario
