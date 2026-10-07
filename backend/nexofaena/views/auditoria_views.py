@@ -128,12 +128,14 @@ class AuditoriaInventarioViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as e:
+        except Exception:
             # Cualquier excepción no prevista debe llegar al frontend como JSON
             # interpretable (con detail) en vez de un 500 sin cuerpo, para que
-            # la sincronización offline pueda mostrar el motivo real del fallo.
+            # la sincronización offline pueda mostrar el fallo. El detalle
+            # interno va al log (y a Sentry), no al navegador.
+            logger.exception("Error inesperado al registrar el conteo.")
             return Response(
-                {"detail": f"Error inesperado al registrar el conteo: {str(e)}"},
+                {"detail": "Error inesperado al registrar el conteo. Intenta nuevamente."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

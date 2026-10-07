@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,9 +10,13 @@ from nexofaena.serializers.alerta_serializer import AlertaSerializer
 from nexofaena.services.dashboard_service import DashboardService
 from nexofaena.services.ml_service import MLService
 
+logger = logging.getLogger("nexofaena")
+
 
 class AlertaViewSet(viewsets.ModelViewSet):
-    queryset = Alerta.objects.all().order_by("-fecha_alerta")
+    # select_related: el serializer lee bodega.nombre e inventario.nombre/codigo
+    # de cada alerta; sin esto eran 2 queries extra por fila (N+1).
+    queryset = Alerta.objects.select_related("bodega", "inventario").order_by("-fecha_alerta")
     serializer_class = AlertaSerializer
     permission_classes = [IsBodeguero]
 
@@ -25,12 +31,12 @@ class DashboardResumenView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Error al obtener el dashboard.")
             return Response(
                 {
                     "success": False,
                     "message": "Error al obtener el dashboard.",
-                    "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -52,12 +58,12 @@ class MLAnalyticsView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Error al obtener el módulo de IA avanzado.")
             return Response(
                 {
                     "success": False,
                     "message": "Error al obtener el módulo de IA avanzado.",
-                    "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -81,12 +87,12 @@ class MLBusquedaView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Error al ejecutar la búsqueda.")
             return Response(
                 {
                     "success": False,
                     "message": "Error al ejecutar la búsqueda.",
-                    "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

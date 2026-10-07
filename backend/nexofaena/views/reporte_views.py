@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -5,6 +7,8 @@ from rest_framework.response import Response
 from nexofaena.permissions import IsBodeguero, IsSupervisor
 from nexofaena.services.reporte_service import ReporteService
 from nexofaena.services.ml_service import MLService
+
+logger = logging.getLogger("nexofaena")
 
 
 class ReporteEppPorTurnoView(APIView):
@@ -43,12 +47,12 @@ class ReporteEppPorTurnoView(APIView):
 
             return Response(reporte, status=status.HTTP_200_OK)
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Error al generar el reporte de consumo por turno.")
             return Response(
                 {
                     "success": False,
                     "message": "Error al generar el reporte de consumo por turno.",
-                    "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -72,12 +76,12 @@ class ReporteUsoKioscoView(APIView):
 
             return Response(reporte, status=status.HTTP_200_OK)
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Error al generar el reporte de uso del kiosco.")
             return Response(
                 {
                     "success": False,
                     "message": "Error al generar el reporte de uso del kiosco.",
-                    "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -102,12 +106,12 @@ class ReportePrestamosPendientesView(APIView):
 
             return Response(reporte, status=status.HTTP_200_OK)
 
-        except Exception as e:
+        except Exception:
+            logger.exception("Error al generar el reporte de préstamos pendientes.")
             return Response(
                 {
                     "success": False,
                     "message": "Error al generar el reporte de préstamos pendientes.",
-                    "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
