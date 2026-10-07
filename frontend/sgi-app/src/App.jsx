@@ -1,30 +1,31 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 
 import Sidebar from './components/Sidebar/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
+import lazyConRecarga from './utils/lazyConRecarga';
 
 // Cada ruta se carga bajo demanda (code-splitting): el bundle inicial ya no
 // arrastra ExcelJS/jsPDF/Chart.js/html2canvas de módulos que el usuario puede
 // no visitar nunca en la sesión. Sidebar/ProtectedRoute quedan eager porque
 // se necesitan de inmediato en cualquier ruta privada.
-const Login = lazy(() => import('./components/Login/Login'));
-const Registro = lazy(() => import('./components/Registro/Registro'));
-const OlvidePassword = lazy(() => import('./components/OlvidePassword/OlvidePassword'));
-const ResetPassword = lazy(() => import('./components/ResetPassword/ResetPassword'));
-const Dashboard = lazy(() => import('./components/Dashboard/Dashboard'));
-const DashboardGerencial = lazy(() => import('./components/DashboardGerencial/DashboardGerencial'));
-const Trabajadores = lazy(() => import('./components/Trabajadores/Trabajadores'));
-const Bodegas = lazy(() => import('./components/Bodegas/Bodegas'));
-const Inventario = lazy(() => import('./components/Inventario/Inventario'));
-const Movimientos = lazy(() => import('./components/Movimientos/Movimientos'));
-const Entregas = lazy(() => import('./components/Entregas/Entregas'));
-const Devoluciones = lazy(() => import('./components/Devoluciones/Devoluciones'));
-const Alertas = lazy(() => import('./components/Alertas/Alertas'));
-const Reportes = lazy(() => import('./components/Reportes/Reportes'));
-const AuditoriasInventario = lazy(() => import('./components/AuditoriasInventario/AuditoriasInventario'));
-const Kiosco = lazy(() => import('./components/Kiosco/Kiosco'));
+const Login = lazyConRecarga(() => import('./components/Login/Login'));
+const Registro = lazyConRecarga(() => import('./components/Registro/Registro'));
+const OlvidePassword = lazyConRecarga(() => import('./components/OlvidePassword/OlvidePassword'));
+const ResetPassword = lazyConRecarga(() => import('./components/ResetPassword/ResetPassword'));
+const Dashboard = lazyConRecarga(() => import('./components/Dashboard/Dashboard'));
+const DashboardGerencial = lazyConRecarga(() => import('./components/DashboardGerencial/DashboardGerencial'));
+const Trabajadores = lazyConRecarga(() => import('./components/Trabajadores/Trabajadores'));
+const Bodegas = lazyConRecarga(() => import('./components/Bodegas/Bodegas'));
+const Inventario = lazyConRecarga(() => import('./components/Inventario/Inventario'));
+const Movimientos = lazyConRecarga(() => import('./components/Movimientos/Movimientos'));
+const Entregas = lazyConRecarga(() => import('./components/Entregas/Entregas'));
+const Devoluciones = lazyConRecarga(() => import('./components/Devoluciones/Devoluciones'));
+const Alertas = lazyConRecarga(() => import('./components/Alertas/Alertas'));
+const Reportes = lazyConRecarga(() => import('./components/Reportes/Reportes'));
+const AuditoriasInventario = lazyConRecarga(() => import('./components/AuditoriasInventario/AuditoriasInventario'));
+const Kiosco = lazyConRecarga(() => import('./components/Kiosco/Kiosco'));
 
 const PageLoader = () => (
   <div
