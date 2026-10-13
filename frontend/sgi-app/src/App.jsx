@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import lazyConRecarga from './utils/lazyConRecarga';
+import { MarcaNexoFaena } from './components/Marca/LogoNexoFaena';
 
 // Cada ruta se carga bajo demanda (code-splitting): el bundle inicial ya no
 // arrastra ExcelJS/jsPDF/Chart.js/html2canvas de módulos que el usuario puede
@@ -27,21 +28,12 @@ const Reportes = lazyConRecarga(() => import('./components/Reportes/Reportes'));
 const AuditoriasInventario = lazyConRecarga(() => import('./components/AuditoriasInventario/AuditoriasInventario'));
 const Kiosco = lazyConRecarga(() => import('./components/Kiosco/Kiosco'));
 
+// Misma pantalla de arranque que index.html (sus estilos .nx-arranque viven
+// ahí): así no hay salto visual entre la carga inicial y la de cada ruta.
 const PageLoader = () => (
-  <div
-    style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#050b18',
-      color: '#9aabc4',
-      fontFamily: "'Inter', sans-serif",
-      fontSize: '0.95rem',
-      fontWeight: 600,
-    }}
-  >
-    Cargando...
+  <div className="nx-arranque" role="status" aria-label="Cargando">
+    <MarcaNexoFaena className="nx-arranque-marca" />
+    <div className="nx-arranque-barra" />
   </div>
 );
 

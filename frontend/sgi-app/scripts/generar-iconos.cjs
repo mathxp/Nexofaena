@@ -5,8 +5,11 @@ const path = require('path');
 const pub = path.resolve('public');
 const marca = path.resolve('../../docs/marca');
 const salidas = [
-  [path.join(pub, 'favicon.svg'), 'pwa-192x192.png', 192],
-  [path.join(pub, 'favicon.svg'), 'pwa-512x512.png', 512],
+  // Ícono "any": solo el hexágono, sin cuadrado de fondo. Android lo pone
+  // centrado en la pantalla de arranque sobre background_color; con el
+  // cuadrado redondeado se veía como una caja pegada en el medio.
+  [path.join(marca, 'icono-pwa.svg'), 'pwa-192x192.png', 192],
+  [path.join(marca, 'icono-pwa.svg'), 'pwa-512x512.png', 512],
   [path.join(pub, 'favicon.svg'), 'favicon-32x32.png', 32],
   [path.join(marca, 'icono-maskable.svg'), 'pwa-maskable-512x512.png', 512],
   [path.join(marca, 'icono-maskable.svg'), 'apple-touch-icon.png', 180],

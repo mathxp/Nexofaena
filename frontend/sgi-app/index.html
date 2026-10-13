@@ -5,15 +5,106 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
+
     <meta name="theme-color" content="#050b18" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="description" content="NexoFaena SGI · Trazabilidad de pañol" />
-    
+
+    <!-- iPhone: abrir como app (sin barra de Safari) y con barra de estado oscura -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="NexoFaena" />
+
     <title>NexoFaena SGI</title>
+
+    <!-- Pantalla de arranque: se pinta antes de que cargue el JS, para que al
+         abrir la app desde el celular no se vea un fondo vacío o blanco.
+         Vive dentro de #root, así React la reemplaza sola al montar. -->
+    <style>
+      html, body { margin: 0; background: #050b18; }
+      .nx-arranque {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        background:
+          radial-gradient(circle at 50% 42%, rgba(31, 111, 209, 0.28), transparent 55%),
+          #050b18;
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        color: #ffffff;
+      }
+      .nx-arranque .nx-arranque-marca {
+        width: 92px;
+        height: 92px;
+        animation: nx-arranque-entrada 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .nx-arranque-n {
+        stroke-dasharray: 110;
+        stroke-dashoffset: 110;
+        animation: nx-arranque-trazo 0.9s 0.25s ease-out forwards;
+      }
+      .nx-arranque-nombre {
+        font-size: 1.9rem;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        animation: nx-arranque-subir 0.5s 0.2s ease-out both;
+      }
+      .nx-arranque-nombre b { font-weight: 800; }
+      .nx-arranque-bajada {
+        margin-top: -14px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: #9aabc4;
+        animation: nx-arranque-subir 0.5s 0.3s ease-out both;
+      }
+      .nx-arranque-barra {
+        width: 120px;
+        height: 3px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .nx-arranque-barra::after {
+        content: '';
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #1f6fd1, #5bb2ff);
+        animation: nx-arranque-carga 1.1s ease-in-out infinite;
+      }
+      @keyframes nx-arranque-entrada { from { opacity: 0; transform: scale(0.8); } }
+      @keyframes nx-arranque-trazo { to { stroke-dashoffset: 0; } }
+      @keyframes nx-arranque-subir { from { opacity: 0; transform: translateY(8px); } }
+      @keyframes nx-arranque-carga {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(250%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nx-arranque * , .nx-arranque *::after { animation: none !important; stroke-dashoffset: 0 !important; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="nx-arranque" role="status" aria-label="Cargando NexoFaena SGI">
+        <svg class="nx-arranque-marca" viewBox="0 0 100 100" aria-hidden="true">
+          <polygon points="50,10 84.64,30 84.64,70 50,90 15.36,70 15.36,30" fill="none" stroke="#ffffff" stroke-width="7" stroke-linejoin="round" />
+          <path class="nx-arranque-n" d="M36 65V36L64 64V35" fill="none" stroke="#5bb2ff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="36" cy="65.5" r="6.5" fill="#ffffff" />
+          <circle cx="64" cy="34.5" r="6.5" fill="#ffffff" />
+        </svg>
+        <div class="nx-arranque-nombre"><b>Nexo</b>Faena</div>
+        <div class="nx-arranque-bajada">SGI · Trazabilidad de pañol</div>
+        <div class="nx-arranque-barra"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

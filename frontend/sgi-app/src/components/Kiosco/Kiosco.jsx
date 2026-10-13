@@ -13,6 +13,7 @@ import {
   FaUndo,
   FaWifi,
   FaSignal,
+  FaQuestionCircle,
 } from 'react-icons/fa';
 
 import api from '../../api';
@@ -23,12 +24,15 @@ import { useWakeLock } from './hooks/useWakeLock';
 import { useConexionKiosco } from './hooks/useConexionKiosco';
 import { useDatosKioscoCache } from './hooks/useDatosKioscoCache';
 import { useReconocimientoFacial } from './hooks/useReconocimientoFacial';
+import LogoNexoFaena from '../Marca/LogoNexoFaena';
+import TutorialKiosco from './TutorialKiosco';
 import './Kiosco.css';
 
 const Kiosco = () => {
   const [fase, setFase] = useState('cargando-modelos');
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [tutorialAbierto, setTutorialAbierto] = useState(false);
 
   const [bodegaId, setBodegaId] = useState(localStorage.getItem('kiosco_bodega_id') || '');
   const [modelosListos, setModelosListos] = useState(false);
@@ -84,7 +88,9 @@ const Kiosco = () => {
     UMBRAL_DISTANCIA_FACIAL,
     UMBRAL_GIRO_CABEZA,
   } = useReconocimientoFacial({
-    activo: fase === 'reconociendo',
+    // Con el tutorial abierto la cámara se apaga: si no, podría reconocer a
+    // alguien que pasa por detrás y saltar al menú a mitad de la guía.
+    activo: fase === 'reconociendo' && !tutorialAbierto,
     trabajadores,
     bodegaId,
     onReconocido: confirmarTrabajador,
@@ -347,47 +353,65 @@ const Kiosco = () => {
 
   // --- Render ---
 
-  const badgeConexion = (
-    <div className={`kiosco-network-badge ${isOffline ? 'kiosco-badge-offline' : 'kiosco-badge-online'}`}>
-      {isOffline ? (<><FaSignal /> Sin conexión</>) : (<><FaWifi /> Conectado</>)}
-    </div>
+  // Barra superior en el flujo normal (no position: fixed): antes el badge
+  // de conexión flotaba sobre la esquina y quedaba montado encima del
+  // nombre del trabajador en el menú.
+  const barraSuperior = (
+    <header className="kiosco-topbar">
+      <LogoNexoFaena tamano="sm" />
+
+      <div className="kiosco-topbar-acciones">
+        {fase === 'reconociendo' && (
+          <button type="button" className="kiosco-btn-ayuda" onClick={() => setTutorialAbierto(true)}>
+            <FaQuestionCircle /> ¿Cómo funciona?
+          </button>
+        )}
+        <div className={`kiosco-network-badge ${isOffline ? 'kiosco-badge-offline' : 'kiosco-badge-online'}`}>
+          {isOffline ? (<><FaSignal /> Sin conexión</>) : (<><FaWifi /> Conectado</>)}
+        </div>
+      </div>
+    </header>
   );
 
   if (fase === 'cargando-modelos') {
     return (
-      <div className="kiosco-wrapper kiosco-centrado">
-        {badgeConexion}
-        <div className="kiosco-spinner" />
-        <p>Cargando reconocimiento facial…</p>
-        {error && <div className="kiosco-error">{error}</div>}
+      <div className="kiosco-wrapper">
+        {barraSuperior}
+        <div className="kiosco-centrado">
+          <div className="kiosco-spinner" />
+          <p>Cargando reconocimiento facial…</p>
+          {error && <div className="kiosco-error">{error}</div>}
+        </div>
       </div>
     );
   }
 
   if (fase === 'configurar-bodega') {
     return (
-      <div className="kiosco-wrapper kiosco-centrado">
-        {badgeConexion}
-        <h1 className="kiosco-titulo">Configuración del kiosco</h1>
-        <p className="kiosco-subtitulo">Selecciona a qué bodega atiende este kiosco (se guarda en este dispositivo).</p>
+      <div className="kiosco-wrapper">
+        {barraSuperior}
+        <div className="kiosco-centrado">
+          <h1 className="kiosco-titulo">Configuración del kiosco</h1>
+          <p className="kiosco-subtitulo">Selecciona a qué bodega atiende este kiosco (se guarda en este dispositivo).</p>
 
-        <select className="kiosco-select" value={bodegaId} onChange={(e) => setBodegaId(e.target.value)}>
-          <option value="">-- Selecciona bodega --</option>
-          {bodegas.map((b) => (
-            <option key={b.id} value={b.id}>{b.nombre}</option>
-          ))}
-        </select>
+          <select className="kiosco-select" value={bodegaId} onChange={(e) => setBodegaId(e.target.value)}>
+            <option value="">-- Selecciona bodega --</option>
+            {bodegas.map((b) => (
+              <option key={b.id} value={b.id}>{b.nombre}</option>
+            ))}
+          </select>
 
-        <button className="kiosco-btn-primario" disabled={!bodegaId} onClick={() => guardarBodegaKiosco(bodegaId)}>
-          Guardar y continuar
-        </button>
+          <button className="kiosco-btn-primario" disabled={!bodegaId} onClick={() => guardarBodegaKiosco(bodegaId)}>
+            Guardar y continuar
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="kiosco-wrapper">
-      {badgeConexion}
+      {barraSuperior}
 
       {(fase === 'reconociendo') && (
         <div className="kiosco-reconocimiento">
@@ -416,8 +440,12 @@ const Kiosco = () => {
               </>
             )}
 
+            <button type="button" className="kiosco-btn-guia" onClick={() => setTutorialAbierto(true)}>
+              <FaQuestionCircle /> ¿Primera vez? Mira cómo funciona
+            </button>
+
             <div className="kiosco-enrolar-box">
-              <p>¿Primera vez aquí?</p>
+              <p>¿Aún no registras tu rostro?</p>
               <div className="kiosco-enrolar-input">
                 <FaIdCard />
                 <input
@@ -633,6 +661,8 @@ const Kiosco = () => {
           <p>{mensaje}</p>
         </div>
       )}
+
+      {tutorialAbierto && <TutorialKiosco onCerrar={() => setTutorialAbierto(false)} />}
     </div>
   );
 };

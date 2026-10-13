@@ -28,6 +28,10 @@ const OPCIONES_DETECTOR_FACIAL = new faceapi.TinyFaceDetectorOptions({ inputSize
 // (~0); al girar la cabeza hacia un lado, se desplaza notoriamente.
 const UMBRAL_GIRO_CABEZA = 0.14;
 const TIMEOUT_VERIFICACION_MS = 10000;
+
+// Deja solo dígitos y K para comparar RUTs sin importar cómo se escriban
+// (12.345.678-9, 12345678-9 o 123456789).
+const normalizarRut = (rut) => (rut || '').toLowerCase().replace(/[^0-9k]/g, '');
 // Recién en el 2do fallo consecutivo se manda la alerta: un solo timeout
 // puede ser alguien que no giró a tiempo, no necesariamente un intento real
 // de suplantación.
@@ -327,8 +331,11 @@ export function useReconocimientoFacial({ activo, trabajadores, bodegaId, onReco
 
   const buscarPorRutYEnrolar = () => {
     setError('');
-    const texto = rutManual.toLowerCase().trim();
-    const trabajador = trabajadores.find((t) => t.rut?.toLowerCase().includes(texto));
+    const texto = normalizarRut(rutManual);
+    // Coincidencia exacta: con includes(), escribir solo "1" tomaba al
+    // primer trabajador cuyo RUT contuviera un 1 y le registraba este rostro,
+    // con lo que cualquiera podía quedar enrolado en la cuenta de otro.
+    const trabajador = texto ? trabajadores.find((t) => normalizarRut(t.rut) === texto) : null;
 
     if (!texto) {
       setError('Escribe tu RUT en el campo de arriba.');
