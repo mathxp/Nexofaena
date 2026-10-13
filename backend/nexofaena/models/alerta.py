@@ -14,6 +14,7 @@ class TipoAlerta(models.TextChoices):
     CIERRE_TURNO = "CIERRE_TURNO", "Cierre de Turno"
     SISTEMA = "SISTEMA", "Sistema"
     INTENTO_SUPLANTACION = "INTENTO_SUPLANTACION", "Intento de Suplantación"
+    ENROLAMIENTO_ROSTRO = "ENROLAMIENTO_ROSTRO", "Registro de Rostro"
 
 
 class Alerta(models.Model):

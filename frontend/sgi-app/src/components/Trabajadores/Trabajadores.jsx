@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     FaUser, FaEdit, FaTrashAlt, FaCircle, FaSearch,
-    FaUserPlus, FaUsers, FaUndo, FaChevronLeft, FaChevronRight,
+    FaUserPlus, FaUsers, FaUndo, FaChevronLeft, FaChevronRight, FaUserSlash,
 } from 'react-icons/fa';
 import api from '../../api';
 import './Trabajadores.css';
@@ -16,6 +16,7 @@ const estadoInicial = {
 const Trabajadores = () => {
     const [trabajadores, setTrabajadores] = useState([]);
     const [error, setError] = useState('');
+    const [aviso, setAviso] = useState('');
 
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(false);
@@ -94,6 +95,23 @@ const Trabajadores = () => {
         }
     };
 
+    // Única forma de cambiar un rostro ya registrado: el kiosco no deja
+    // reemplazarlo (cualquiera que sepa un RUT podría apropiarse de la
+    // cuenta). Tras reiniciar, el trabajador vuelve a registrarse en el kiosco.
+    const reiniciarRostro = async (trabajador) => {
+        const nombre = `${trabajador.nombres} ${trabajador.apellido_paterno}`;
+        if (!window.confirm(`¿Reiniciar el rostro de ${nombre}? Tendrá que volver a registrarse en el kiosco con su RUT.`)) return;
+
+        setError('');
+        try {
+            await api.post(`/trabajadores/${trabajador.id}/reiniciar-rostro/`);
+            setAviso(`Rostro de ${nombre} reiniciado. Ya puede volver a registrarse en el kiosco.`);
+            cargarTrabajadores();
+        } catch (err) {
+            setError(err.response?.data?.detail || 'No se pudo reiniciar el rostro.');
+        }
+    };
+
     const limpiarFormulario = () => {
         setMostrarFormulario(false);
         setModoEdicion(false);
@@ -129,6 +147,7 @@ const Trabajadores = () => {
             <h1 className="page-title"><FaUsers /> Gestión de Trabajadores</h1>
 
             {error && <div className="error-msg">{error}</div>}
+            {aviso && <div className="aviso-msg" role="status">{aviso}</div>}
 
             {/* PANEL DE BÚSQUEDA Y ACCIÓN */}
             <div className="action-panel">
@@ -262,12 +281,20 @@ const Trabajadores = () => {
                                                 <><FaCircle className="dot-inactivo" /> Inactivo</>
                                             )}
                                         </div>
+                                        <div className={`rostro-badge ${t.face_descriptor ? 'rostro-ok' : ''}`}>
+                                            {t.face_descriptor ? 'Rostro registrado' : 'Sin rostro'}
+                                        </div>
                                     </td>
                                     <td data-label="Acciones">
                                         <div className="action-buttons">
                                             <button onClick={() => cargarParaEdicion(t)} className="btn-icon btn-edit" title="Editar">
                                                 <FaEdit />
                                             </button>
+                                            {t.face_descriptor && (
+                                                <button onClick={() => reiniciarRostro(t)} className="btn-icon btn-reiniciar-rostro" title="Reiniciar rostro">
+                                                    <FaUserSlash />
+                                                </button>
+                                            )}
                                             {t.activo ? (
                                                 <button onClick={() => desactivarTrabajador(t.id)} className="btn-icon btn-delete" title="Desactivar">
                                                     <FaTrashAlt />

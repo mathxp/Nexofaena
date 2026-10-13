@@ -14,6 +14,7 @@ ICONOS_POR_TIPO = {
     "STOCK_CRITICO": "🔴",
     "ANOMALIA_CONSUMO": "🕵️",
     "INTENTO_SUPLANTACION": "🚫",
+    "ENROLAMIENTO_ROSTRO": "🆔",
 }
 
 # Menú de comandos que Telegram muestra al tocar "/" en el chat con el bot
@@ -57,7 +58,10 @@ class NotificationService:
     # Tipos de Alerta que ameritan interrumpir a un humano fuera del
     # sistema. El resto (vencimiento, mantención, cierre de turno) ya se ve
     # en el Dashboard/Alertas y no necesita empujar una notificación.
-    TIPOS_NOTIFICABLES = {"STOCK_CRITICO", "ANOMALIA_CONSUMO", "INTENTO_SUPLANTACION"}
+    # ENROLAMIENTO_ROSTRO también: pasa una vez por trabajador, y es el
+    # momento en que alguien podría registrar su cara bajo el RUT de otro;
+    # avisar en el acto permite revertirlo antes de que retire nada.
+    TIPOS_NOTIFICABLES = {"STOCK_CRITICO", "ANOMALIA_CONSUMO", "INTENTO_SUPLANTACION", "ENROLAMIENTO_ROSTRO"}
 
     @staticmethod
     def notificar_alerta(alerta):

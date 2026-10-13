@@ -167,6 +167,53 @@ class AlertaService:
         )
 
     @staticmethod
+    def generar_alerta_reenrolamiento_bloqueado(trabajador, bodega=None):
+        """Alguien intentó registrar un rostro nuevo sobre un trabajador que
+        ya tenía uno. El caso legítimo (la cámara ya no lo reconoce) se
+        resuelve reiniciando el rostro desde Personal; desde el kiosco es
+        exactamente cómo se vería un intento de apropiarse de su cuenta."""
+        return Alerta.objects.create(
+            bodega=bodega,
+            tipo_alerta=TipoAlerta.INTENTO_SUPLANTACION,
+            mensaje=(
+                f"Se intentó registrar un rostro nuevo para {trabajador.nombres} "
+                f"{trabajador.apellido_paterno} (RUT {trabajador.rut}), que ya tenía uno. "
+                f"Se bloqueó. Si fue el propio trabajador, reinicia su rostro desde Personal."
+            ),
+            leida=False,
+        )
+
+    @staticmethod
+    def generar_alerta_rostro_duplicado(trabajador, dueno_rostro, bodega=None):
+        """El rostro que se intentó registrar ya pertenece a otra persona:
+        alguien enrolado intentó quedar también en la cuenta de otro."""
+        return Alerta.objects.create(
+            bodega=bodega,
+            tipo_alerta=TipoAlerta.INTENTO_SUPLANTACION,
+            mensaje=(
+                f"Se intentó registrar en la cuenta de {trabajador.nombres} {trabajador.apellido_paterno} "
+                f"(RUT {trabajador.rut}) un rostro que ya pertenece a {dueno_rostro.nombres} "
+                f"{dueno_rostro.apellido_paterno} (RUT {dueno_rostro.rut}). Se bloqueó."
+            ),
+            leida=False,
+        )
+
+    @staticmethod
+    def generar_alerta_enrolamiento(trabajador, bodega=None):
+        """Aviso de cada registro de rostro nuevo desde el kiosco, para que
+        el bodeguero confirme que fue la persona correcta."""
+        return Alerta.objects.create(
+            bodega=bodega,
+            tipo_alerta=TipoAlerta.ENROLAMIENTO_ROSTRO,
+            mensaje=(
+                f"Se registró el rostro de {trabajador.nombres} {trabajador.apellido_paterno} "
+                f"(RUT {trabajador.rut}) en el kiosco. Si no fue esta persona, reinicia su "
+                f"rostro desde Personal."
+            ),
+            leida=False,
+        )
+
+    @staticmethod
     def generar_alerta_mantenimiento(unidad, detalle):
         """
         Módulo de Activos Retornables: si una radio vuelve marcada como

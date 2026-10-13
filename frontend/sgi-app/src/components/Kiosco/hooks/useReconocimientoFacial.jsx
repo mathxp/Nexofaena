@@ -347,6 +347,13 @@ export function useReconocimientoFacial({ activo, trabajadores, bodegaId, onReco
       return;
     }
 
+    // El backend igual lo rechaza (y avisa a supervisión), pero se corta acá
+    // para no hacerle pasar el giro de cabeza a quien ya está registrado.
+    if (trabajador.face_descriptor) {
+      setError('Ese RUT ya tiene un rostro registrado. Si la cámara no te reconoce, pide a un administrador que reinicie tu rostro.');
+      return;
+    }
+
     if (!videoRef.current || videoRef.current.readyState < 2) {
       setError('La cámara no está lista. Espera un segundo e intenta de nuevo.');
       return;
@@ -384,12 +391,21 @@ export function useReconocimientoFacial({ activo, trabajadores, bodegaId, onReco
 
     try {
       const descriptor = Array.from(deteccion.descriptor);
-      await api.post(`/trabajadores/${trabajador.id}/enrolar-rostro/`, { face_descriptor: descriptor });
+      await api.post(`/trabajadores/${trabajador.id}/enrolar-rostro/`, {
+        face_descriptor: descriptor,
+        bodega: bodegaId || null,
+      });
 
       detenerCamara();
       onReconocido({ ...trabajador, face_descriptor: descriptor });
     } catch (err) {
       console.error(err);
+      // 409: rostro ya registrado o que pertenece a otro trabajador; el
+      // backend manda el motivo exacto (y ya generó la alerta).
+      if (err.response?.status === 409) {
+        setError(`⚠️ ${err.response.data?.detail || 'No se puede registrar este rostro.'}`);
+        return;
+      }
       setError('No se pudo registrar tu rostro (requiere conexión la primera vez). Intenta de nuevo cuando haya internet.');
     }
   };

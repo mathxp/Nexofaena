@@ -1,3 +1,6 @@
+import math
+
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -17,6 +20,33 @@ from nexofaena.permissions import IsAdministrador, IsBodeguero
 # de otra librería, no un dato válido para guardar.
 LARGO_DESCRIPTOR_FACIAL = 128
 
+# Mismo umbral que usa el kiosco para reconocer (UMBRAL_DISTANCIA_FACIAL en
+# useReconocimientoFacial.jsx): si el kiosco tomaría este rostro como el de
+# otra persona, tampoco se puede registrar a nombre de alguien más.
+UMBRAL_DISTANCIA_ROSTRO_DUPLICADO = 0.6
+
+
+def _dueno_del_rostro(descriptor, excluir_id):
+    """Devuelve el trabajador activo (distinto de excluir_id) cuyo rostro
+    registrado se parece a este descriptor, o None."""
+    candidatos = (
+        Trabajador.objects
+        .filter(face_descriptor__isnull=False, activo=True)
+        .exclude(id=excluir_id)
+        .only("id", "nombres", "apellido_paterno", "rut", "face_descriptor")
+    )
+
+    mas_cercano, menor_distancia = None, UMBRAL_DISTANCIA_ROSTRO_DUPLICADO
+    for candidato in candidatos:
+        guardado = candidato.face_descriptor
+        if not isinstance(guardado, list) or len(guardado) != LARGO_DESCRIPTOR_FACIAL:
+            continue
+        distancia = math.dist(descriptor, guardado)
+        if distancia < menor_distancia:
+            mas_cercano, menor_distancia = candidato, distancia
+
+    return mas_cercano
+
 
 class TrabajadorViewSet(viewsets.ModelViewSet):
     serializer_class = TrabajadorSerializer
@@ -33,6 +63,8 @@ class TrabajadorViewSet(viewsets.ModelViewSet):
         # de acceso que registrar una entrega, no requiere Administrador).
         if self.action in ("enrolar_rostro", "reportar_suplantacion"):
             return [IsBodeguero()]
+        if self.action == "reiniciar_rostro":
+            return [IsAdministrador()]
         if self.action in ("list", "retrieve"):
             return [IsAuthenticated()]
         return [IsAdministrador()]
@@ -45,27 +77,85 @@ class TrabajadorViewSet(viewsets.ModelViewSet):
         RUT). No crea trabajadores nuevos: solo le agrega el rostro a una
         ficha que ya existe, para no poder inventar una identidad desde el
         kiosco sin pasar antes por el alta real en Personal.
+
+        Como el RUT no es secreto, el kiosco por sí solo no prueba que quien
+        se registra sea el dueño de la ficha. Por eso:
+        - solo se registra si la ficha aún no tiene rostro (cambiarlo es
+          reiniciar_rostro, exclusivo de Administrador);
+        - se rechaza un rostro que ya pertenece a otro trabajador;
+        - cada registro exitoso genera una alerta para que el bodeguero lo
+          confirme.
         """
-        trabajador = self.get_object()
         descriptor = request.data.get("face_descriptor")
 
         if (
             not isinstance(descriptor, list)
             or len(descriptor) != LARGO_DESCRIPTOR_FACIAL
-            or not all(isinstance(v, (int, float)) for v in descriptor)
+            or not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in descriptor)
         ):
             return Response(
                 {"detail": f"face_descriptor debe ser un arreglo de {LARGO_DESCRIPTOR_FACIAL} números."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        trabajador.face_descriptor = descriptor
-        trabajador.face_enrolado_en = timezone.now()
-        trabajador.save(update_fields=["face_descriptor", "face_enrolado_en"])
+        bodega = Bodega.objects.filter(id=request.data.get("bodega")).first()
+
+        with transaction.atomic():
+            # select_for_update: dos kioscos enrolando a la misma persona a la
+            # vez no pueden pasar ambos el chequeo de "aún no tiene rostro".
+            trabajador = Trabajador.objects.select_for_update().filter(pk=self.kwargs["pk"]).first()
+            if trabajador is None:
+                return Response({"detail": "Trabajador no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+            if trabajador.face_descriptor:
+                AlertaService.generar_alerta_reenrolamiento_bloqueado(trabajador, bodega=bodega)
+                return Response(
+                    {
+                        "detail": (
+                            "Este trabajador ya tiene un rostro registrado. Si la cámara no te "
+                            "reconoce, pide a un administrador que reinicie tu rostro."
+                        ),
+                        "codigo": "ROSTRO_YA_REGISTRADO",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            dueno = _dueno_del_rostro(descriptor, excluir_id=trabajador.id)
+            if dueno is not None:
+                AlertaService.generar_alerta_rostro_duplicado(trabajador, dueno, bodega=bodega)
+                return Response(
+                    {
+                        "detail": "Este rostro ya está registrado a nombre de otro trabajador.",
+                        "codigo": "ROSTRO_DE_OTRO_TRABAJADOR",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            trabajador.face_descriptor = descriptor
+            trabajador.face_enrolado_en = timezone.now()
+            trabajador.save(update_fields=["face_descriptor", "face_enrolado_en"])
+
+        AlertaService.generar_alerta_enrolamiento(trabajador, bodega=bodega)
 
         return Response({
             "success": True,
             "message": f"Rostro de {trabajador.nombres} {trabajador.apellido_paterno} enrolado correctamente.",
+        })
+
+    @action(detail=True, methods=["post"], url_path="reiniciar-rostro")
+    def reiniciar_rostro(self, request, pk=None):
+        """Borra el rostro registrado para que el trabajador vuelva a
+        enrolarse en el kiosco (cambio de aspecto, o un registro hecho por
+        otra persona). Solo Administrador: es la única forma de reemplazar un
+        rostro, así que no puede estar al alcance del propio kiosco."""
+        trabajador = self.get_object()
+        trabajador.face_descriptor = None
+        trabajador.face_enrolado_en = None
+        trabajador.save(update_fields=["face_descriptor", "face_enrolado_en"])
+
+        return Response({
+            "success": True,
+            "message": f"Rostro de {trabajador.nombres} {trabajador.apellido_paterno} reiniciado. Puede volver a registrarse en el kiosco.",
         })
 
     @action(detail=True, methods=["post"], url_path="reportar-suplantacion")
