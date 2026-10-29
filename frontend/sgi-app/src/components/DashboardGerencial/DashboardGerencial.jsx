@@ -8,6 +8,9 @@ import {
   FaSearch,
   FaCoins,
   FaBoxes,
+  FaSyncAlt,
+  FaInfoCircle,
+  FaCheckCircle,
 } from 'react-icons/fa';
 
 import {
@@ -57,14 +60,33 @@ const formatearFecha = (iso) => {
 // Urgencia en palabras en vez de un porcentaje: quien lee el panel no
 // necesita interpretar "73% de probabilidad de quiebre" para saber qué hacer.
 const textoUrgencia = (probabilidad) => {
-  if (probabilidad >= UMBRAL_RIESGO_ALTO) return { texto: 'Urgente', clase: 'riesgo-alto' };
-  if (probabilidad >= UMBRAL_RIESGO_MEDIO) return { texto: 'Pronto', clase: 'riesgo-medio' };
-  return { texto: 'Planificar', clase: 'riesgo-bajo' };
+  if (probabilidad >= UMBRAL_RIESGO_ALTO) return { texto: 'Urgente', clase: 'pg-pill-rojo' };
+  if (probabilidad >= UMBRAL_RIESGO_MEDIO) return { texto: 'Pronto', clase: 'pg-pill-ambar' };
+  return { texto: 'Planificar', clase: 'pg-pill-azul' };
 };
+
+const iniciales = (nombre) =>
+  String(nombre || '')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0].toUpperCase())
+    .join('');
+
+const NotaCalculo = ({ children }) => (
+  <p className="pg-nota"><FaInfoCircle /> {children}</p>
+);
+
+const Vacio = ({ children }) => (
+  <div className="pg-vacio"><FaCheckCircle /> {children}</div>
+);
+
+const pluralizar = (cantidad, singular, plural) => `${cantidad} ${cantidad === 1 ? singular : plural}`;
 
 const DashboardGerencial = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actualizadoEn, setActualizadoEn] = useState(null);
 
   const [prediccionSemanal, setPrediccionSemanal] = useState({
     historico: { labels: [], data: [] },
@@ -134,6 +156,7 @@ const DashboardGerencial = () => {
         setAbcMotivo('No se pudo cargar la clasificación ABC de inventario.');
       }
     } finally {
+      setActualizadoEn(new Date());
       setLoading(false);
     }
   };
@@ -280,27 +303,40 @@ const DashboardGerencial = () => {
   ChartJS.defaults.color = '#9aabc4';
   ChartJS.defaults.font.family = "'Inter', sans-serif";
 
+  const historico = prediccionSemanal.historico.data;
+  const ultimoReal = historico.length ? historico[historico.length - 1] : null;
+
   const chartDataHistorico = {
-    labels: [...prediccionSemanal.historico.labels, 'Próxima semana'],
+    labels: [...prediccionSemanal.historico.labels, 'Próx.'],
     datasets: [
       {
-        label: 'Unidades entregadas',
-        data: [...prediccionSemanal.historico.data, null],
+        label: 'Entregadas',
+        data: [...historico, null],
         borderColor: '#3d8ff0',
-        backgroundColor: 'rgba(61, 143, 240, 0.15)',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 5,
         fill: true,
         tension: 0.35,
+        backgroundColor: (contexto) => {
+          const { ctx, chartArea } = contexto.chart;
+          if (!chartArea) return 'rgba(61, 143, 240, 0.15)';
+          const degradado = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          degradado.addColorStop(0, 'rgba(61, 143, 240, 0.32)');
+          degradado.addColorStop(1, 'rgba(61, 143, 240, 0)');
+          return degradado;
+        },
       },
       {
-        label: 'Estimado próxima semana',
-        data: [
-          ...prediccionSemanal.historico.data.map(() => null),
-          prediccionSemanal.proyeccion_proxima_semana,
-        ],
+        // Tramo punteado desde la última semana real hasta lo estimado.
+        label: 'Estimado',
+        data: [...historico.map((_, i) => (i === historico.length - 1 ? ultimoReal : null)), prediccionSemanal.proyeccion_proxima_semana],
         borderColor: '#22d3ee',
-        backgroundColor: '#22d3ee',
-        pointRadius: 7,
-        showLine: false,
+        borderWidth: 2,
+        borderDash: [6, 6],
+        pointRadius: (contexto) => (contexto.dataIndex === historico.length ? 5 : 0),
+        pointBackgroundColor: '#22d3ee',
+        fill: false,
       },
     ],
   };
@@ -308,10 +344,27 @@ const DashboardGerencial = () => {
   const chartOptionsConsumo = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f2647',
+        borderColor: 'rgba(91, 178, 255, 0.25)',
+        borderWidth: 1,
+        padding: 10,
+        displayColors: false,
+        filter: (item) => item.raw !== null && !(item.datasetIndex === 1 && item.dataIndex < historico.length),
+        callbacks: { label: (item) => `${item.dataset.label}: ${item.formattedValue} unidades` },
+      },
+    },
     scales: {
-      y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } },
-      x: { grid: { display: false } },
+      y: {
+        beginAtZero: true,
+        border: { display: false },
+        grid: { color: 'rgba(255, 255, 255, 0.06)' },
+        ticks: { maxTicksLimit: 5 },
+      },
+      x: { grid: { display: false }, border: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
     },
   };
 
@@ -321,303 +374,320 @@ const DashboardGerencial = () => {
     .sort((a, b) => b.proyeccion_mes - a.proyeccion_mes)
     .slice(0, 3);
 
-  // Cuatro cifras que responden "¿cómo estamos?" de un vistazo. El tono
-  // (rojo/ámbar/verde) se decide acá para que el color diga si hay que
-  // actuar, sin que la persona tenga que interpretar el número.
+  const valorTotalAbc = ['A', 'B', 'C'].reduce((total, clase) => total + Number(resumenAbc[clase]?.valor_stock_clp || 0), 0);
+
+  // Cuatro cifras que responden "¿cómo estamos?" de un vistazo. El estado
+  // (requiere acción / revisar / en orden) se decide acá para que la persona
+  // no tenga que interpretar el número.
   const indicadores = [
     {
       titulo: 'Productos por agotarse',
       valor: productosPorAgotarse,
       ayuda: 'con alto riesgo de quedarse sin stock',
-      tono: productosPorAgotarse > 0 ? 'malo' : 'bueno',
+      estado: productosPorAgotarse > 0 ? 'rojo' : 'verde',
       Icono: FaExclamationTriangle,
     },
     {
       titulo: 'Gasto estimado del mes',
       valor: formatearCLP(presupuestoProyectado.mensual_clp),
       ayuda: 'para reponer lo que se va a consumir',
-      tono: 'neutro',
+      estado: 'azul',
       Icono: FaCoins,
     },
     {
       titulo: 'Consumos fuera de lo normal',
       valor: anomalias.length,
       ayuda: anomalias.length === 1 ? 'trabajador a revisar este mes' : 'trabajadores a revisar este mes',
-      tono: anomalias.length > 0 ? 'alerta' : 'bueno',
+      estado: anomalias.length > 0 ? 'ambar' : 'verde',
       Icono: FaUserSecret,
     },
     {
       titulo: 'Dinero detenido en bodega',
       valor: formatearCLP(capitalInmovilizado.total_clp),
       ayuda: 'en productos con stock para más de 6 meses',
-      tono: capitalInmovilizado.total_clp > 0 ? 'alerta' : 'bueno',
+      estado: capitalInmovilizado.total_clp > 0 ? 'ambar' : 'verde',
       Icono: FaBoxes,
     },
   ];
 
+  const ETIQUETA_ESTADO = { rojo: 'Requiere acción', ambar: 'Revisar', verde: 'En orden', azul: 'Proyección' };
+
   return (
-    <div className="gerencial-wrapper">
-      <div className="gerencial-header">
-        <div className="title-container">
-          <h1><FaChartLine /> Panel Gerencial</h1>
-          <p>Lo más importante de la bodega, explicado en simple. Se actualiza con cada entrega.</p>
+    <div className="pg">
+      <header className="pg-encabezado">
+        <div>
+          <h1 className="pg-titulo">Panel Gerencial</h1>
+          <p className="pg-subtitulo">
+            Lo más importante de la bodega, explicado en simple.
+            {actualizadoEn && (
+              <span className="pg-actualizado">
+                {' '}Actualizado a las {actualizadoEn.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}.
+              </span>
+            )}
+          </p>
         </div>
 
-        <div className="header-actions">
-          <button className="btn-export-dashboard" onClick={exportarDashboardExcel} disabled={loading}>
+        <div className="pg-acciones">
+          <button type="button" className="pg-boton" onClick={cargarDashboard} disabled={loading}>
+            <FaSyncAlt className={loading ? 'pg-girando' : ''} /> Actualizar
+          </button>
+          <button type="button" className="pg-boton pg-boton-primario" onClick={exportarDashboardExcel} disabled={loading}>
             <FaFileExcel /> Exportar Excel
           </button>
         </div>
-      </div>
+      </header>
 
-      {error && (
-        <div className="prediction-box">
-          <FaExclamationTriangle /> {error}
-        </div>
-      )}
+      {error && <div className="pg-aviso pg-aviso-error"><FaExclamationTriangle /> {error}</div>}
 
       {/* ============ RESUMEN ============ */}
-      <div className="gerencial-indicadores">
-        {indicadores.map(({ titulo, valor, ayuda, tono, Icono }) => (
-          <div key={titulo} className={`indicador indicador-${tono}`}>
-            <div className="indicador-cabecera">
-              <Icono className="indicador-icono" />
-              <span>{titulo}</span>
+      <div className="pg-indicadores">
+        {indicadores.map(({ titulo, valor, ayuda, estado, Icono }) => (
+          <div key={titulo} className="pg-indicador">
+            <div className="pg-indicador-cabecera">
+              <span className={`pg-icono pg-icono-${estado}`}><Icono /></span>
+              <span className={`pg-pill pg-pill-${estado}`}>{ETIQUETA_ESTADO[estado]}</span>
             </div>
-            <div className="indicador-valor">{loading ? '…' : valor}</div>
-            <div className="indicador-ayuda">{ayuda}</div>
+            <div className="pg-indicador-titulo">{titulo}</div>
+            <div className="pg-indicador-valor">{loading ? <span className="pg-esqueleto" /> : valor}</div>
+            <div className="pg-indicador-ayuda">{ayuda}</div>
           </div>
         ))}
       </div>
 
       {/* ============ BUSCADOR ============ */}
-      <div className="busqueda-card">
-        <form className="busqueda-form" onSubmit={ejecutarBusqueda}>
-          <FaSearch className="busqueda-icon" />
+      <form className="pg-buscador" onSubmit={ejecutarBusqueda}>
+        <FaSearch className="pg-buscador-icono" />
+        <input
+          type="text"
+          className="pg-buscador-input"
+          placeholder="Busca un producto: cascos, guantes, lentes..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+        <button type="submit" className="pg-boton pg-boton-primario" disabled={busquedaLoading || !busqueda.trim()}>
+          {busquedaLoading ? 'Buscando…' : 'Buscar'}
+        </button>
+      </form>
 
-          <input
-            type="text"
-            className="busqueda-input"
-            placeholder="Busca un producto: cascos, guantes, lentes..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
+      {busquedaError && <div className="pg-aviso pg-aviso-error"><FaExclamationTriangle /> {busquedaError}</div>}
 
-          <button type="submit" className="busqueda-submit" disabled={busquedaLoading || !busqueda.trim()}>
-            {busquedaLoading ? 'Buscando...' : 'Buscar'}
-          </button>
-        </form>
-
-        {busquedaError && (
-          <div className="fallback-msg fallback-msg-error">
-            <FaExclamationTriangle /> {busquedaError}
-          </div>
-        )}
-
-        {busquedaResultado && !busquedaError && (
-          <div className="busqueda-resultado">
-            {!busquedaResultado.confiable || (busquedaResultado.resultados || []).length === 0 ? (
-              <div className="fallback-msg">
-                <FaExclamationTriangle /> {busquedaResultado.motivo || 'Sin resultados para esa búsqueda.'}
-              </div>
-            ) : (
-              busquedaResultado.resultados.map((r) => (
-                <div key={r.inventario_id} className="busqueda-resultado-item">
-                  <div className="busqueda-resultado-nombre">{r.producto_nombre}</div>
-                  <p className="busqueda-resultado-texto">
-                    {r.bodega_nombre}: quedan <strong>{r.stock_actual}</strong> unidades
-                    {r.necesita_reposicion ? ' (bajo el mínimo)' : ''}. Se entregan unas{' '}
-                    <strong>{r.consumo_mensual_estimado}</strong> al mes.
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ============ ¿QUÉ HAY QUE COMPRAR? ============ */}
-      <section className="seccion-gerencial">
-        <div className="seccion-cabecera">
-          <h2><FaShoppingCart /> ¿Qué hay que comprar?</h2>
-          <p>Productos que conviene pedir ahora para no quedarse sin stock en faena.</p>
-        </div>
-
-        <div className="ml-table-wrapper">
-          <table className="ml-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Bodega</th>
-                <th>Pedir antes del</th>
-                <th>Cantidad</th>
-                <th>Urgencia</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recomendaciones.length === 0 ? (
-                <tr><td colSpan="5" className="ml-empty">Todo en orden: no hay que comprar nada por ahora.</td></tr>
-              ) : (
-                recomendaciones.slice(0, 8).map((r) => {
-                  const urgencia = textoUrgencia(r.probabilidad_quiebre);
-                  return (
-                    <tr key={r.inventario_id}>
-                      <td className="fw-bold" data-label="Producto">{r.producto_nombre}</td>
-                      <td data-label="Bodega">{r.bodega_nombre}</td>
-                      <td data-label="Pedir antes del">{formatearFecha(r.fecha_sugerida_pedido)}</td>
-                      <td data-label="Cantidad">{r.cantidad_sugerida} un.</td>
-                      <td data-label="Urgencia"><span className={`badge-riesgo ${urgencia.clase}`}>{urgencia.texto}</span></td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <p className="nota-calculo">
-          Cómo se calcula: Regresión Logística con el stock, el consumo diario y el tiempo de entrega del proveedor.
-        </p>
-      </section>
-
-      {/* ============ ¿CUÁNTO SE VA A CONSUMIR? ============ */}
-      <section className="seccion-gerencial">
-        <div className="seccion-cabecera">
-          <h2><FaChartLine /> ¿Cuánto se va a consumir?</h2>
-          <p>
-            La próxima semana se espera entregar unas <strong>{prediccionSemanal.proyeccion_proxima_semana}</strong> unidades
-            de EPP{!prediccionSemanal.confiable && ' (estimación preliminar: todavía hay poco historial)'}.
-          </p>
-        </div>
-
-        <div className="chart-card">
-          <div className="chart-header">
-            <div className="chart-title">Unidades entregadas por semana</div>
-            <div className="chart-subtitle">El punto celeste es lo estimado</div>
-          </div>
-          <div className="chart-container">
-            <Line data={chartDataHistorico} options={chartOptionsConsumo} />
-          </div>
-        </div>
-
-        {masConsumidos.length > 0 && (
-          <p className="seccion-dato">
-            Lo que más se consume:{' '}
-            {masConsumidos.map((p, i) => (
-              <span key={p.inventario_id}>
-                {i > 0 && ' · '}
-                <strong>{p.producto_nombre}</strong> ({p.proyeccion_mes} al mes)
-              </span>
-            ))}
-            .
-          </p>
-        )}
-
-        <p className="nota-calculo">
-          Cómo se calcula: Regresión Lineal y Random Forest sobre las entregas de las últimas semanas.
-        </p>
-      </section>
-
-      {/* ============ ¿HAY CONSUMOS FUERA DE LO NORMAL? ============ */}
-      <section className="seccion-gerencial">
-        <div className="seccion-cabecera">
-          <h2><FaUserSecret /> ¿Hay consumos fuera de lo normal?</h2>
-          <p>
-            Trabajadores que este mes retiraron bastante más que otros con su mismo cargo. Es una señal
-            para revisar, no una acusación.
-          </p>
-        </div>
-
-        <div className="ml-list">
-          {anomalias.length === 0 ? (
-            <div className="ml-empty">Todo en orden: nadie se sale del consumo habitual este mes.</div>
+      {busquedaResultado && !busquedaError && (
+        <div className="pg-resultados">
+          {!busquedaResultado.confiable || (busquedaResultado.resultados || []).length === 0 ? (
+            <div className="pg-aviso"><FaInfoCircle /> {busquedaResultado.motivo || 'Sin resultados para esa búsqueda.'}</div>
           ) : (
-            anomalias.map((a) => (
-              <div key={`${a.trabajador_id}-${a.inventario_id}`} className="ml-item ml-item-danger">
-                <FaUserSecret className="ml-item-icon" />
-                <div className="ml-item-grow">
-                  <div className="ml-item-title">{a.trabajador_nombre}</div>
-                  <div className="ml-item-subtitle">{a.mensaje}</div>
+            busquedaResultado.resultados.map((r) => (
+              <div key={r.inventario_id} className="pg-resultado">
+                <div className="pg-resultado-nombre">
+                  {r.producto_nombre}
+                  {r.necesita_reposicion && <span className="pg-pill pg-pill-ambar">Bajo el mínimo</span>}
                 </div>
-                <div className="ml-item-badge">
-                  {a.impacto_financiero_clp > 0 ? formatearCLP(a.impacto_financiero_clp) : `${Math.round(a.cantidad_mes)} un.`}
+                <div className="pg-resultado-datos">
+                  <span><strong className="pg-num">{r.stock_actual}</strong> en stock</span>
+                  <span><strong className="pg-num">{r.consumo_mensual_estimado}</strong> al mes</span>
+                  <span>{r.bodega_nombre}</span>
                 </div>
               </div>
             ))
           )}
         </div>
+      )}
 
-        <p className="nota-calculo">
-          Cómo se calcula: K-Means agrupa a los trabajadores por su patrón de consumo.
-        </p>
-      </section>
-
-      {/* ============ ¿DÓNDE ESTÁ EL DINERO? ============ */}
-      <section className="seccion-gerencial">
-        <div className="seccion-cabecera">
-          <h2><FaCoins /> ¿Dónde está el dinero?</h2>
-          <p>Los productos que concentran más valor y los que tienen más stock del necesario.</p>
+      {/* ============ ¿QUÉ HAY QUE COMPRAR? ============ */}
+      <section className="pg-seccion">
+        <div className="pg-seccion-cabecera">
+          <div>
+            <h2><FaShoppingCart /> ¿Qué hay que comprar?</h2>
+            <p>Productos que conviene pedir ahora para no quedarse sin stock en faena.</p>
+          </div>
+          {recomendaciones.length > 0 && (
+            <span className="pg-contador">{pluralizar(recomendaciones.length, 'producto', 'productos')}</span>
+          )}
         </div>
 
-        {!abcConfiable && abcMotivo && (
-          <div className="fallback-msg">
-            <FaExclamationTriangle /> {abcMotivo}
-          </div>
-        )}
-
-        <div className="valor-clases">
-          {[
-            { clase: 'A', nombre: 'Alto valor', detalle: 'control estricto' },
-            { clase: 'B', nombre: 'Valor medio', detalle: 'control normal' },
-            { clase: 'C', nombre: 'Consumo masivo', detalle: 'despacho ágil' },
-          ].map(({ clase, nombre, detalle }) => (
-            <div key={clase} className={`valor-clase valor-clase-${clase.toLowerCase()}`}>
-              <div className="valor-clase-nombre">{nombre}</div>
-              <div className="valor-clase-monto">{formatearCLP(resumenAbc[clase]?.valor_stock_clp)}</div>
-              <div className="valor-clase-detalle">
-                {resumenAbc[clase]?.cantidad || 0} producto(s) · {detalle}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="chart-card">
-          <div className="chart-header">
-            <div className="chart-title"><FaBoxes /> Exceso de stock</div>
-            <div className="chart-subtitle">Se podría mover a otra faena o pausar su compra</div>
-          </div>
-
-          <div className="ml-table-wrapper">
-            <table className="ml-table">
+        {recomendaciones.length === 0 ? (
+          <Vacio>Todo en orden: no hay que comprar nada por ahora.</Vacio>
+        ) : (
+          <div className="pg-tabla-contenedor">
+            <table className="pg-tabla">
               <thead>
                 <tr>
                   <th>Producto</th>
-                  <th>Alcanza para</th>
-                  <th>Dinero detenido</th>
+                  <th>Bodega</th>
+                  <th>Pedir antes del</th>
+                  <th className="pg-der">Cantidad</th>
+                  <th className="pg-der">Urgencia</th>
                 </tr>
               </thead>
               <tbody>
-                {capitalInmovilizado.items.length === 0 ? (
-                  <tr><td colSpan="3" className="ml-empty">Sin exceso de stock.</td></tr>
-                ) : (
-                  capitalInmovilizado.items.slice(0, 6).map((c) => (
-                    <tr key={c.inventario_id}>
-                      <td className="fw-bold" data-label="Producto">{c.producto_nombre}</td>
-                      <td data-label="Alcanza para">
-                        {c.dias_cobertura_estimados ? `${Math.round(c.dias_cobertura_estimados / 30)} meses` : 'Sin consumo reciente'}
+                {recomendaciones.slice(0, 8).map((r) => {
+                  const urgencia = textoUrgencia(r.probabilidad_quiebre);
+                  return (
+                    <tr key={r.inventario_id}>
+                      <td className="pg-fuerte" data-label="Producto">{r.producto_nombre}</td>
+                      <td className="pg-suave" data-label="Bodega">{r.bodega_nombre}</td>
+                      <td className="pg-num" data-label="Pedir antes del">{formatearFecha(r.fecha_sugerida_pedido)}</td>
+                      <td className="pg-num pg-der" data-label="Cantidad">{r.cantidad_sugerida} un.</td>
+                      <td className="pg-der" data-label="Urgencia">
+                        <span className={`pg-pill ${urgencia.clase}`}><span className="pg-punto" />{urgencia.texto}</span>
                       </td>
-                      <td data-label="Dinero detenido">{formatearCLP(c.capital_inmovilizado_clp)}</td>
                     </tr>
-                  ))
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+        )}
+
+        <NotaCalculo>Regresión Logística con los días de stock disponibles y el tiempo de entrega del proveedor.</NotaCalculo>
+      </section>
+
+      <div className="pg-dos-columnas">
+        {/* ============ ¿CUÁNTO SE VA A CONSUMIR? ============ */}
+        <section className="pg-seccion">
+          <div className="pg-seccion-cabecera">
+            <div>
+              <h2><FaChartLine /> ¿Cuánto se va a consumir?</h2>
+              <p>
+                La próxima semana se esperan unas{' '}
+                <strong className="pg-num">{prediccionSemanal.proyeccion_proxima_semana}</strong> unidades
+                {!prediccionSemanal.confiable && ' (estimación preliminar)'}.
+              </p>
+            </div>
+          </div>
+
+          <div className="pg-grafico">
+            {historico.length === 0 ? (
+              <Vacio>Todavía no hay entregas suficientes para graficar.</Vacio>
+            ) : (
+              <Line data={chartDataHistorico} options={chartOptionsConsumo} />
+            )}
+          </div>
+
+          {masConsumidos.length > 0 && (
+            <ul className="pg-ranking">
+              {masConsumidos.map((p, i) => (
+                <li key={p.inventario_id}>
+                  <span className="pg-ranking-pos">{i + 1}</span>
+                  <span className="pg-ranking-nombre">{p.producto_nombre}</span>
+                  <span className="pg-num pg-suave">{p.proyeccion_mes} / mes</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <NotaCalculo>Regresión Lineal y Random Forest sobre las últimas 12 semanas.</NotaCalculo>
+        </section>
+
+        {/* ============ ¿HAY CONSUMOS FUERA DE LO NORMAL? ============ */}
+        <section className="pg-seccion">
+          <div className="pg-seccion-cabecera">
+            <div>
+              <h2><FaUserSecret /> ¿Hay consumos fuera de lo normal?</h2>
+              <p>Quienes retiraron bastante más que otros de su mismo cargo. Es una señal para revisar, no una acusación.</p>
+            </div>
+            {anomalias.length > 0 && (
+              <span className="pg-contador pg-contador-ambar">{pluralizar(anomalias.length, 'trabajador', 'trabajadores')}</span>
+            )}
+          </div>
+
+          {anomalias.length === 0 ? (
+            <Vacio>Todo en orden: nadie se sale del consumo habitual este mes.</Vacio>
+          ) : (
+            <ul className="pg-personas">
+              {anomalias.map((a) => (
+                <li key={`${a.trabajador_id}-${a.inventario_id}`} className="pg-persona">
+                  <span className="pg-avatar">{iniciales(a.trabajador_nombre)}</span>
+                  <div className="pg-persona-cuerpo">
+                    <div className="pg-persona-nombre">
+                      {a.trabajador_nombre}
+                      {a.cargo && <span className="pg-suave"> · {a.cargo}</span>}
+                    </div>
+                    <div className="pg-persona-detalle">
+                      <strong className="pg-num">{Math.round(a.cantidad_mes)}</strong> unidades este mes,
+                      sobre todo <strong>{a.producto_nombre}</strong>.
+                    </div>
+                  </div>
+                  {a.impacto_financiero_clp > 0 && (
+                    <span className="pg-monto" title="Costo del consumo por sobre lo esperado">
+                      {formatearCLP(a.impacto_financiero_clp)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <NotaCalculo>K-Means agrupa a los trabajadores de cada cargo por su patrón de consumo.</NotaCalculo>
+        </section>
+      </div>
+
+      {/* ============ ¿DÓNDE ESTÁ EL DINERO? ============ */}
+      <section className="pg-seccion">
+        <div className="pg-seccion-cabecera">
+          <div>
+            <h2><FaCoins /> ¿Dónde está el dinero?</h2>
+            <p>Cuánto vale lo que hay en bodega y qué productos tienen más stock del necesario.</p>
+          </div>
+          {valorTotalAbc > 0 && <span className="pg-contador">{formatearCLP(valorTotalAbc)} en total</span>}
         </div>
 
-        <p className="nota-calculo">
-          Cómo se calcula: K-Means clasifica el catálogo por precio y rotación (clasificación ABC).
-        </p>
+        {!abcConfiable && abcMotivo && <div className="pg-aviso"><FaInfoCircle /> {abcMotivo}</div>}
+
+        <div className="pg-niveles">
+          {[
+            { clase: 'A', nombre: 'Alto valor', detalle: 'control estricto', color: 'rojo' },
+            { clase: 'B', nombre: 'Valor medio', detalle: 'control normal', color: 'ambar' },
+            { clase: 'C', nombre: 'Consumo masivo', detalle: 'despacho ágil', color: 'verde' },
+          ].map(({ clase, nombre, detalle, color }) => {
+            const valor = Number(resumenAbc[clase]?.valor_stock_clp || 0);
+            const porcentaje = valorTotalAbc > 0 ? Math.round((valor / valorTotalAbc) * 100) : 0;
+            return (
+              <div key={clase} className="pg-nivel">
+                <div className="pg-nivel-cabecera">
+                  <span className="pg-nivel-nombre">{nombre}</span>
+                  <span className="pg-num pg-suave">{porcentaje}%</span>
+                </div>
+                <div className="pg-nivel-valor pg-num">{formatearCLP(valor)}</div>
+                <div className="pg-barra"><span className={`pg-barra-relleno pg-fondo-${color}`} style={{ width: `${porcentaje}%` }} /></div>
+                <div className="pg-nivel-detalle">{pluralizar(resumenAbc[clase]?.cantidad || 0, 'producto', 'productos')} · {detalle}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <h3 className="pg-subtitulo-seccion"><FaBoxes /> Exceso de stock <span className="pg-suave">· se podría mover a otra faena o pausar su compra</span></h3>
+
+        {capitalInmovilizado.items.length === 0 ? (
+          <Vacio>Sin exceso de stock.</Vacio>
+        ) : (
+          <div className="pg-tabla-contenedor">
+            <table className="pg-tabla">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Bodega</th>
+                  <th className="pg-der">Alcanza para</th>
+                  <th className="pg-der">Dinero detenido</th>
+                </tr>
+              </thead>
+              <tbody>
+                {capitalInmovilizado.items.slice(0, 6).map((c) => (
+                  <tr key={c.inventario_id}>
+                    <td className="pg-fuerte" data-label="Producto">{c.producto_nombre}</td>
+                    <td className="pg-suave" data-label="Bodega">{c.bodega_nombre}</td>
+                    <td className="pg-num pg-der" data-label="Alcanza para">
+                      {c.dias_cobertura_estimados ? `${Math.round(c.dias_cobertura_estimados / 30)} meses` : 'Sin consumo reciente'}
+                    </td>
+                    <td className="pg-num pg-der pg-fuerte" data-label="Dinero detenido">{formatearCLP(c.capital_inmovilizado_clp)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <NotaCalculo>K-Means clasifica el catálogo por precio y rotación (clasificación ABC).</NotaCalculo>
       </section>
     </div>
   );

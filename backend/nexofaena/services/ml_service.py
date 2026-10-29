@@ -48,6 +48,7 @@ DIAS_VENTANA_CONSUMO = 30
 MIN_FILAS_REGRESION_LOGISTICA = 40
 DIAS_VENTANA_ENTRENAMIENTO = 180
 MAX_FILAS_ENTRENAMIENTO = 5000
+DIAS_COBERTURA_MAXIMA = 365
 
 UMBRAL_DIAS_SOBRESTOCK = 180  # ~6 meses de cobertura
 UMBRAL_PROBABILIDAD_SOBRESTOCK = 5  # % de riesgo de quiebre considerado prácticamente nulo
@@ -234,12 +235,31 @@ class MLService:
         }
 
     @staticmethod
+    def _features_quiebre(stock_actual, consumo_diario, tiempo_reposicion):
+        """
+        [días de cobertura, días de reposición del proveedor]. Se usan días y
+        no unidades: "14 unidades" es poquísimo para guantes y muchísimo para
+        arneses, así que con el stock en unidades el modelo no podía aprender
+        un patrón común a todo el catálogo (no marcaba ni un casco con menos
+        de 2 días de stock y 10 de reposición). La cobertura se acota a
+        DIAS_COBERTURA_MAXIMA para que un producto sin consumo no deforme la escala.
+        """
+        if consumo_diario > 0:
+            cobertura = min(stock_actual / consumo_diario, DIAS_COBERTURA_MAXIMA)
+        else:
+            cobertura = DIAS_COBERTURA_MAXIMA
+        # Escala logarítmica: pasar de 2 a 10 días de stock importa mucho
+        # más que pasar de 200 a 365, y sin esto los productos de cobertura
+        # muy alta aplastan la escala del resto.
+        return [math.log1p(cobertura), math.log1p(float(tiempo_reposicion))]
+
+    @staticmethod
     def _entrenar_regresion_logistica(consumo_diario):
         """
         Entrena una Regresión Logística real sobre los movimientos históricos:
         para cada movimiento registrado, ¿el stock resultante quedó en o bajo
         el mínimo del producto? El modelo aprende a asociar
-        [stock_actual, consumo_diario, tiempo_reposición] con ese riesgo.
+        [días de cobertura, días de reposición] con ese riesgo (ver _features_quiebre).
 
         El consumo diario histórico se aproxima con el promedio actual del
         producto (no se reconstruye la velocidad de consumo exacta de cada
@@ -262,11 +282,9 @@ class MLService:
         for mov in movimientos:
             diario = consumo_diario.get(mov["inventario_id"], 0)
 
-            X.append([
-                float(mov["stock_actual"]),
-                diario,
-                mov["inventario__tiempo_reposicion_dias"] or 7,
-            ])
+            X.append(MLService._features_quiebre(
+                float(mov["stock_actual"]), diario, mov["inventario__tiempo_reposicion_dias"] or 7,
+            ))
             y.append(1 if float(mov["stock_actual"]) <= float(mov["inventario__stock_minimo"]) else 0)
 
         if len(y) < MIN_FILAS_REGRESION_LOGISTICA or len(set(y)) < 2:
@@ -275,7 +293,12 @@ class MLService:
         scaler = StandardScaler()
         X_escalado = scaler.fit_transform(np.array(X))
 
-        modelo = LogisticRegression(max_iter=1000)
+        # class_weight="balanced": en un historial sano el stock casi nunca
+        # está bajo el mínimo, y sin balancear el modelo solo aprende "casi
+        # nunca pasa" (daba 2% de riesgo a un producto con 2 días de stock y
+        # 10 de reposición). Balanceado, la probabilidad mide el riesgo
+        # relativo de la situación y no la rareza del evento.
+        modelo = LogisticRegression(max_iter=1000, class_weight="balanced")
         modelo.fit(X_escalado, y)
 
         return modelo, scaler
@@ -334,7 +357,7 @@ class MLService:
             tiempo_reposicion = producto.tiempo_reposicion_dias or 7
 
             if modelo is not None:
-                entrada = scaler.transform([[stock_actual, diario, tiempo_reposicion]])
+                entrada = scaler.transform([MLService._features_quiebre(stock_actual, diario, tiempo_reposicion)])
                 probabilidad = float(modelo.predict_proba(entrada)[0][1]) * 100
                 algoritmo = "Regresión Logística"
             else:
