@@ -1,5 +1,5 @@
 /* =========================================
-   NEXOFAENA SGI - MODELO PREDICTIVO DE IA
+   NEXOFAENA SGI - PANEL GERENCIAL
    ========================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
@@ -105,136 +105,7 @@
 .btn-export-dashboard:hover { transform: translateY(-2px); }
 .btn-export-dashboard:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* --- MÓDULO DE IA (bloque por algoritmo) --- */
-.modulo-ia {
-    background: linear-gradient(160deg, var(--bg-soft) 0%, var(--input) 100%);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    padding: 25px;
-    margin-bottom: 25px;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-    animation: nx-fade-up 0.5s var(--ease, ease) both;
-}
-
-.modulo-ia:nth-of-type(2) { animation-delay: 60ms; }
-.modulo-ia:nth-of-type(3) { animation-delay: 120ms; }
-.modulo-ia:nth-of-type(4) { animation-delay: 180ms; }
-.modulo-ia:nth-of-type(5) { animation-delay: 240ms; }
-.modulo-ia:nth-of-type(6) { animation-delay: 300ms; }
-.modulo-ia:nth-of-type(7) { animation-delay: 360ms; }
-
-.modulo-ia:hover {
-    border-color: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
-}
-
-.modulo-header {
-    display: flex;
-    gap: 18px;
-    margin-bottom: 16px;
-}
-
-.modulo-icon {
-    width: 52px;
-    height: 52px;
-    min-width: 52px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    color: white;
-    transition: transform 0.3s var(--ease-spring, ease), box-shadow 0.3s ease;
-}
-
-.modulo-ia:hover .modulo-icon {
-    transform: scale(1.08) rotate(-3deg);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-}
-
-.modulo-icon-blue { background: linear-gradient(135deg, #3d8ff0, #60a5fa); }
-.modulo-icon-red { background: linear-gradient(135deg, #dc2626, #ef4444); }
-.modulo-icon-brand { background: linear-gradient(135deg, var(--brand), var(--brand-light)); }
-.modulo-icon-purple { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
-.modulo-icon-cyan { background: linear-gradient(135deg, #0891b2, #22d3ee); }
-
-.modulo-badge {
-    display: inline-block;
-    background: rgba(255,255,255,0.08);
-    color: #cbd5e1;
-    font-size: 0.7rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    margin-bottom: 6px;
-}
-
-.modulo-title {
-    color: white;
-    font-size: 1.25rem;
-    font-weight: 900;
-    margin: 0 0 6px 0;
-}
-
-.modulo-desc {
-    color: var(--text-soft);
-    font-size: 0.88rem;
-    font-weight: 500;
-    margin: 0;
-    max-width: 800px;
-}
-
-.modulo-impacto {
-    background: rgba(96, 165, 250, 0.08);
-    border: 1px solid rgba(96, 165, 250, 0.25);
-    color: #93c5fd;
-    padding: 14px 16px;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.modulo-impacto-red {
-    background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.25);
-    color: #fca5a5;
-}
-
-.modulo-impacto-brand {
-    background: rgba(31, 111, 209, 0.08);
-    border-color: rgba(31, 111, 209, 0.25);
-    color: #9fd0ff;
-}
-
-.modulo-impacto-purple {
-    background: rgba(124, 58, 237, 0.08);
-    border-color: rgba(124, 58, 237, 0.25);
-    color: #c4b5fd;
-}
-
-.modulo-impacto-cyan {
-    background: rgba(34, 211, 238, 0.08);
-    border-color: rgba(34, 211, 238, 0.25);
-    color: #67e8f9;
-}
-
 /* --- CHARTS GRID (reutilizado dentro de cada módulo) --- */
-.charts-grid {
-    display: grid;
-    /* minmax(0, 1fr), no 1fr solo: una celda de grid no se encoge más allá
-       del ancho natural de su contenido (ej. el canvas de Chart.js) a menos
-       que se le fuerce un mínimo de 0 explícito. */
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 20px;
-}
-
 .chart-card {
     background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
     border-radius: 12px;
@@ -331,17 +202,6 @@
     padding: 30px 0;
 }
 
-.tag-algoritmo {
-    display: inline-block;
-    background: rgba(96, 165, 250, 0.12);
-    color: #93c5fd;
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 12px;
-}
-
 .badge-riesgo {
     padding: 4px 10px;
     border-radius: 20px;
@@ -420,20 +280,12 @@
     white-space: nowrap;
 }
 
-.ml-item-purple { background: rgba(124, 58, 237, 0.08); border-color: rgba(124, 58, 237, 0.25); }
-.ml-item-icon-purple { color: #a78bfa; }
-.ml-item-badge-purple { background: rgba(124, 58, 237, 0.15); color: #c4b5fd; }
-
-.ml-item-arrow { color: var(--text-faint); font-size: 0.7rem; }
-
 .ml-table-subtext {
     color: var(--text-faint);
     font-weight: 600;
     font-size: 0.72rem;
     margin-top: 2px;
 }
-
-.bandera-roja { color: #ef4444; font-size: 1rem; }
 
 .fw-bold { font-weight: 800; color: #ffffff; }
 
@@ -537,17 +389,6 @@
 
 .busqueda-resultado { margin-top: 16px; }
 
-.busqueda-resultado-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    color: white;
-    font-weight: 800;
-    font-size: 0.9rem;
-    margin-bottom: 12px;
-}
-
 .busqueda-resultado-item {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.08);
@@ -578,26 +419,16 @@
 }
 
 /* --- RESPONSIVE --- */
-@media (max-width: 992px) {
-    .charts-grid { grid-template-columns: minmax(0, 1fr); }
-}
-
 @media (max-width: 768px) {
     .gerencial-wrapper { padding: 15px; }
-    .modulo-header { flex-direction: column; }
     .ml-item { flex-direction: column; align-items: flex-start; }
     .busqueda-form { flex-wrap: wrap; }
     .busqueda-input { width: 100%; order: 1; }
     .busqueda-submit { width: 100%; order: 2; }
 }
 
-/* Tabla -> tarjetas apiladas en celular Y en laptops/tablets chicos: las
-   4 tablas chicas de este dashboard (consumo esperado, reposición,
-   capital inmovilizado, clase A) viven en charts-grid de 2 columnas
-   (activo entre 992-1300px aprox.), así que cada una queda apretada en
-   ~400px de ancho de celda — no entran sus 4-5 columnas numéricas ahí
-   tampoco, no solo en celular. */
-@media (max-width: 1300px) {
+/* Tablas -> tarjetas apiladas en celular. */
+@media (max-width: 768px) {
     .ml-table-wrapper { max-height: none; }
     .ml-table thead { display: none; }
 
@@ -632,3 +463,148 @@
         letter-spacing: 0.02em;
     }
 }
+
+/* ================= PANEL GERENCIAL SIMPLIFICADO ================= */
+
+.gerencial-indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.indicador {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 100%);
+    border-top: 3px solid var(--brand-light);
+    animation: nx-fade-up 0.45s var(--ease, ease) both;
+}
+
+.indicador-bueno { border-top-color: var(--success); }
+.indicador-alerta { border-top-color: var(--warning); }
+.indicador-malo { border-top-color: var(--danger); }
+
+.indicador-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-soft);
+}
+
+.indicador-icono { color: var(--brand-light); flex-shrink: 0; }
+.indicador-bueno .indicador-icono { color: #4ade80; }
+.indicador-alerta .indicador-icono { color: #fbbf24; }
+.indicador-malo .indicador-icono { color: #f87171; }
+
+.indicador-valor {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.indicador-ayuda {
+    font-size: 0.78rem;
+    color: var(--text-faint);
+    line-height: 1.4;
+}
+
+.seccion-gerencial {
+    background: linear-gradient(160deg, var(--bg-soft) 0%, var(--input) 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 22px;
+    animation: nx-fade-up 0.5s var(--ease, ease) both;
+}
+
+.seccion-cabecera { margin-bottom: 18px; }
+
+.seccion-cabecera h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 6px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.seccion-cabecera h2 svg { color: var(--brand-light); }
+
+.seccion-cabecera p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.seccion-cabecera p strong { color: var(--text); }
+
+.seccion-dato {
+    margin: 16px 0 0;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+.seccion-dato strong { color: var(--text); }
+
+.nota-calculo {
+    margin: 16px 0 0;
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    line-height: 1.5;
+}
+
+.valor-clases {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.valor-clase {
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(5, 11, 24, 0.4);
+    border-left: 4px solid var(--brand-light);
+}
+
+.valor-clase-a { border-left-color: #f87171; }
+.valor-clase-b { border-left-color: #fbbf24; }
+.valor-clase-c { border-left-color: #4ade80; }
+
+.valor-clase-nombre {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-soft);
+}
+
+.valor-clase-monto {
+    margin: 4px 0 2px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.valor-clase-detalle {
+    font-size: 0.75rem;
+    color: var(--text-faint);
+}
+
+@media (max-width: 768px) {
+    .seccion-gerencial { padding: 18px; }
+    .valor-clases { grid-template-columns: minmax(0, 1fr); }
+    .indicador-valor { font-size: 1.5rem; }
+}
+

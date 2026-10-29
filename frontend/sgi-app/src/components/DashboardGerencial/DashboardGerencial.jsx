@@ -1,40 +1,28 @@
 import { useState, useEffect } from 'react';
 import {
-  FaRobot,
-  FaCircle,
   FaExclamationTriangle,
-  FaBrain,
   FaFileExcel,
   FaChartLine,
   FaShoppingCart,
-  FaShieldAlt,
   FaUserSecret,
-  FaProjectDiagram,
-  FaShippingFast,
   FaSearch,
-  FaChartPie,
   FaCoins,
   FaBoxes,
-  FaLayerGroup,
-  FaDesktop,
-  FaUserTie,
 } from 'react-icons/fa';
 
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
   PointElement,
   LineElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
   Filler,
 } from 'chart.js';
 
-import { Bar, Line, Doughnut } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
@@ -44,10 +32,8 @@ import './DashboardGerencial.css';
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  BarElement,
   PointElement,
   LineElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -60,22 +46,20 @@ const UMBRAL_RIESGO_MEDIO = 40;
 const formatearCLP = (valor) =>
   Number(valor || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 
-const claseAbcColor = (clase) => {
-  if (clase === 'A') return '#ef4444';
-  if (clase === 'B') return '#fbbf24';
-  return '#4ade80';
+// El backend manda fechas sin hora ("2026-11-02"). new Date() las toma como
+// medianoche UTC, y en Chile (UTC-3) eso cae el día anterior: el panel
+// mostraba un día menos de plazo para pedir. Se arma como fecha local.
+const formatearFecha = (iso) => {
+  const [anio, mes, dia] = String(iso).split('-').map(Number);
+  return new Date(anio, mes - 1, dia).toLocaleDateString('es-CL');
 };
 
-const badgeRiesgo = (probabilidad) => {
-  if (probabilidad >= UMBRAL_RIESGO_ALTO) return 'riesgo-alto';
-  if (probabilidad >= UMBRAL_RIESGO_MEDIO) return 'riesgo-medio';
-  return 'riesgo-bajo';
-};
-
-const colorRiesgo = (probabilidad) => {
-  if (probabilidad >= UMBRAL_RIESGO_ALTO) return '#ef4444';
-  if (probabilidad >= UMBRAL_RIESGO_MEDIO) return '#f59e0b';
-  return '#60a5fa';
+// Urgencia en palabras en vez de un porcentaje: quien lee el panel no
+// necesita interpretar "73% de probabilidad de quiebre" para saber qué hacer.
+const textoUrgencia = (probabilidad) => {
+  if (probabilidad >= UMBRAL_RIESGO_ALTO) return { texto: 'Urgente', clase: 'riesgo-alto' };
+  if (probabilidad >= UMBRAL_RIESGO_MEDIO) return { texto: 'Pronto', clase: 'riesgo-medio' };
+  return { texto: 'Planificar', clase: 'riesgo-bajo' };
 };
 
 const DashboardGerencial = () => {
@@ -93,9 +77,7 @@ const DashboardGerencial = () => {
   const [recomendaciones, setRecomendaciones] = useState([]);
   const [anomalias, setAnomalias] = useState([]);
   const [capitalInmovilizado, setCapitalInmovilizado] = useState({ items: [], total_clp: 0, cantidad_items: 0 });
-  const [entregasPorCanal, setEntregasPorCanal] = useState({ kiosco: 0, bodega: 0 });
 
-  const [clasificacionAbc, setClasificacionAbc] = useState([]);
   const [resumenAbc, setResumenAbc] = useState({});
   const [abcConfiable, setAbcConfiable] = useState(false);
   const [abcMotivo, setAbcMotivo] = useState('');
@@ -133,23 +115,20 @@ const DashboardGerencial = () => {
         setRecomendaciones(Array.isArray(data.recomendaciones_reposicion) ? data.recomendaciones_reposicion : []);
         setAnomalias(Array.isArray(data.anomalias_consumo) ? data.anomalias_consumo : []);
         setCapitalInmovilizado(data.capital_inmovilizado || { items: [], total_clp: 0, cantidad_items: 0 });
-        setEntregasPorCanal(data.entregas_por_canal || { kiosco: 0, bodega: 0 });
       } else {
         console.error(resumenRes.reason);
-        setError('No se pudo cargar el Modelo Predictivo de Inteligencia Artificial.');
+        setError('No se pudo cargar el Panel Gerencial. Intenta recargar la página.');
       }
 
       if (mlAvanzadoRes.status === 'fulfilled') {
         const data = mlAvanzadoRes.value.data || {};
 
         const abc = data.clasificacion_abc || {};
-        setClasificacionAbc(Array.isArray(abc.items) ? abc.items : []);
         setResumenAbc(abc.resumen || {});
         setAbcConfiable(Boolean(abc.confiable));
         setAbcMotivo(abc.motivo || '');
       } else {
         console.error(mlAvanzadoRes.reason);
-        setClasificacionAbc([]);
         setResumenAbc({});
         setAbcConfiable(false);
         setAbcMotivo('No se pudo cargar la clasificación ABC de inventario.');
@@ -201,7 +180,7 @@ const DashboardGerencial = () => {
 
     const resumen = workbook.addWorksheet('Resumen IA');
     resumen.mergeCells('A1:D1');
-    estiloTitulo(resumen.getCell('A1'), 'NEXOFAENA SGI - MODELO PREDICTIVO DE INTELIGENCIA ARTIFICIAL');
+    estiloTitulo(resumen.getCell('A1'), 'NEXOFAENA SGI - PANEL GERENCIAL');
     resumen.getRow(1).height = 28;
     resumen.columns = [{ width: 34 }, { width: 22 }, { width: 22 }, { width: 22 }];
     resumen.addRow([]);
@@ -261,7 +240,7 @@ const DashboardGerencial = () => {
       prevencion.addRow([
         r.producto_nombre,
         r.bodega_nombre,
-        new Date(r.fecha_sugerida_pedido).toLocaleDateString(),
+        formatearFecha(r.fecha_sugerida_pedido),
         r.cantidad_sugerida,
         `${r.probabilidad_quiebre}%`,
       ]);
@@ -301,7 +280,32 @@ const DashboardGerencial = () => {
   ChartJS.defaults.color = '#9aabc4';
   ChartJS.defaults.font.family = "'Inter', sans-serif";
 
-  const chartOptionsBase = {
+  const chartDataHistorico = {
+    labels: [...prediccionSemanal.historico.labels, 'Próxima semana'],
+    datasets: [
+      {
+        label: 'Unidades entregadas',
+        data: [...prediccionSemanal.historico.data, null],
+        borderColor: '#3d8ff0',
+        backgroundColor: 'rgba(61, 143, 240, 0.15)',
+        fill: true,
+        tension: 0.35,
+      },
+      {
+        label: 'Estimado próxima semana',
+        data: [
+          ...prediccionSemanal.historico.data.map(() => null),
+          prediccionSemanal.proyeccion_proxima_semana,
+        ],
+        borderColor: '#22d3ee',
+        backgroundColor: '#22d3ee',
+        pointRadius: 7,
+        showLine: false,
+      },
+    ],
+  };
+
+  const chartOptionsConsumo = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
@@ -311,87 +315,55 @@ const DashboardGerencial = () => {
     },
   };
 
-  const chartDataHistorico = {
-    labels: [...prediccionSemanal.historico.labels, 'Próxima semana'],
-    datasets: [
-      {
-        label: 'Unidades consumidas',
-        data: [...prediccionSemanal.historico.data, null],
-        borderColor: '#3d8ff0',
-        backgroundColor: 'rgba(61, 143, 240, 0.15)',
-        fill: true,
-        tension: 0.35,
-      },
-      {
-        label: 'Proyección (Regresión Lineal)',
-        data: [
-          ...prediccionSemanal.historico.data.map(() => null),
-          prediccionSemanal.proyeccion_proxima_semana,
-        ],
-        borderColor: '#22d3ee',
-        backgroundColor: '#22d3ee',
-        pointRadius: 6,
-        showLine: false,
-      },
-    ],
-  };
+  const productosPorAgotarse = quiebreStock.filter((q) => q.probabilidad_quiebre >= UMBRAL_RIESGO_ALTO).length;
 
-  const top6Riesgo = quiebreStock.slice(0, 6);
+  const masConsumidos = [...prediccionProducto]
+    .sort((a, b) => b.proyeccion_mes - a.proyeccion_mes)
+    .slice(0, 3);
 
-  const chartDataRiesgo = {
-    labels: top6Riesgo.map((q) => q.producto_nombre),
-    datasets: [
-      {
-        label: 'Probabilidad de quiebre (%)',
-        data: top6Riesgo.map((q) => q.probabilidad_quiebre),
-        backgroundColor: top6Riesgo.map((q) => colorRiesgo(q.probabilidad_quiebre)),
-        borderRadius: 4,
-      },
-    ],
-  };
-
-  const chartDataAbc = {
-    labels: ['Clase A (alto valor)', 'Clase B (valor medio)', 'Clase C (consumo masivo)'],
-    datasets: [
-      {
-        data: ['A', 'B', 'C'].map((clase) => resumenAbc[clase]?.cantidad || 0),
-        backgroundColor: ['A', 'B', 'C'].map(claseAbcColor),
-        borderColor: '#081429',
-        borderWidth: 2,
-      },
-    ],
-  };
-
-  const totalEntregasCanal = (entregasPorCanal.kiosco || 0) + (entregasPorCanal.bodega || 0);
-  const porcentajeKiosco = totalEntregasCanal > 0
-    ? Math.round((entregasPorCanal.kiosco / totalEntregasCanal) * 100)
-    : 0;
-
-  const chartDataCanal = {
-    labels: ['Kiosco (autoservicio)', 'Bodeguero (manual)'],
-    datasets: [
-      {
-        data: [entregasPorCanal.kiosco || 0, entregasPorCanal.bodega || 0],
-        backgroundColor: ['#22d3ee', '#6b7d99'],
-        borderColor: '#081429',
-        borderWidth: 2,
-      },
-    ],
-  };
+  // Cuatro cifras que responden "¿cómo estamos?" de un vistazo. El tono
+  // (rojo/ámbar/verde) se decide acá para que el color diga si hay que
+  // actuar, sin que la persona tenga que interpretar el número.
+  const indicadores = [
+    {
+      titulo: 'Productos por agotarse',
+      valor: productosPorAgotarse,
+      ayuda: 'con alto riesgo de quedarse sin stock',
+      tono: productosPorAgotarse > 0 ? 'malo' : 'bueno',
+      Icono: FaExclamationTriangle,
+    },
+    {
+      titulo: 'Gasto estimado del mes',
+      valor: formatearCLP(presupuestoProyectado.mensual_clp),
+      ayuda: 'para reponer lo que se va a consumir',
+      tono: 'neutro',
+      Icono: FaCoins,
+    },
+    {
+      titulo: 'Consumos fuera de lo normal',
+      valor: anomalias.length,
+      ayuda: anomalias.length === 1 ? 'trabajador a revisar este mes' : 'trabajadores a revisar este mes',
+      tono: anomalias.length > 0 ? 'alerta' : 'bueno',
+      Icono: FaUserSecret,
+    },
+    {
+      titulo: 'Dinero detenido en bodega',
+      valor: formatearCLP(capitalInmovilizado.total_clp),
+      ayuda: 'en productos con stock para más de 6 meses',
+      tono: capitalInmovilizado.total_clp > 0 ? 'alerta' : 'bueno',
+      Icono: FaBoxes,
+    },
+  ];
 
   return (
     <div className="gerencial-wrapper">
       <div className="gerencial-header">
         <div className="title-container">
-          <h1><FaRobot /> Modelo Predictivo de Inteligencia Artificial</h1>
-          <p>Motor de IA de NexoFaena SGI — Planificación, prevención y auditoría de bodega</p>
+          <h1><FaChartLine /> Panel Gerencial</h1>
+          <p>Lo más importante de la bodega, explicado en simple. Se actualiza con cada entrega.</p>
         </div>
 
         <div className="header-actions">
-          <div className="status-badge">
-            <FaCircle /> {loading ? 'ENTRENANDO MODELOS' : 'MODELOS ACTIVOS'}
-          </div>
-
           <button className="btn-export-dashboard" onClick={exportarDashboardExcel} disabled={loading}>
             <FaFileExcel /> Exportar Excel
           </button>
@@ -404,7 +376,21 @@ const DashboardGerencial = () => {
         </div>
       )}
 
-      {/* ============ BUSCADOR SEMÁNTICO (NLP) ============ */}
+      {/* ============ RESUMEN ============ */}
+      <div className="gerencial-indicadores">
+        {indicadores.map(({ titulo, valor, ayuda, tono, Icono }) => (
+          <div key={titulo} className={`indicador indicador-${tono}`}>
+            <div className="indicador-cabecera">
+              <Icono className="indicador-icono" />
+              <span>{titulo}</span>
+            </div>
+            <div className="indicador-valor">{loading ? '…' : valor}</div>
+            <div className="indicador-ayuda">{ayuda}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ============ BUSCADOR ============ */}
       <div className="busqueda-card">
         <form className="busqueda-form" onSubmit={ejecutarBusqueda}>
           <FaSearch className="busqueda-icon" />
@@ -412,7 +398,7 @@ const DashboardGerencial = () => {
           <input
             type="text"
             className="busqueda-input"
-            placeholder="Ej: Resume el consumo de cascos del mes..."
+            placeholder="Busca un producto: cascos, guantes, lentes..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -435,293 +421,122 @@ const DashboardGerencial = () => {
                 <FaExclamationTriangle /> {busquedaResultado.motivo || 'Sin resultados para esa búsqueda.'}
               </div>
             ) : (
-              <>
-                <div className="busqueda-resultado-header">
-                  <FaBrain /> Resultados para “{busquedaResultado.consulta}”
-                  <span className="tag-algoritmo">{busquedaResultado.algoritmo}</span>
+              busquedaResultado.resultados.map((r) => (
+                <div key={r.inventario_id} className="busqueda-resultado-item">
+                  <div className="busqueda-resultado-nombre">{r.producto_nombre}</div>
+                  <p className="busqueda-resultado-texto">
+                    {r.bodega_nombre}: quedan <strong>{r.stock_actual}</strong> unidades
+                    {r.necesita_reposicion ? ' (bajo el mínimo)' : ''}. Se entregan unas{' '}
+                    <strong>{r.consumo_mensual_estimado}</strong> al mes.
+                  </p>
                 </div>
-
-                {busquedaResultado.resultados.map((r) => (
-                  <div key={r.inventario_id} className="busqueda-resultado-item">
-                    <div className="busqueda-resultado-nombre">
-                      {r.producto_nombre}
-                      <span className="tag-algoritmo">{r.similitud}% similitud</span>
-                    </div>
-                    <p className="busqueda-resultado-texto">
-                      {r.bodega_nombre}: stock actual de {r.stock_actual} unidades
-                      {r.necesita_reposicion ? ', por debajo del mínimo' : ''}, consumo diario promedio de{' '}
-                      {r.consumo_diario_promedio} uds (~{r.consumo_mensual_estimado} uds/mes).
-                    </p>
-                  </div>
-                ))}
-              </>
+              ))
             )}
           </div>
         )}
       </div>
 
-      {/* ============ CANAL DE ENTREGA: KIOSCO VS. BODEGUERO ============ */}
-      <div className="modulo-ia">
-        <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-cyan"><FaDesktop /></div>
-          <div>
-            <div className="modulo-badge">Métrica operativa</div>
-            <h2 className="modulo-title">Canal de Entrega: Kiosco vs. Bodeguero</h2>
-            <p className="modulo-desc">
-              Cuántas entregas de este mes vinieron del kiosco de autoservicio versus las que
-              registró un bodeguero a mano — la métrica que indica si el kiosco realmente está
-              bajando la carga de trabajo del pañol.
-            </p>
-          </div>
+      {/* ============ ¿QUÉ HAY QUE COMPRAR? ============ */}
+      <section className="seccion-gerencial">
+        <div className="seccion-cabecera">
+          <h2><FaShoppingCart /> ¿Qué hay que comprar?</h2>
+          <p>Productos que conviene pedir ahora para no quedarse sin stock en faena.</p>
         </div>
 
-        <div className="charts-grid">
-          <div className="chart-card">
-            <div className="chart-header">
-              <div className="chart-title"><FaChartPie /> Entregas del mes por canal</div>
-              <div className="chart-subtitle">{totalEntregasCanal} entrega(s) completada(s)</div>
-            </div>
-
-            <div className="chart-container">
-              {totalEntregasCanal === 0 ? (
-                <div className="ml-empty">Sin entregas completadas este mes todavía.</div>
+        <div className="ml-table-wrapper">
+          <table className="ml-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Bodega</th>
+                <th>Pedir antes del</th>
+                <th>Cantidad</th>
+                <th>Urgencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recomendaciones.length === 0 ? (
+                <tr><td colSpan="5" className="ml-empty">Todo en orden: no hay que comprar nada por ahora.</td></tr>
               ) : (
-                <Doughnut
-                  data={chartDataCanal}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#9aabc4', padding: 14 } } },
-                  }}
-                />
+                recomendaciones.slice(0, 8).map((r) => {
+                  const urgencia = textoUrgencia(r.probabilidad_quiebre);
+                  return (
+                    <tr key={r.inventario_id}>
+                      <td className="fw-bold" data-label="Producto">{r.producto_nombre}</td>
+                      <td data-label="Bodega">{r.bodega_nombre}</td>
+                      <td data-label="Pedir antes del">{formatearFecha(r.fecha_sugerida_pedido)}</td>
+                      <td data-label="Cantidad">{r.cantidad_sugerida} un.</td>
+                      <td data-label="Urgencia"><span className={`badge-riesgo ${urgencia.clase}`}>{urgencia.texto}</span></td>
+                    </tr>
+                  );
+                })
               )}
-            </div>
-
-            <div className="prediction-box">
-              <FaDesktop /> Kiosco: <strong>{entregasPorCanal.kiosco || 0}</strong>
-              {totalEntregasCanal > 0 && ` (${porcentajeKiosco}%)`}
-              {' · '}
-              <FaUserTie /> Bodeguero: <strong>{entregasPorCanal.bodega || 0}</strong>
-              {totalEntregasCanal > 0 && ` (${100 - porcentajeKiosco}%)`}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ============ MÓDULO 1: REGRESIÓN LINEAL / RANDOM FOREST ============ */}
-      <div className="modulo-ia">
-        <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-blue"><FaChartLine /></div>
-          <div>
-            <div className="modulo-badge">Regresión Lineal · Random Forest</div>
-            <h2 className="modulo-title">Planificación y Compras</h2>
-            <p className="modulo-desc">
-              Analiza las entregas históricas y proyecta la demanda futura de cada producto para
-              recomendar cuánto comprar, sin adivinar.
-            </p>
-          </div>
+            </tbody>
+          </table>
         </div>
 
-        <div className="modulo-impacto">
-          <FaBrain /> Impacto: en vez de que el bodeguero adivine, el sistema indica exactamente cuánto
-          material se espera consumir y sugiere cantidades de compra — optimizando presupuesto y evitando
-          compras a ciegas.
+        <p className="nota-calculo">
+          Cómo se calcula: Regresión Logística con el stock, el consumo diario y el tiempo de entrega del proveedor.
+        </p>
+      </section>
+
+      {/* ============ ¿CUÁNTO SE VA A CONSUMIR? ============ */}
+      <section className="seccion-gerencial">
+        <div className="seccion-cabecera">
+          <h2><FaChartLine /> ¿Cuánto se va a consumir?</h2>
+          <p>
+            La próxima semana se espera entregar unas <strong>{prediccionSemanal.proyeccion_proxima_semana}</strong> unidades
+            de EPP{!prediccionSemanal.confiable && ' (estimación preliminar: todavía hay poco historial)'}.
+          </p>
         </div>
 
-        <div className="charts-grid">
-          <div className="chart-card">
-            <div className="chart-header">
-              <div className="chart-title"><FaChartLine /> Consumo semanal e histórico</div>
-              <div className="chart-subtitle">Últimas {prediccionSemanal.historico.labels.length} semanas</div>
-            </div>
-
-            <div className="chart-container">
-              <Line data={chartDataHistorico} options={chartOptionsBase} />
-            </div>
-
-            <div className="prediction-box">
-              <FaBrain /> Proyección próxima semana: <strong>{prediccionSemanal.proyeccion_proxima_semana}</strong> unidades
-              {!prediccionSemanal.confiable && ' (histórico aún limitado)'}
-            </div>
+        <div className="chart-card">
+          <div className="chart-header">
+            <div className="chart-title">Unidades entregadas por semana</div>
+            <div className="chart-subtitle">El punto celeste es lo estimado</div>
           </div>
-
-          <div className="chart-card">
-            <div className="chart-header">
-              <div className="chart-title"><FaShoppingCart /> Consumo esperado por producto</div>
-              <div className="chart-subtitle">Próxima semana / mes</div>
-            </div>
-
-            <div className="ml-table-wrapper">
-              <table className="ml-table">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Semana</th>
-                    <th>Mes</th>
-                    <th>Gasto proyectado</th>
-                    <th>Modelo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {prediccionProducto.length === 0 ? (
-                    <tr><td colSpan="5" className="ml-empty">Sin historial suficiente todavía.</td></tr>
-                  ) : (
-                    prediccionProducto.slice(0, 6).map((p) => (
-                      <tr key={p.inventario_id}>
-                        <td data-label="Producto">{p.producto_nombre}</td>
-                        <td data-label="Semana">{p.proyeccion_semana}</td>
-                        <td data-label="Mes">{p.proyeccion_mes}</td>
-                        <td className="fw-bold" data-label="Gasto proyectado">{formatearCLP(p.proyeccion_gasto_mensual_clp)}</td>
-                        <td data-label="Modelo"><span className="tag-algoritmo">{p.algoritmo}</span></td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="prediction-box">
-              <FaCoins /> Presupuesto proyectado del mes: <strong>{formatearCLP(presupuestoProyectado.mensual_clp)}</strong>
-              {' '}({formatearCLP(presupuestoProyectado.semanal_clp)} / semana) para reponer todo el catálogo activo.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ============ MÓDULO 2: REGRESIÓN LOGÍSTICA ============ */}
-      <div className="modulo-ia">
-        <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-red"><FaShieldAlt /></div>
-          <div>
-            <div className="modulo-badge">Regresión Logística</div>
-            <h2 className="modulo-title">Prevención Operativa</h2>
-            <p className="modulo-desc">
-              Cruza el inventario actual, la velocidad de consumo y el tiempo de reposición del proveedor
-              para calcular la probabilidad real de quedarse sin stock.
-            </p>
+          <div className="chart-container">
+            <Line data={chartDataHistorico} options={chartOptionsConsumo} />
           </div>
         </div>
 
-        <div className="modulo-impacto modulo-impacto-red">
-          <FaExclamationTriangle /> Impacto: alertas visuales preventivas con el porcentaje exacto de
-          riesgo de quiebre (ej. 85%), evitando que la faena se paralice por falta de materiales críticos.
-        </div>
-
-        <div className="charts-grid">
-          <div className="chart-card">
-            <div className="chart-header">
-              <div className="chart-title"><FaShieldAlt /> Riesgo de quiebre por producto</div>
-              <div className="chart-subtitle">Top 6 más críticos</div>
-            </div>
-
-            <div className="chart-container">
-              {quiebreStock.length === 0 ? (
-                <div className="ml-empty">Sin riesgo relevante detectado.</div>
-              ) : (
-                <Bar data={chartDataRiesgo} options={{ ...chartOptionsBase, indexAxis: 'y', scales: { x: { max: 100, grid: { color: 'rgba(255,255,255,0.08)' } }, y: { grid: { display: false } } } }} />
-              )}
-            </div>
-          </div>
-
-          <div className="chart-card">
-            <div className="chart-header">
-              <div className="chart-title"><FaShippingFast /> Recomendación de reposición</div>
-              <div className="chart-subtitle">Cuándo y cuánto pedir</div>
-            </div>
-
-            <div className="ml-table-wrapper">
-              <table className="ml-table">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Pedir antes de</th>
-                    <th>Cantidad</th>
-                    <th>Riesgo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recomendaciones.length === 0 ? (
-                    <tr><td colSpan="4" className="ml-empty">No hay reposiciones urgentes por ahora.</td></tr>
-                  ) : (
-                    recomendaciones.slice(0, 6).map((r) => (
-                      <tr key={r.inventario_id}>
-                        <td data-label="Producto">{r.producto_nombre}</td>
-                        <td data-label="Pedir antes de">{new Date(r.fecha_sugerida_pedido).toLocaleDateString()}</td>
-                        <td data-label="Cantidad">{r.cantidad_sugerida} un.</td>
-                        <td data-label="Riesgo"><span className={`badge-riesgo ${badgeRiesgo(r.probabilidad_quiebre)}`}>{r.probabilidad_quiebre}%</span></td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div className="prediction-box modulo-impacto-red">
-          <FaCoins /> Capital inmovilizado en sobre-stock: <strong>{formatearCLP(capitalInmovilizado.total_clp)}</strong>
-          {' '}en {capitalInmovilizado.cantidad_items} producto(s) con riesgo de quiebre ~0% y cobertura de más de 6
-          meses. Sugerencia: mover a otras faenas o pausar próximas compras.
-        </div>
-
-        {capitalInmovilizado.items.length > 0 && (
-          <div className="ml-table-wrapper">
-            <table className="ml-table">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Bodega</th>
-                  <th>Stock actual</th>
-                  <th>Cobertura</th>
-                  <th>Capital inmovilizado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {capitalInmovilizado.items.slice(0, 6).map((c) => (
-                  <tr key={c.inventario_id}>
-                    <td data-label="Producto">{c.producto_nombre}</td>
-                    <td data-label="Bodega">{c.bodega_nombre}</td>
-                    <td data-label="Stock actual">{c.stock_actual} un.</td>
-                    <td data-label="Cobertura">{c.dias_cobertura_estimados ? `${c.dias_cobertura_estimados} días` : 'Sin consumo reciente'}</td>
-                    <td className="fw-bold" data-label="Capital inmovilizado">{formatearCLP(c.capital_inmovilizado_clp)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {masConsumidos.length > 0 && (
+          <p className="seccion-dato">
+            Lo que más se consume:{' '}
+            {masConsumidos.map((p, i) => (
+              <span key={p.inventario_id}>
+                {i > 0 && ' · '}
+                <strong>{p.producto_nombre}</strong> ({p.proyeccion_mes} al mes)
+              </span>
+            ))}
+            .
+          </p>
         )}
-      </div>
 
-      {/* ============ MÓDULO 3: K-MEANS ============ */}
-      <div className="modulo-ia">
-        <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-brand"><FaProjectDiagram /></div>
-          <div>
-            <div className="modulo-badge">K-Means (Clustering)</div>
-            <h2 className="modulo-title">Auditoría y "Robo Hormiga"</h2>
-            <p className="modulo-desc">
-              Agrupa automáticamente a los trabajadores según su patrón de consumo normal. Quien se sale
-              del clúster por un consumo inusual queda aislado matemáticamente.
-            </p>
-          </div>
-        </div>
+        <p className="nota-calculo">
+          Cómo se calcula: Regresión Lineal y Random Forest sobre las entregas de las últimas semanas.
+        </p>
+      </section>
 
-        <div className="modulo-impacto modulo-impacto-brand">
-          <FaUserSecret /> Impacto: el sistema marca automáticamente una alerta de consumo anormal,
-          frenando mermas, mal uso y robo hormiga sin revisar los registros uno por uno.
+      {/* ============ ¿HAY CONSUMOS FUERA DE LO NORMAL? ============ */}
+      <section className="seccion-gerencial">
+        <div className="seccion-cabecera">
+          <h2><FaUserSecret /> ¿Hay consumos fuera de lo normal?</h2>
+          <p>
+            Trabajadores que este mes retiraron bastante más que otros con su mismo cargo. Es una señal
+            para revisar, no una acusación.
+          </p>
         </div>
 
         <div className="ml-list">
           {anomalias.length === 0 ? (
-            <div className="ml-empty">Sin anomalías de consumo detectadas este mes.</div>
+            <div className="ml-empty">Todo en orden: nadie se sale del consumo habitual este mes.</div>
           ) : (
-            anomalias.map((a, idx) => (
-              <div key={idx} className="ml-item ml-item-danger">
+            anomalias.map((a) => (
+              <div key={`${a.trabajador_id}-${a.inventario_id}`} className="ml-item ml-item-danger">
                 <FaUserSecret className="ml-item-icon" />
                 <div className="ml-item-grow">
-                  <div className="ml-item-title">
-                    {a.trabajador_nombre} <span className="tag-algoritmo">{a.algoritmo}</span>
-                  </div>
+                  <div className="ml-item-title">{a.trabajador_nombre}</div>
                   <div className="ml-item-subtitle">{a.mensaje}</div>
                 </div>
                 <div className="ml-item-badge">
@@ -731,101 +546,79 @@ const DashboardGerencial = () => {
             ))
           )}
         </div>
-      </div>
 
-      {/* ============ MÓDULO 7: K-MEANS (CLASIFICACIÓN ABC) ============ */}
-      <div className="modulo-ia">
-        <div className="modulo-header">
-          <div className="modulo-icon modulo-icon-brand"><FaLayerGroup /></div>
-          <div>
-            <div className="modulo-badge">K-Means (Clustering)</div>
-            <h2 className="modulo-title">Clasificación ABC Dinámica de Inventario</h2>
-            <p className="modulo-desc">
-              Agrupa automáticamente el catálogo por precio unitario y rotación mensual: Clase A
-              (alto valor/crítico), Clase B (valor medio) y Clase C (consumo masivo), sin depender
-              de que alguien marque manualmente qué producto es importante.
-            </p>
-          </div>
+        <p className="nota-calculo">
+          Cómo se calcula: K-Means agrupa a los trabajadores por su patrón de consumo.
+        </p>
+      </section>
+
+      {/* ============ ¿DÓNDE ESTÁ EL DINERO? ============ */}
+      <section className="seccion-gerencial">
+        <div className="seccion-cabecera">
+          <h2><FaCoins /> ¿Dónde está el dinero?</h2>
+          <p>Los productos que concentran más valor y los que tienen más stock del necesario.</p>
         </div>
 
-        <div className="modulo-impacto modulo-impacto-brand">
-          <FaBoxes /> Impacto: prioriza el control físico y las firmas de autorización en los
-          productos de Clase A, mientras deja el despacho de Clase C sin fricción administrativa.
-        </div>
-
-        {!abcConfiable && (
+        {!abcConfiable && abcMotivo && (
           <div className="fallback-msg">
-            <FaExclamationTriangle /> {abcMotivo || 'Datos insuficientes para entrenamiento. Mostrando cálculo base.'}
+            <FaExclamationTriangle /> {abcMotivo}
           </div>
         )}
 
-        <div className="charts-grid">
-          <div className="chart-card">
-            <div className="chart-header">
-              <div className="chart-title"><FaChartPie /> Distribución del catálogo</div>
-              <div className="chart-subtitle">{clasificacionAbc.length} producto(s) clasificados</div>
+        <div className="valor-clases">
+          {[
+            { clase: 'A', nombre: 'Alto valor', detalle: 'control estricto' },
+            { clase: 'B', nombre: 'Valor medio', detalle: 'control normal' },
+            { clase: 'C', nombre: 'Consumo masivo', detalle: 'despacho ágil' },
+          ].map(({ clase, nombre, detalle }) => (
+            <div key={clase} className={`valor-clase valor-clase-${clase.toLowerCase()}`}>
+              <div className="valor-clase-nombre">{nombre}</div>
+              <div className="valor-clase-monto">{formatearCLP(resumenAbc[clase]?.valor_stock_clp)}</div>
+              <div className="valor-clase-detalle">
+                {resumenAbc[clase]?.cantidad || 0} producto(s) · {detalle}
+              </div>
             </div>
+          ))}
+        </div>
 
-            <div className="chart-container">
-              {clasificacionAbc.length === 0 ? (
-                <div className="ml-empty">Sin productos con precio unitario cargado todavía.</div>
-              ) : (
-                <Doughnut
-                  data={chartDataAbc}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#9aabc4', padding: 14 } } },
-                  }}
-                />
-              )}
-            </div>
-
-            <div className="prediction-box">
-              <FaCoins /> Valor en stock — A: <strong>{formatearCLP(resumenAbc.A?.valor_stock_clp)}</strong>{' '}
-              · B: <strong>{formatearCLP(resumenAbc.B?.valor_stock_clp)}</strong>{' '}
-              · C: <strong>{formatearCLP(resumenAbc.C?.valor_stock_clp)}</strong>
-            </div>
+        <div className="chart-card">
+          <div className="chart-header">
+            <div className="chart-title"><FaBoxes /> Exceso de stock</div>
+            <div className="chart-subtitle">Se podría mover a otra faena o pausar su compra</div>
           </div>
 
-          <div className="chart-card">
-            <div className="chart-header">
-              <div className="chart-title"><FaLayerGroup /> Productos de Clase A</div>
-              <div className="chart-subtitle">Mayor valor en stock — exigen control estricto</div>
-            </div>
-
-            <div className="ml-table-wrapper">
-              <table className="ml-table">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Precio unit.</th>
-                    <th>Rotación/mes</th>
-                    <th>Valor stock</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clasificacionAbc.filter((i) => i.clase_abc === 'A').length === 0 ? (
-                    <tr><td colSpan="4" className="ml-empty">Sin productos de Clase A todavía.</td></tr>
-                  ) : (
-                    clasificacionAbc
-                      .filter((i) => i.clase_abc === 'A')
-                      .slice(0, 6)
-                      .map((i) => (
-                        <tr key={i.inventario_id}>
-                          <td data-label="Producto">{i.producto_nombre}</td>
-                          <td data-label="Precio unit.">{formatearCLP(i.precio_unitario)}</td>
-                          <td data-label="Rotación/mes">{i.rotacion_mensual} un.</td>
-                          <td className="fw-bold" data-label="Valor stock">{formatearCLP(i.valor_stock_clp)}</td>
-                        </tr>
-                      ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <div className="ml-table-wrapper">
+            <table className="ml-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Alcanza para</th>
+                  <th>Dinero detenido</th>
+                </tr>
+              </thead>
+              <tbody>
+                {capitalInmovilizado.items.length === 0 ? (
+                  <tr><td colSpan="3" className="ml-empty">Sin exceso de stock.</td></tr>
+                ) : (
+                  capitalInmovilizado.items.slice(0, 6).map((c) => (
+                    <tr key={c.inventario_id}>
+                      <td className="fw-bold" data-label="Producto">{c.producto_nombre}</td>
+                      <td data-label="Alcanza para">
+                        {c.dias_cobertura_estimados ? `${Math.round(c.dias_cobertura_estimados / 30)} meses` : 'Sin consumo reciente'}
+                      </td>
+                      <td data-label="Dinero detenido">{formatearCLP(c.capital_inmovilizado_clp)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+
+        <p className="nota-calculo">
+          Cómo se calcula: K-Means clasifica el catálogo por precio y rotación (clasificación ABC).
+        </p>
+      </section>
     </div>
   );
 };

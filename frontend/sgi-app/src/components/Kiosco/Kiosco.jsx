@@ -28,6 +28,12 @@ import LogoNexoFaena from '../Marca/LogoNexoFaena';
 import TutorialKiosco from './TutorialKiosco';
 import './Kiosco.css';
 
+// Datos técnicos del reconocimiento (distancia, giro, ms por lectura): sirven
+// para calibrar la cámara en terreno, pero al trabajador solo lo confunden.
+// Se ven en desarrollo o abriendo el kiosco con ?diagnostico en la URL.
+const MOSTRAR_DIAGNOSTICO =
+  import.meta.env.DEV || new URLSearchParams(window.location.search).has('diagnostico');
+
 const Kiosco = () => {
   const [fase, setFase] = useState('cargando-modelos');
   const [error, setError] = useState('');
@@ -459,7 +465,7 @@ const Kiosco = () => {
               </div>
             </div>
 
-            {camaraActiva && (
+            {MOSTRAR_DIAGNOSTICO && camaraActiva && (
               <div className="kiosco-debug-info">
                 {!verificandoVida
                   ? `distancia: ${debugFacial.distancia ?? '—'} (umbral ${UMBRAL_DISTANCIA_FACIAL})`
