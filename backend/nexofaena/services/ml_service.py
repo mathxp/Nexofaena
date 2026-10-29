@@ -340,7 +340,11 @@ class MLService:
             if diario <= 0:
                 # Sin consumo reciente: si además hay stock valorizado, es capital
                 # dormido (0% de riesgo de quiebre porque nadie lo está pidiendo).
-                if stock_actual > 0 and precio_unitario > 0:
+                # Salvo la bodega de reserva (nunca entrega directo: su stock es
+                # respaldo a propósito) y los equipos devolutivos (cargadores,
+                # baterías), que se prestan y vuelven en vez de consumirse.
+                es_respaldo = producto.bodega.tipo == "RESERVA" or producto.es_devolutivo
+                if stock_actual > 0 and precio_unitario > 0 and not es_respaldo:
                     capital_inmovilizado.append({
                         "inventario_id": producto.id,
                         "producto_nombre": producto.nombre,
@@ -495,7 +499,13 @@ class MLService:
 
         consumos = (
             MovimientoInventario.objects
-            .filter(tipo_movimiento="SALIDA", fecha__gte=inicio_mes, trabajador__isnull=False)
+            # Los equipos devolutivos (radios) se prestan y vuelven: retirarlos
+            # a diario no es consumo, y contarlos marcaba como "inusual" a
+            # quien simplemente usa radio en cada turno.
+            .filter(
+                tipo_movimiento="SALIDA", fecha__gte=inicio_mes, trabajador__isnull=False,
+                inventario__es_devolutivo=False,
+            )
             .values("trabajador_id", "trabajador__nombres", "trabajador__apellido_paterno", "trabajador__cargo")
             .annotate(
                 total=Sum("cantidad"),
@@ -559,7 +569,11 @@ class MLService:
         }
         cluster_alto = max(promedio_por_cluster, key=promedio_por_cluster.get)
 
-        umbral = promedio_global + max(1, 0.5 * desviacion_global)
+        # Para marcar a alguien tiene que destacar de verdad: al menos una
+        # desviación estándar sobre el promedio Y al menos 1,5 veces el
+        # promedio del cargo. Con solo "promedio + media desviación", en un
+        # grupo parejo (todos entre 8 y 12) se marcaba a quien retiró 12.
+        umbral = max(promedio_global + desviacion_global, promedio_global * 1.5)
 
         if promedio_por_cluster[cluster_alto] <= umbral:
             return []
@@ -608,6 +622,7 @@ class MLService:
                 tipo_movimiento="SALIDA",
                 fecha__gte=inicio_mes,
                 trabajador_id__in=trabajador_ids,
+                inventario__es_devolutivo=False,
             )
             .values("trabajador_id", "inventario_id", "inventario__nombre", "inventario__precio_unitario", "bodega__nombre")
             .annotate(total=Sum("cantidad"))

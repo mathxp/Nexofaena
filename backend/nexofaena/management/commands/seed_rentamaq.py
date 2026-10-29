@@ -1,30 +1,51 @@
 """
-Seed de datos reales del pañol de RentaMaq (faena), a partir de fotografías
-del pañol y conversación directa con el stakeholder (Carlos Guerrero,
-RentaMaq). No reemplaza `seed.py` (comando genérico de demo): este comando
-es específico para el cliente y se puede correr las veces que sea sin
-duplicar datos (usa get_or_create/update_or_create).
+Seed realista del pañol de RentaMaq (faena), a partir de fotografías del
+pañol y conversación directa con el stakeholder (Carlos Guerrero, RentaMaq).
+
+Deja la base como se vería una faena real en operación, sin inflarla:
+- 2 bodegas: Central (atiende al trabajador) y Reserva (respaldo).
+- El catálogo real del pañol, con tallas y las radios Motorola como
+  unidades individuales que se prestan y se devuelven.
+- ~40 trabajadores con cargos y turnos realistas.
+- 4 meses de entregas hasta HOY (kiosco y bodeguero), reposiciones,
+  traspasos, devoluciones de radios y 2 auditorías por bodega.
+
+Con eso los modelos del Panel Gerencial tienen datos reales que analizar:
+unos pocos productos por agotarse (un pedido que no ha llegado), un par de
+trabajadores con consumo fuera de lo normal, radios sin devolver recientes
+y productos de baja rotación con más stock del necesario.
+
+El historial se simula en memoria y se inserta en bloque (bulk_create): la
+base de producción está en Neon (Oregon), y crear fila por fila desde Chile
+tomaba horas.
 
 IMPORTANTE — antes de correr con --reset:
     1. Respalda la base actual:
        pg_dump -U <usuario> -d <basedatos> -F c -f respaldo_antes_rentamaq.dump
     2. Recién entonces vuelve a correr con --reset --confirmo-respaldo.
 
-Ver docs/SEED_RENTAMAQ.md para el detalle de qué cifras son estimación desde
-fotos (marcadas [ESTIMADO] en este archivo) y cuáles vienen confirmadas
-directamente por el stakeholder.
+--reset borra los datos operativos (trabajadores, inventario, entregas,
+movimientos, auditorías y alertas) y deja solo las 2 bodegas del pañol.
+Nunca borra usuarios ni roles: las cuentas con las que se inicia sesión
+siguen funcionando.
+
+Las cifras marcadas [ESTIMADO] vienen de fotos y no son datos oficiales.
 """
 
+import heapq
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from itertools import count
 
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.test.utils import override_settings
 from django.utils import timezone
 from faker import Faker
 
+from nexofaena.models.alerta import Alerta
 from nexofaena.models.auditoria_inventario import AuditoriaInventario, DetalleAuditoriaInventario
 from nexofaena.models.bodega import Bodega
 from nexofaena.models.entrega import DetalleEntregaEPP, EntregaEPP
@@ -35,19 +56,40 @@ from nexofaena.models.trabajador import Trabajador
 from nexofaena.models.unidad_activo import UnidadActivo
 from nexofaena.models.usuario import Usuario
 from nexofaena.services.auditoria_service import AuditoriaInventarioService
+from nexofaena.services.dashboard_service import DashboardService
 
 fake = Faker("es_CL")
 
-MIN_TRABAJADORES = 50
+MIN_TRABAJADORES = 20
 MAX_TRABAJADORES = 200
-DIAS_HISTORIAL = 365
+TRABAJADORES_POR_DEFECTO = 40
+
+# 4 meses: cubre las 12 semanas que miran los modelos de consumo y los 90
+# días de la clasificación ABC, sin acumular un año de datos que nadie mira.
+DIAS_HISTORIAL = 120
+
+# Entregas por día en Central (40 trabajadores, no todos retiran a diario).
+ENTREGAS_DIA_HABIL = (10, 18)
+ENTREGAS_DOMINGO = (2, 5)
 
 # Radios observadas en fotografías del rack de carga + estante secundario.
 # [ESTIMADO] — confirmar con bodega antes de tomarlo como cifra oficial.
 CANTIDAD_RADIOS = 30
+PROBABILIDAD_RETIRA_RADIO = 0.25  # varias radios al día, como en el rack real
 
 # Meses de verano austral: más bloqueador solar / repelente sale del pañol.
 MESES_VERANO = {12, 1, 2}
+
+# Productos cuyo pedido al proveedor "no ha llegado": no se reponen en los
+# últimos días del historial, así que hoy aparecen por agotarse (es lo que
+# el Panel Gerencial debe detectar y recomendar comprar).
+PEDIDO_PENDIENTE = ("Guantes de nitrilo", "Mascarilla KN95", "Lentes de seguridad claros")
+DIAS_SIN_REPOSICION = 16
+
+# Cuánto más retira, por entrega, un trabajador con consumo inusual.
+FACTOR_CONSUMO_INUSUAL = 4
+
+SEMILLA = 2024  # mismos datos en cada corrida (reproducible)
 
 
 # =====================================================================
@@ -169,28 +211,33 @@ NOMBRES_RENOVACION = {
 
 
 class Command(BaseCommand):
-    help = "Siembra datos reales de RentaMaq: 2 bodegas, ~10 usuarios, trabajadores, catálogo, 12 meses de historial y auditorías."
+    help = (
+        "Siembra datos realistas de RentaMaq: 2 bodegas, catálogo real del pañol con radios, "
+        "~40 trabajadores, 4 meses de historial hasta hoy y auditorías."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--reset", action="store_true",
-            help="Borra los datos operativos existentes (trabajadores, inventario, entregas, movimientos, auditorías) antes de sembrar. NO borra usuarios ni roles.",
+            help=(
+                "Borra los datos operativos existentes (trabajadores, inventario, entregas, movimientos, "
+                "auditorías, alertas y bodegas extra) antes de sembrar. NO borra usuarios ni roles."
+            ),
         )
         parser.add_argument(
             "--confirmo-respaldo", action="store_true",
             help="Confirma que ya respaldaste la base (pg_dump) antes de --reset. Obligatorio junto a --reset.",
         )
         parser.add_argument(
-            "--trabajadores", type=int, default=120,
-            help=f"Cantidad de trabajadores a generar ({MIN_TRABAJADORES}-{MAX_TRABAJADORES}). Default: 120.",
+            "--trabajadores", type=int, default=TRABAJADORES_POR_DEFECTO,
+            help=f"Cantidad de trabajadores ({MIN_TRABAJADORES}-{MAX_TRABAJADORES}). Default: {TRABAJADORES_POR_DEFECTO}.",
         )
 
     def handle(self, *args, **options):
         reset = options["reset"]
-        confirmo_respaldo = options["confirmo_respaldo"]
         num_trabajadores = options["trabajadores"]
 
-        if reset and not confirmo_respaldo:
+        if reset and not options["confirmo_respaldo"]:
             raise CommandError(
                 "Falta --confirmo-respaldo. Antes de --reset debes respaldar la base:\n"
                 "    pg_dump -U <usuario> -d <basedatos> -F c -f respaldo_antes_rentamaq.dump\n"
@@ -200,11 +247,8 @@ class Command(BaseCommand):
         if not (MIN_TRABAJADORES <= num_trabajadores <= MAX_TRABAJADORES):
             raise CommandError(f"--trabajadores debe estar entre {MIN_TRABAJADORES} y {MAX_TRABAJADORES}.")
 
-        # Idempotencia real: generar 12 meses de historial es costoso y no
-        # tiene una clave natural para hacer get_or_create movimiento por
-        # movimiento. En vez de eso, el comando se niega a duplicar: si ya
-        # hay datos operativos sembrados, exige --reset explícito para
-        # repoblar en vez de crear una segunda copia por accidente.
+        # Idempotencia: el comando se niega a duplicar. Si ya hay datos
+        # sembrados, exige --reset explícito para repoblar.
         ya_sembrado = Bodega.objects.filter(codigo="BOD-CEN").exists() and Trabajador.objects.exists()
         if ya_sembrado and not reset:
             self.stdout.write(self.style.WARNING(
@@ -213,7 +257,12 @@ class Command(BaseCommand):
             ))
             return
 
-        with transaction.atomic():
+        random.seed(SEMILLA)
+        Faker.seed(SEMILLA)
+
+        # Las diferencias de las auditorías generan alertas que normalmente
+        # se envían al grupo de Telegram: al sembrar no tiene sentido avisar.
+        with override_settings(TELEGRAM_NOTIFICACIONES_ACTIVAS=False), transaction.atomic():
             if reset:
                 self._reset()
 
@@ -225,23 +274,25 @@ class Command(BaseCommand):
             self._crear_historial(usuarios, bodegas, trabajadores, productos)
             self._crear_auditorias(usuarios, bodegas, productos)
 
+        DashboardService.invalidar_cache()
+
         self.stdout.write(self.style.SUCCESS("Seed RentaMaq completado correctamente."))
         self.stdout.write(self.style.SUCCESS(f"Bodegas: {Bodega.objects.count()}"))
-        self.stdout.write(self.style.SUCCESS(f"Usuarios: {Usuario.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Trabajadores: {Trabajador.objects.count()}"))
-        self.stdout.write(self.style.SUCCESS(f"Inventario: {Inventario.objects.count()}"))
-        self.stdout.write(self.style.SUCCESS(f"Unidades de activo (radios, etc.): {UnidadActivo.objects.count()}"))
+        self.stdout.write(self.style.SUCCESS(f"Productos (con tallas y bodega): {Inventario.objects.count()}"))
+        self.stdout.write(self.style.SUCCESS(f"Radios: {UnidadActivo.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Entregas EPP: {EntregaEPP.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Movimientos: {MovimientoInventario.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Auditorías: {AuditoriaInventario.objects.count()}"))
 
     # =================================================================
-    # RESET — solo datos operativos/catálogo/trabajadores. Nunca borra
-    # Usuario ni Rol (evita invalidar cuentas ya en uso).
+    # RESET — datos operativos. Nunca borra Usuario ni Rol (evita
+    # invalidar cuentas en uso).
     # =================================================================
     def _reset(self):
         self.stdout.write(self.style.WARNING("Borrando datos operativos existentes..."))
 
+        Alerta.objects.all().delete()
         DetalleAuditoriaInventario.objects.all().delete()
         AuditoriaInventario.objects.all().delete()
         MovimientoInventario.objects.all().delete()
@@ -251,15 +302,15 @@ class Command(BaseCommand):
         Inventario.objects.all().delete()
         Trabajador.objects.all().delete()
         Bodega.objects.exclude(codigo__in=["BOD-CEN", "BOD-RES"]).delete()
+        # Responsable inactivo que creaba el antiguo comando generar_demo_dashboard.
+        Usuario.objects.filter(username="demo.bodeguero").delete()
 
     # =================================================================
-    # 1. BODEGAS
+    # 1. BODEGAS (solo 2)
     # =================================================================
     def _crear_bodegas(self):
         # `nombre` es único desde antes de que existiera `codigo`: si ya hay
-        # una "Bodega Central" del seed genérico, se reutiliza esa fila (se
-        # le agrega código/tipo) en vez de intentar crear una segunda con el
-        # mismo nombre, lo que violaría la unicidad de `nombre`.
+        # una "Bodega Central" del seed genérico, se reutiliza esa fila.
         central, _ = Bodega.objects.update_or_create(
             nombre="Bodega Central",
             defaults={
@@ -285,46 +336,47 @@ class Command(BaseCommand):
         return {"central": central, "reserva": reserva}
 
     # =================================================================
-    # 2. ROLES Y USUARIOS (~10)
+    # 2. ROLES Y PERSONAL DE BODEGA
     # =================================================================
     def _crear_roles(self):
         nombres = ["Administrador", "Supervisor", "Bodeguero", "Encargado de Bodega"]
         return {nombre: Rol.objects.get_or_create(nombre=nombre)[0] for nombre in nombres}
 
     def _crear_usuarios(self, roles):
+        """
+        Personal de bodega que figura como responsable de las entregas del
+        historial. Se crea INACTIVO y sin contraseña usable: la app está
+        publicada en internet, y antes estas cuentas nacían con una
+        contraseña conocida (una de ellas como superusuario). Si alguna ya
+        existía, no se toca, para no cortarle el acceso a nadie.
+        """
         contador_rut = ContadorRut(15000000)
+        existentes = set(Usuario.objects.values_list("rut", flat=True))
 
-        # 4 Bodeguero + 2 Encargado de Bodega + 3 Supervisor/Jefatura + 1 Administrador = 10
         definiciones = (
-            [("bodeguero", i, "Bodeguero") for i in range(1, 5)]
+            [("bodeguero", i, "Bodeguero") for i in range(1, 4)]
             + [("encargado", i, "Encargado de Bodega") for i in range(1, 3)]
-            + [("jefatura", i, "Supervisor") for i in range(1, 4)]
-            + [("admin_rentamaq", 1, "Administrador")]
         )
 
-        usuarios = {"Bodeguero": [], "Encargado de Bodega": [], "Supervisor": [], "Administrador": []}
-
+        usuarios = {"Bodeguero": [], "Encargado de Bodega": []}
         for prefijo, indice, nombre_rol in definiciones:
-            username = f"{prefijo}{indice}" if prefijo != "admin_rentamaq" else prefijo
-            nombre = fake.first_name()
-            apellido = fake.last_name()
+            username = f"{prefijo}{indice}"
+            rut = contador_rut.nuevo()
+            while rut in existentes:
+                rut = contador_rut.nuevo()
 
-            usuario, creado = Usuario.objects.get_or_create(
-                username=username,
-                defaults={
-                    "rut": contador_rut.nuevo(),
-                    "first_name": nombre,
-                    "last_name": apellido,
-                    "email": f"{username}@rentamaq.cl",
-                    "rol": roles[nombre_rol],
-                    "is_staff": nombre_rol == "Administrador",
-                    "is_superuser": nombre_rol == "Administrador",
-                    "telefono": f"+569{random.randint(10000000, 99999999)}",
-                },
-            )
-
-            if creado:
-                usuario.set_password("rentamaq2024")
+            usuario = Usuario.objects.filter(username=username).first()
+            if usuario is None:
+                usuario = Usuario(
+                    username=username,
+                    rut=rut,
+                    first_name=fake.first_name(),
+                    last_name=fake.last_name(),
+                    email=f"{username}@rentamaq.cl",
+                    rol=roles[nombre_rol],
+                    is_active=False,
+                )
+                usuario.set_unusable_password()
                 usuario.save()
 
             usuarios[nombre_rol].append(usuario)
@@ -332,86 +384,71 @@ class Command(BaseCommand):
         return usuarios
 
     # =================================================================
-    # 3. TRABAJADORES (50-200, no confundir con usuarios)
+    # 3. TRABAJADORES
     # =================================================================
     def _crear_trabajadores(self, cantidad):
         contador_rut = ContadorRut(18000000)
         cargos = [c for c, _ in CARGOS_PESOS]
         pesos = [p for _, p in CARGOS_PESOS]
-
         hoy = date.today()
+
         trabajadores = []
-
         for _ in range(cantidad):
-            cargo = random.choices(cargos, weights=pesos, k=1)[0]
-            turno = random.choices(["dia", "noche"], weights=[55, 45], k=1)[0]
-            # ~8% desvinculados: el sistema debe poder manejar historial de
-            # entregas de gente que ya no está en la faena.
-            activo = random.random() > 0.08
-            dias_antiguedad = random.randint(15, 365 * 4)
-            fecha_ingreso = hoy - timedelta(days=dias_antiguedad)
-
-            trabajador = Trabajador.objects.create(
+            # ~8% desvinculados: el sistema debe manejar el historial de
+            # gente que ya no está en la faena.
+            trabajadores.append(Trabajador(
                 rut=contador_rut.nuevo(),
                 nombres=fake.first_name(),
                 apellido_paterno=fake.last_name(),
                 apellido_materno=fake.last_name(),
-                cargo=cargo,
-                turno=turno,
+                cargo=random.choices(cargos, weights=pesos, k=1)[0],
+                turno=random.choices(["dia", "noche"], weights=[55, 45], k=1)[0],
                 telefono=f"+569{random.randint(10000000, 99999999)}",
-                correo=None,
-                activo=activo,
-                fecha_ingreso=fecha_ingreso,
-            )
-            trabajadores.append(trabajador)
+                activo=random.random() > 0.08,
+                fecha_ingreso=hoy - timedelta(days=random.randint(15, 365 * 4)),
+            ))
 
-        return trabajadores
+        return Trabajador.objects.bulk_create(trabajadores)
 
     # =================================================================
     # 4. CATÁLOGO (con variantes de talla como filas separadas)
     # =================================================================
     def _crear_catalogo(self, bodegas):
-        productos = []  # lista de dicts: {"inventario": obj, "nombre_base": str}
-
-        # Contador global simple: nada de prefijos derivados del nombre (un
-        # producto de una sola palabra como "Alicate" da un prefijo de una
-        # letra y colisiona fácil con otro). RM-0001, RM-0002... no colisiona
-        # nunca y es trivial de verificar contra códigos ya existentes.
-        siguiente_numero = [1]
+        # RM-0001, RM-0002...: nunca colisiona y es fácil de verificar.
         codigos_existentes = set(Inventario.objects.values_list("codigo", flat=True))
+        numero = count(1)
 
         def siguiente_codigo():
             while True:
-                codigo = f"RM-{siguiente_numero[0]:04d}"
-                siguiente_numero[0] += 1
+                codigo = f"RM-{next(numero):04d}"
                 if codigo not in codigos_existentes:
                     codigos_existentes.add(codigo)
                     return codigo
 
+        productos = []
+        objetos = []
         for (nombre, categoria, marca, modelo, unidad, precio, es_devolutivo,
              tallas, _unidades_por_pack, es_critico) in CATALOGO:
-
-            variantes = tallas if tallas else [None]
             alta_rotacion = nombre in NOMBRES_ALTA_ROTACION
             renovacion = nombre in NOMBRES_RENOVACION
 
-            for talla in variantes:
+            for talla in (tallas or [None]):
                 for clave_bodega, bodega in bodegas.items():
                     # Alta rotación -> más stock en Central, poco respaldo en
                     # Reserva. Baja rotación / respaldo -> al revés.
                     if alta_rotacion:
-                        stock_minimo = 20 if clave_bodega == "central" else 10
-                        stock_maximo = 200 if clave_bodega == "central" else 60
+                        minimo, maximo = (20, 200) if clave_bodega == "central" else (10, 60)
                     elif renovacion:
-                        stock_minimo = 8 if clave_bodega == "central" else 15
-                        stock_maximo = 40 if clave_bodega == "central" else 80
+                        minimo, maximo = (8, 40) if clave_bodega == "central" else (15, 80)
                     else:
-                        stock_minimo = 5 if clave_bodega == "central" else 10
-                        stock_maximo = 30 if clave_bodega == "central" else 60
+                        minimo, maximo = (5, 30) if clave_bodega == "central" else (10, 60)
 
-                    stock_actual = random.randint(stock_minimo, stock_maximo)
+                    if nombre in PEDIDO_PENDIENTE and clave_bodega == "central":
+                        # Se piden de a poco (máximo bajo): sin la reposición
+                        # que no ha llegado, se agotan en días.
+                        maximo = 45
 
-                    inventario = Inventario.objects.create(
+                    inventario = Inventario(
                         bodega=bodega,
                         codigo=siguiente_codigo(),
                         nombre=nombre,
@@ -420,9 +457,9 @@ class Command(BaseCommand):
                         modelo=modelo,
                         talla=talla,
                         unidad_medida=unidad,
-                        stock_actual=stock_actual,
-                        stock_minimo=stock_minimo,
-                        stock_maximo=stock_maximo,
+                        stock_actual=random.randint((minimo + maximo) // 2, maximo),
+                        stock_minimo=minimo,
+                        stock_maximo=maximo,
                         precio_unitario=Decimal(str(precio)),
                         ubicacion=f"Rack {categoria[:3].upper()}-{random.randint(1, 9)}",
                         estado=True,
@@ -430,7 +467,7 @@ class Command(BaseCommand):
                         es_activo_critico=es_critico,
                         tiempo_reposicion_dias=14 if clave_bodega == "reserva" else 7,
                     )
-
+                    objetos.append(inventario)
                     productos.append({
                         "inventario": inventario,
                         "nombre_base": nombre,
@@ -440,16 +477,7 @@ class Command(BaseCommand):
                         "es_devolutivo": es_devolutivo,
                     })
 
-        # Al menos 3 productos de alta rotación en Central quedan bajo el
-        # mínimo, para que las alertas tengan algo que mostrar al abrir.
-        candidatos_bajo_minimo = [
-            p for p in productos
-            if p["bodega_clave"] == "central" and p["alta_rotacion"]
-        ]
-        for p in random.sample(candidatos_bajo_minimo, min(4, len(candidatos_bajo_minimo))):
-            inv = p["inventario"]
-            inv.stock_actual = max(0, inv.stock_minimo - random.randint(1, 5))
-            inv.save(update_fields=["stock_actual"])
+        Inventario.objects.bulk_create(objetos, batch_size=200)
 
         # Radios: unidades individuales serializadas (UnidadActivo), no solo
         # una cantidad agregada. [ESTIMADO ~30, confirmar con bodega].
@@ -462,371 +490,310 @@ class Command(BaseCommand):
         radio_central.stock_maximo = CANTIDAD_RADIOS
         radio_central.save(update_fields=["stock_actual", "stock_minimo", "stock_maximo"])
 
-        unidades_radio = [
-            UnidadActivo.objects.create(inventario=radio_central, codigo=f"RADIO-{i:03d}")
+        unidades_radio = UnidadActivo.objects.bulk_create([
+            UnidadActivo(inventario=radio_central, codigo=f"RADIO-{i:03d}")
             for i in range(1, CANTIDAD_RADIOS + 1)
-        ]
+        ])
 
         return {"lista": productos, "unidades_radio": unidades_radio}
 
     # =================================================================
-    # 5. HISTORIAL DE 12 MESES
+    # 5. HISTORIAL (simulado en memoria, insertado en bloque)
     # =================================================================
-    def _elegir_anomalos_por_cargo(self, trabajadores):
-        """2-3 trabajadores por cargo con consumo 3-4x su propio grupo,
-        para que el reporte de turno y el K-Means (que compara solo dentro
-        del mismo cargo) tengan casos reales que marcar para revisar."""
+    def _elegir_inusuales(self, trabajadores):
+        """Un trabajador con consumo inusual en cada uno de los 2 cargos más
+        numerosos: son los grupos donde el K-Means (que compara solo dentro
+        del mismo cargo) tiene pares suficientes para detectarlo."""
         por_cargo = {}
         for t in trabajadores:
             por_cargo.setdefault(t.cargo, []).append(t)
 
-        anomalos = set()
-        for cargo, grupo in por_cargo.items():
-            if len(grupo) < 4:
-                continue
-            elegidos = random.sample(grupo, min(random.randint(2, 3), len(grupo)))
-            anomalos.update(t.id for t in elegidos)
+        grupos = sorted(por_cargo.values(), key=len, reverse=True)[:2]
+        return {random.choice(grupo).id for grupo in grupos if len(grupo) >= 6}
 
-        return anomalos
+    @staticmethod
+    def _momento(dia, hora, minuto=0):
+        return timezone.make_aware(datetime.combine(dia, time(hour=hora, minute=minuto)))
 
     def _hora_para_turno(self, turno):
-        if turno == "dia":
-            return random.randint(8, 18)
-        return random.choice(list(range(20, 24)) + list(range(0, 7)))
-
-    @transaction.atomic
-    def _crear_entrega(self, fecha_hora, trabajador, bodega, usuario, items):
-        """items: lista de (inventario, cantidad, unidad_activo_o_None).
-        Descuenta stock, crea EntregaEPP/DetalleEntregaEPP/MovimientoInventario
-        y retro-fecha (auto_now_add ignora cualquier fecha pasada al crear).
-        Si NINGÚN item tiene stock disponible, no crea nada (evita cabeceras
-        de entrega "fantasma" sin ningún detalle)."""
-        items_disponibles = [(inv, cant, ua) for inv, cant, ua in items if inv.stock_actual >= cant]
-        if not items_disponibles:
-            return None
-
-        entrega = EntregaEPP.objects.create(
-            trabajador=trabajador,
-            usuario=usuario,
-            bodega=bodega,
-            observacion="",
-            firma_base64="",
-            estado="COMPLETADA",
-        )
-
-        turno = EntregaEPP.calcular_turno(fecha_hora)
-        EntregaEPP.objects.filter(pk=entrega.pk).update(fecha_entrega=fecha_hora, turno=turno)
-
-        for inventario, cantidad, unidad_activo in items_disponibles:
-            stock_anterior = inventario.stock_actual
-            inventario.stock_actual = stock_anterior - cantidad
-            inventario.save(update_fields=["stock_actual"])
-
-            fecha_vencimiento = None
-            if inventario.vida_util_dias:
-                fecha_vencimiento = fecha_hora.date() + timedelta(days=inventario.vida_util_dias)
-
-            DetalleEntregaEPP.objects.create(
-                entrega=entrega,
-                inventario=inventario,
-                cantidad=cantidad,
-                talla=inventario.talla or "",
-                precio_unitario=inventario.precio_unitario,
-                fecha_vencimiento_vida_util=fecha_vencimiento,
-                unidad_activo=unidad_activo,
-            )
-
-            if unidad_activo:
-                unidad_activo.estado = "ENTREGADA"
-                unidad_activo.save(update_fields=["estado"])
-
-            movimiento = MovimientoInventario.objects.create(
-                usuario=usuario,
-                bodega=bodega,
-                inventario=inventario,
-                entrega=entrega,
-                trabajador=trabajador,
-                tipo_movimiento="SALIDA",
-                cantidad=cantidad,
-                stock_anterior=stock_anterior,
-                stock_actual=inventario.stock_actual,
-                observacion=f"Entrega pañol #{entrega.id}",
-            )
-            MovimientoInventario.objects.filter(pk=movimiento.pk).update(fecha=fecha_hora)
-
-        return entrega
+        if turno == "noche":
+            return random.choice(list(range(20, 24)) + list(range(0, 7)))
+        return random.randint(8, 18)
 
     def _crear_historial(self, usuarios, bodegas, trabajadores, productos):
-        self.stdout.write("Generando 12 meses de historial (puede tardar unos minutos)...")
+        self.stdout.write(f"Simulando {DIAS_HISTORIAL} días de operación del pañol...")
 
-        bodeguer_usuarios = usuarios["Bodeguero"] + usuarios["Encargado de Bodega"]
-        trabajadores_activos = [t for t in trabajadores if t.activo]
-        if not trabajadores_activos:
-            return
+        bodegueros = usuarios["Bodeguero"] + usuarios["Encargado de Bodega"]
+        encargados = usuarios["Encargado de Bodega"]
+        activos = [t for t in trabajadores if t.activo]
+        inusuales = self._elegir_inusuales(activos)
 
-        anomalos = self._elegir_anomalos_por_cargo(trabajadores_activos)
+        central = [p for p in productos["lista"] if p["bodega_clave"] == "central"]
+        alta_rotacion = [p["inventario"] for p in central if p["alta_rotacion"] and not p["es_devolutivo"]]
+        renovacion = [p for p in central if p["renovacion"]]
+        estacionales = [p["inventario"] for p in central if p["nombre_base"] in ("Bloqueador solar", "Repelente de insectos")]
+        baja_rotacion = [
+            p["inventario"] for p in central
+            if not (p["alta_rotacion"] or p["renovacion"] or p["es_devolutivo"]) and p["inventario"] not in estacionales
+        ]
+        radio = next(p["inventario"] for p in central if p["nombre_base"] == "Radio análoga portátil")
+        reponibles = [p["inventario"] for p in productos["lista"] if not p["es_devolutivo"]]
+        pares_traspaso = self._pares_traspaso(productos["lista"])
 
-        productos_central = [p for p in productos["lista"] if p["bodega_clave"] == "central"]
-        alta_rotacion = [p for p in productos_central if p["alta_rotacion"] and not p["es_devolutivo"]]
-        renovacion = [p for p in productos_central if p["renovacion"]]
-        radios = [p for p in productos_central if p["nombre_base"] == "Radio análoga portátil"]
-        catalogo_general = [p for p in productos_central if not p["es_devolutivo"]]
-
-        unidades_radio_disponibles = list(productos["unidades_radio"])
-        renovacion_reciente = {}  # (trabajador_id, nombre_producto) -> fecha última entrega
-
-        hoy = timezone.localdate()
+        ahora = timezone.localtime()
+        hoy = ahora.date()
         inicio = hoy - timedelta(days=DIAS_HISTORIAL)
-        fecha = inicio
+        inicio_sin_reposicion = hoy - timedelta(days=DIAS_SIN_REPOSICION)
 
-        traspasos_generados = 0
+        stock = {p["inventario"].id: Decimal(p["inventario"].stock_actual) for p in productos["lista"]}
+        radios_disponibles = list(productos["unidades_radio"])
+        ultima_renovacion = {}
 
-        while fecha <= hoy:
-            es_finde = fecha.weekday() == 6  # domingo: actividad mínima
-            num_entregas_dia = random.randint(4, 10) if es_finde else random.randint(18, 38)
+        entregas, detalles, movimientos = [], [], []
+        eventos = []
+        secuencia = count()
 
-            for _ in range(num_entregas_dia):
-                trabajador = random.choice(trabajadores_activos)
+        def programar(momento, tipo, datos=None):
+            heapq.heappush(eventos, (momento, next(secuencia), tipo, datos))
 
-                # Los trabajadores desvinculados después de esta fecha no
-                # pueden recibir entregas "futuras" respecto de su egreso.
-                if trabajador.fecha_ingreso and trabajador.fecha_ingreso > fecha:
-                    continue
+        def mover(inventario, tipo, cantidad, momento, usuario, detalle_texto, trabajador=None, entrega=None):
+            antes = stock[inventario.id]
+            despues = antes - cantidad if tipo == "SALIDA" else antes + cantidad
+            stock[inventario.id] = despues
+            movimiento = MovimientoInventario(
+                usuario=usuario, bodega=inventario.bodega, inventario=inventario,
+                trabajador=trabajador, entrega=entrega, tipo_movimiento=tipo,
+                cantidad=cantidad, stock_anterior=antes, stock_actual=despues,
+                observacion=detalle_texto,
+            )
+            movimiento._fecha = momento
+            movimientos.append(movimiento)
 
-                es_anomalo = trabajador.id in anomalos
-                hora = self._hora_para_turno(trabajador.turno or "dia")
-                fecha_hora = timezone.make_aware(
-                    timezone.datetime.combine(fecha, timezone.datetime.min.time().replace(hour=hora))
+        def registrar_entrega(trabajador, momento):
+            inusual = trabajador.id in inusuales
+            pedidos = []
+
+            # Consumibles de alta rotación (más cantidad y variedad si el
+            # trabajador tiene consumo inusual).
+            for inventario in random.sample(alta_rotacion, random.randint(3, 4) if inusual else random.randint(1, 2)):
+                pedidos.append((inventario, Decimal(random.randint(1, 2) * (2 if inusual else 1)), None))
+
+            if momento.month in MESES_VERANO and estacionales and random.random() < 0.25:
+                pedidos.append((random.choice(estacionales), Decimal("1"), None))
+
+            # Herramientas, izaje, oficina: salen de vez en cuando.
+            if baja_rotacion and random.random() < 0.12:
+                pedidos.append((random.choice(baja_rotacion), Decimal("1"), None))
+
+            # EPP de renovación: cada varios meses por trabajador, no a diario.
+            if renovacion and random.random() < 0.03:
+                elegido = random.choice(renovacion)
+                clave = (trabajador.id, elegido["nombre_base"])
+                ultima = ultima_renovacion.get(clave)
+                if not ultima or (momento.date() - ultima).days > 90:
+                    pedidos.append((elegido["inventario"], Decimal("1"), None))
+                    ultima_renovacion[clave] = momento.date()
+
+            # Radio: se presta al inicio del turno y debería volver al final.
+            if radios_disponibles and random.random() < PROBABILIDAD_RETIRA_RADIO:
+                pedidos.append((radio, Decimal("1"), radios_disponibles.pop()))
+
+            # Sin stock no hay entrega de ese ítem (quiebre real).
+            pedidos = [(inv, cant, unidad) for inv, cant, unidad in pedidos if stock[inv.id] >= cant]
+            if not pedidos:
+                return
+
+            usuario = random.choice(bodegueros)
+            canal = "KIOSCO" if random.random() < 0.6 else "BODEGA"
+            entrega = EntregaEPP(
+                trabajador=trabajador, usuario=usuario, bodega=bodegas["central"],
+                observacion="", firma_base64="", estado="COMPLETADA", canal=canal,
+                turno=EntregaEPP.calcular_turno(momento),
+            )
+            entrega._fecha = momento
+            entregas.append(entrega)
+
+            for inventario, cantidad, unidad in pedidos:
+                vencimiento = None
+                if inventario.vida_util_dias:
+                    vencimiento = momento.date() + timedelta(days=inventario.vida_util_dias)
+
+                detalle = DetalleEntregaEPP(
+                    entrega=entrega, inventario=inventario, cantidad=cantidad,
+                    talla=inventario.talla or "", precio_unitario=inventario.precio_unitario,
+                    fecha_vencimiento_vida_util=vencimiento, unidad_activo=unidad,
+                )
+                detalles.append(detalle)
+                mover(
+                    inventario, "SALIDA", cantidad, momento, usuario,
+                    f"Entrega de EPP ({'kiosco' if canal == 'KIOSCO' else 'bodeguero'})",
+                    trabajador=trabajador, entrega=entrega,
                 )
 
-                items = []
+                if unidad:
+                    unidad.estado = "ENTREGADA"
+                    sorteo = random.random()
+                    if sorteo < 0.80:
+                        devolucion = momento + timedelta(hours=random.randint(8, 12))
+                    elif sorteo < 0.90 or momento.date() < hoy - timedelta(days=10):
+                        # Devuelta con atraso (las antiguas siempre terminan volviendo).
+                        devolucion = momento + timedelta(days=random.randint(1, 5), hours=random.randint(0, 8))
+                    else:
+                        devolucion = None  # sigue pendiente: aparece en "Equipos sin devolver"
+                    if devolucion:
+                        programar(devolucion, "devolucion", (detalle, unidad, usuario, trabajador, entrega))
 
-                # Consumibles de alta rotación: a diario, más si es un caso
-                # anómalo (retira muy por sobre el promedio de su cargo).
-                num_consumibles = random.randint(1, 3)
-                if es_anomalo:
-                    num_consumibles *= random.randint(3, 4)
+        def registrar_devolucion(datos, momento):
+            detalle, unidad, usuario, trabajador, entrega = datos
+            estado = "OPERATIVA" if random.random() < 0.95 else "DAÑADA"
+            detalle.devuelto = True
+            detalle.fecha_devolucion = momento
+            detalle.estado_devolucion = estado
+            mover(radio, "DEVOLUCION", detalle.cantidad, momento, usuario,
+                  f"Devolución de {unidad.codigo} ({estado})", trabajador=trabajador, entrega=entrega)
+            if estado == "DAÑADA":
+                unidad.estado = "EN_MANTENCION"
+                programar(momento + timedelta(days=7), "fin_mantencion", unidad)
+            else:
+                unidad.estado = "DISPONIBLE"
+                radios_disponibles.append(unidad)
 
-                for producto in random.sample(alta_rotacion, min(num_consumibles, len(alta_rotacion))):
-                    cantidad = Decimal(random.randint(1, 2))
-                    items.append((producto["inventario"], cantidad, None))
-
-                # Estacionalidad: bloqueador/repelente en meses de verano.
-                if fecha.month in MESES_VERANO and random.random() < 0.25:
-                    estacionales = [
-                        p for p in catalogo_general
-                        if p["nombre_base"] in ("Bloqueador solar", "Repelente de insectos")
-                    ]
-                    if estacionales:
-                        producto = random.choice(estacionales)
-                        items.append((producto["inventario"], Decimal("1"), None))
-
-                # EPP de renovación: cada varios meses por trabajador, no a diario.
-                if renovacion and random.random() < 0.03:
-                    producto = random.choice(renovacion)
-                    clave = (trabajador.id, producto["nombre_base"])
-                    ultima = renovacion_reciente.get(clave)
-                    if not ultima or (fecha - ultima).days > 90:
-                        items.append((producto["inventario"], Decimal("1"), None))
-                        renovacion_reciente[clave] = fecha
-
-                # Radios: se entregan al inicio de turno y deberían volver al
-                # final. Se deja un % sin devolver a propósito.
-                if radios and unidades_radio_disponibles and random.random() < 0.06:
-                    unidad = unidades_radio_disponibles.pop()
-                    producto = radios[0]
-                    items.append((producto["inventario"], Decimal("1"), unidad))
-
-                if not items:
+        def reponer(momento):
+            usuario = random.choice(bodegueros)
+            for inventario in reponibles:
+                if stock[inventario.id] >= inventario.stock_minimo:
                     continue
+                if inventario.nombre in PEDIDO_PENDIENTE and momento.date() >= inicio_sin_reposicion:
+                    continue  # el pedido al proveedor todavía no llega
+                cantidad = Decimal(inventario.stock_maximo) - stock[inventario.id]
+                if cantidad > 0:
+                    mover(inventario, "INGRESO", cantidad, momento, usuario, "Reposición de stock (compra a proveedor)")
 
-                usuario_atiende = random.choice(bodeguer_usuarios)
-                entrega = self._crear_entrega(fecha_hora, trabajador, bodegas["central"], usuario_atiende, items)
+        def traspasar(momento):
+            candidatos = [(o, d) for o, d in pares_traspaso if stock[o.id] > 5]
+            if not candidatos:
+                return
+            origen, destino = random.choice(candidatos)
+            cantidad = Decimal(min(int(stock[origen.id]) // 2, random.randint(5, 20)) or 1)
 
-                if entrega is None:
-                    continue  # sin stock disponible ese día para ningún ítem elegido
-
-                # Radios devueltos al final del mismo turno (~85% de las
-                # veces); el resto queda pendiente para el reporte de
-                # préstamos pendientes. Replica lo que hace
-                # EntregaService.registrar_devolucion: sube el stock de
-                # vuelta y deja un MovimientoInventario DEVOLUCION.
-                for detalle in entrega.detalles.select_related("inventario").filter(unidad_activo__isnull=False):
-                    if random.random() >= 0.85:
-                        continue
-
-                    fin_turno = fecha_hora + timedelta(hours=random.randint(8, 12))
-                    estado_devolucion = "OPERATIVA" if random.random() < 0.95 else "DAÑADA"
-
-                    detalle.devuelto = True
-                    detalle.fecha_devolucion = fin_turno
-                    detalle.estado_devolucion = estado_devolucion
-                    detalle.save(update_fields=["devuelto", "fecha_devolucion", "estado_devolucion"])
-
-                    detalle.unidad_activo.estado = "EN_MANTENCION" if estado_devolucion == "DAÑADA" else "DISPONIBLE"
-                    detalle.unidad_activo.save(update_fields=["estado"])
-                    if detalle.unidad_activo.estado == "DISPONIBLE":
-                        unidades_radio_disponibles.append(detalle.unidad_activo)
-
-                    producto_radio = detalle.inventario
-                    stock_anterior = producto_radio.stock_actual
-                    producto_radio.stock_actual = stock_anterior + detalle.cantidad
-                    producto_radio.save(update_fields=["stock_actual"])
-                    for p in radios:
-                        if p["inventario"].pk == producto_radio.pk:
-                            p["inventario"].stock_actual = producto_radio.stock_actual
-
-                    mov_devolucion = MovimientoInventario.objects.create(
-                        usuario=usuario_atiende,
-                        bodega=bodegas["central"],
-                        inventario=producto_radio,
-                        entrega=entrega,
-                        trabajador=trabajador,
-                        tipo_movimiento="DEVOLUCION",
-                        cantidad=detalle.cantidad,
-                        stock_anterior=stock_anterior,
-                        stock_actual=producto_radio.stock_actual,
-                        observacion=f"Devolución activo diario ({estado_devolucion}) - Entrega #{entrega.id}",
-                    )
-                    MovimientoInventario.objects.filter(pk=mov_devolucion.pk).update(fecha=fin_turno)
-
-            # Traspaso ocasional Reserva -> Central (~2 veces por mes).
-            if fecha.day in (5, 20) and productos["lista"]:
-                self._generar_traspaso(fecha, bodegas, usuarios, productos)
-                traspasos_generados += 1
-
-            # Reposición semanal: simula las compras normales del pañol.
-            # Sin esto, los consumibles de alta rotación se agotan a los
-            # pocos meses y el resto del año queda sin historial real.
-            if fecha.weekday() == 0:
-                self._reponer_stock_bajo(fecha, bodeguer_usuarios, productos_central)
-
-            fecha += timedelta(days=1)
-
-        self.stdout.write(f"  Traspasos generados: {traspasos_generados}")
-
-    def _reponer_stock_bajo(self, fecha, usuarios_bodega, productos_central):
-        """Simula la compra/reposición normal del pañol: todo producto de
-        Central bajo su stock mínimo se repone a su stock máximo, vía un
-        INGRESO real (no un traspaso). Sin esto, los consumibles de alta
-        rotación se agotan a los pocos meses de simulación y el resto del
-        historial anual queda vacío, lo que no refleja cómo opera un pañol
-        real (siempre se resurte antes de quedar en cero)."""
-        usuario = random.choice(usuarios_bodega)
-        fecha_hora = timezone.make_aware(
-            timezone.datetime.combine(fecha, timezone.datetime.min.time().replace(hour=9))
-        )
-
-        for p in productos_central:
-            inventario = Inventario.objects.get(pk=p["inventario"].pk)
-            if inventario.stock_actual >= inventario.stock_minimo:
-                continue
-
-            stock_anterior = inventario.stock_actual
-            cantidad = inventario.stock_maximo - stock_anterior
-            if cantidad <= 0:
-                continue
-
-            inventario.stock_actual = inventario.stock_maximo
-            inventario.save(update_fields=["stock_actual"])
-            p["inventario"].stock_actual = inventario.stock_actual  # mantiene el caché en memoria al día
-
-            movimiento = MovimientoInventario.objects.create(
-                usuario=usuario,
-                bodega=inventario.bodega,
-                inventario=inventario,
-                tipo_movimiento="INGRESO",
-                cantidad=cantidad,
-                stock_anterior=stock_anterior,
-                stock_actual=inventario.stock_actual,
-                observacion="Reposición de stock (compra a proveedor).",
+            antes_origen, antes_destino = stock[origen.id], stock[destino.id]
+            stock[origen.id] -= cantidad
+            stock[destino.id] += cantidad
+            movimiento = MovimientoInventario(
+                usuario=random.choice(encargados), bodega=bodegas["reserva"], inventario=origen,
+                tipo_movimiento="TRASPASO", cantidad=cantidad,
+                stock_anterior=antes_origen, stock_actual=stock[origen.id],
+                bodega_destino=bodegas["central"], inventario_destino=destino,
+                stock_anterior_destino=antes_destino, stock_actual_destino=stock[destino.id],
+                observacion=f"Traspaso {bodegas['reserva'].nombre} -> {bodegas['central'].nombre}",
             )
-            MovimientoInventario.objects.filter(pk=movimiento.pk).update(fecha=fecha_hora)
+            movimiento._fecha = momento
+            movimientos.append(movimiento)
 
-    def _generar_traspaso(self, fecha, bodegas, usuarios, productos):
-        pares_por_nombre = {}
-        for p in productos["lista"]:
-            pares_por_nombre.setdefault(p["nombre_base"], {})[p["bodega_clave"]] = p["inventario"]
+        dia = inicio
+        while dia <= hoy:
+            if dia.weekday() == 0:
+                programar(self._momento(dia, 9), "reposicion")
+            if dia.day in (5, 20):
+                programar(self._momento(dia, 10), "traspaso")
 
-        candidatos = [
-            par for par in pares_por_nombre.values()
-            if "reserva" in par and "central" in par and par["reserva"].stock_actual > 5
-        ]
-        if not candidatos:
-            return
+            rango = ENTREGAS_DOMINGO if dia.weekday() == 6 else ENTREGAS_DIA_HABIL
+            for _ in range(random.randint(*rango)):
+                trabajador = random.choice(activos)
+                if trabajador.fecha_ingreso and trabajador.fecha_ingreso > dia:
+                    continue
+                momento = self._momento(dia, self._hora_para_turno(trabajador.turno), random.randint(0, 59))
+                programar(momento, "entrega", trabajador)
 
-        par = random.choice(candidatos)
-        # OJO: origen/destino se recargan frescos desde la BD (no son el
-        # mismo objeto Python que par["reserva"]/par["central"]), así que
-        # hay que sincronizar el caché en memoria compartido al final o las
-        # entregas futuras del bucle principal verían un stock desactualizado.
-        origen = Inventario.objects.get(pk=par["reserva"].pk)
-        destino = Inventario.objects.get(pk=par["central"].pk)
-        cantidad = Decimal(min(int(origen.stock_actual) // 2, random.randint(5, 20)) or 1)
+            # Se procesa todo lo del día en orden cronológico; lo que cae
+            # después de "ahora" no ocurrió todavía (ej. una radio que se
+            # devuelve al final del turno de hoy sigue pendiente).
+            fin_dia = self._momento(dia + timedelta(days=1), 0)
+            while eventos and eventos[0][0] < fin_dia:
+                momento, _, tipo, datos = heapq.heappop(eventos)
+                if momento > ahora:
+                    continue
+                if tipo == "entrega":
+                    registrar_entrega(datos, momento)
+                elif tipo == "devolucion":
+                    registrar_devolucion(datos, momento)
+                elif tipo == "fin_mantencion":
+                    datos.estado = "DISPONIBLE"
+                    radios_disponibles.append(datos)
+                elif tipo == "reposicion":
+                    reponer(momento)
+                elif tipo == "traspaso":
+                    traspasar(momento)
 
-        if origen.stock_actual < cantidad:
-            return
+            dia += timedelta(days=1)
 
-        stock_anterior_origen = origen.stock_actual
-        stock_anterior_destino = destino.stock_actual
-        origen.stock_actual -= cantidad
-        destino.stock_actual += cantidad
-        origen.save(update_fields=["stock_actual"])
-        destino.save(update_fields=["stock_actual"])
+        self._guardar_historial(entregas, detalles, movimientos, productos, stock)
 
-        par["reserva"].stock_actual = origen.stock_actual
-        par["central"].stock_actual = destino.stock_actual
+    @staticmethod
+    def _pares_traspaso(lista):
+        por_clave = {}
+        for p in lista:
+            if p["es_devolutivo"]:
+                continue
+            inventario = p["inventario"]
+            por_clave.setdefault((p["nombre_base"], inventario.talla), {})[p["bodega_clave"]] = inventario
+        return [(par["reserva"], par["central"]) for par in por_clave.values() if "reserva" in par and "central" in par]
 
-        usuario = random.choice(usuarios["Encargado de Bodega"])
-        fecha_hora = timezone.make_aware(timezone.datetime.combine(fecha, timezone.datetime.min.time().replace(hour=10)))
+    def _guardar_historial(self, entregas, detalles, movimientos, productos, stock):
+        """Inserta todo en bloque. fecha_entrega y fecha son auto_now_add
+        (bulk_create las pisa con la hora actual), así que se restauran con
+        bulk_update, que no pasa por pre_save."""
+        EntregaEPP.objects.bulk_create(entregas, batch_size=500)
+        for entrega in entregas:
+            entrega.fecha_entrega = entrega._fecha
+        EntregaEPP.objects.bulk_update(entregas, ["fecha_entrega"], batch_size=500)
 
-        movimiento = MovimientoInventario.objects.create(
-            usuario=usuario,
-            bodega=bodegas["reserva"],
-            inventario=origen,
-            tipo_movimiento="TRASPASO",
-            cantidad=cantidad,
-            stock_anterior=stock_anterior_origen,
-            stock_actual=origen.stock_actual,
-            bodega_destino=bodegas["central"],
-            inventario_destino=destino,
-            stock_anterior_destino=stock_anterior_destino,
-            stock_actual_destino=destino.stock_actual,
-            observacion=f"Traspaso {bodegas['reserva'].nombre} -> {bodegas['central'].nombre}",
-        )
-        MovimientoInventario.objects.filter(pk=movimiento.pk).update(fecha=fecha_hora)
+        DetalleEntregaEPP.objects.bulk_create(detalles, batch_size=500)
+
+        MovimientoInventario.objects.bulk_create(movimientos, batch_size=500)
+        for movimiento in movimientos:
+            movimiento.fecha = movimiento._fecha
+        MovimientoInventario.objects.bulk_update(movimientos, ["fecha"], batch_size=500)
+
+        UnidadActivo.objects.bulk_update(productos["unidades_radio"], ["estado"])
+
+        inventarios = [p["inventario"] for p in productos["lista"]]
+        for inventario in inventarios:
+            inventario.stock_actual = stock[inventario.id]
+        Inventario.objects.bulk_update(inventarios, ["stock_actual"], batch_size=200)
+
+        self.stdout.write(f"  {len(entregas)} entregas, {len(movimientos)} movimientos.")
 
     # =================================================================
-    # 6. AUDITORÍAS (al menos 4: 2 por bodega, con diferencias reales)
+    # 6. AUDITORÍAS (2 por bodega: una cerrada con diferencias reales y
+    #    otra en curso)
     # =================================================================
     def _crear_auditorias(self, usuarios, bodegas, productos):
         encargado = usuarios["Encargado de Bodega"][0]
 
         for clave_bodega, bodega in bodegas.items():
             productos_bodega = [
-                p["inventario"] for p in productos["lista"] if p["bodega_clave"] == clave_bodega
+                p["inventario"] for p in productos["lista"]
+                if p["bodega_clave"] == clave_bodega and not p["es_devolutivo"]
             ]
             if len(productos_bodega) < 5:
                 continue
 
-            # Auditoría 1: cerrada y ajustada, con diferencias reales.
             auditoria = AuditoriaInventarioService.crear_auditoria(
                 bodega_id=bodega.id, usuario=encargado,
                 observacion="Conteo cíclico mensual.",
             )
 
-            muestra = random.sample(productos_bodega, min(10, len(productos_bodega)))
-            for producto in muestra:
+            for producto in random.sample(productos_bodega, min(10, len(productos_bodega))):
                 sistema = producto.stock_actual
                 # La mayoría cuadra; algunos tienen faltante real (nunca
                 # sobrante artificial: son las diferencias que sustentan el
                 # argumento de pérdida de insumos ante la mandante).
-                if random.random() < 0.35:
-                    diferencia = -Decimal(random.randint(1, max(1, int(sistema) // 5) or 1))
+                if random.random() < 0.35 and sistema > 0:
+                    diferencia = -Decimal(random.randint(1, max(1, int(sistema) // 5)))
                 else:
                     diferencia = Decimal("0")
 
-                fisico = max(Decimal("0"), sistema + diferencia)
                 motivo = "" if diferencia == 0 else random.choice([
                     "Posible extravío durante el turno.",
                     "Diferencia detectada en el conteo físico, sin explicación registrada.",
@@ -835,7 +802,7 @@ class Command(BaseCommand):
 
                 AuditoriaInventarioService.registrar_conteo(
                     auditoria_id=auditoria.id, inventario_id=producto.id,
-                    stock_fisico=fisico, observacion=motivo,
+                    stock_fisico=max(Decimal("0"), sistema + diferencia), observacion=motivo,
                 )
 
             AuditoriaInventarioService.cerrar_auditoria(auditoria.id)
@@ -845,10 +812,8 @@ class Command(BaseCommand):
                     firma_autorizacion="firma_digital_seed_base64",
                 )
             except ValidationError:
-                pass  # si no había descuadre crítico, ajustar_stock igual corre sin firma
+                pass  # sin descuadre crítico no hace falta ajustar
 
-            # Auditoría 2: abierta (conteo cíclico en curso), para que no
-            # todas las auditorías del historial estén ya cerradas.
             AuditoriaInventarioService.crear_auditoria(
                 bodega_id=bodega.id, usuario=encargado,
                 observacion="Conteo cíclico en curso.",
