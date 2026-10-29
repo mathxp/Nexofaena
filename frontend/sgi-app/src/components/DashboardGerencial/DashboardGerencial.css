@@ -587,59 +587,97 @@
     .pg-dos-columnas { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
 
-@media (max-width: 768px) {
-    .pg { padding: 20px 16px 40px; }
-    .pg-titulo { font-size: 1.5rem; }
-    .pg-acciones { width: 100%; }
-    .pg-acciones .pg-boton { flex: 1; }
-    .pg-seccion { padding: 18px; }
-    .pg-seccion-cabecera { flex-direction: column; gap: 10px; }
-    .pg-niveles { grid-template-columns: minmax(0, 1fr); }
-    .pg-buscador { flex-wrap: wrap; padding: 10px; }
-    .pg-buscador-icono { display: none; }
-    .pg-buscador .pg-boton { width: 100%; }
+/* ---------- LISTAS COMPACTAS (solo celular) ---------- */
+.pg-solo-movil { display: none !important; }
 
-    /* Tablas -> tarjetas apiladas en celular */
-    .pg-tabla-contenedor { border: none; }
-    .pg-tabla thead { display: none; }
-
-    .pg-tabla, .pg-tabla tbody, .pg-tabla tr, .pg-tabla td {
-        display: block;
-        width: 100%;
-    }
-
-    .pg-tabla tbody tr {
-        margin-bottom: 10px;
-        border: 1px solid var(--pg-borde);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    .pg-tabla td,
-    .pg-tabla td.pg-der {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 10px 14px;
-        text-align: right;
-    }
-
-    .pg-tabla td::before {
-        content: attr(data-label);
-        color: var(--text-faint);
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        text-align: left;
-    }
-
-    .pg-tabla tbody tr:last-child td { border-bottom: 1px solid var(--pg-borde); }
-    .pg-tabla tbody tr td:last-child { border-bottom: none; }
+.pg-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-radius: 12px;
+    border: 1px solid var(--pg-borde);
+    overflow: hidden;
 }
 
-@media (max-width: 480px) {
-    .pg-indicadores { grid-template-columns: minmax(0, 1fr); }
-    .pg-persona { flex-wrap: wrap; }
+.pg-lista-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--pg-borde);
+}
+
+.pg-lista-item:last-child { border-bottom: none; }
+
+.pg-lista-linea {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.92rem;
+}
+
+.pg-lista-detalle {
+    margin-top: 4px;
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.pg-lista-detalle strong { color: var(--text); font-weight: 600; }
+
+@media (max-width: 768px) {
+    .pg-solo-escritorio { display: none !important; }
+    .pg-solo-movil { display: revert !important; }
+
+    .pg { padding: 16px 14px 32px; }
+
+    /* Encabezado */
+    .pg-encabezado { gap: 12px; margin-bottom: 16px; }
+    .pg-titulo { font-size: 1.4rem; margin-bottom: 4px; }
+    .pg-subtitulo { font-size: 0.85rem; }
+    .pg-acciones { width: 100%; }
+    .pg-acciones .pg-boton { flex: 1; height: 38px; font-size: 0.82rem; }
+
+    /* Resumen en 2x2: el color del ícono ya dice si hay que actuar */
+    .pg-indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .pg-indicador { padding: 14px; border-radius: 12px; }
+    .pg-indicador-cabecera { margin-bottom: 10px; }
+    .pg-indicador .pg-pill { display: none; }
+    .pg-icono { width: 30px; height: 30px; font-size: 0.8rem; border-radius: 8px; }
+    .pg-indicador-titulo { font-size: 0.75rem; line-height: 1.3; min-height: 2.6em; }
+    .pg-indicador-valor { font-size: 1.3rem; min-height: 0; margin: 4px 0 0; }
+    .pg-indicador-ayuda { display: none; }
+
+    /* Buscador en una línea */
+    .pg-buscador { padding: 4px 4px 4px 14px; margin-bottom: 14px; border-radius: 12px; }
+    .pg-buscador-icono { display: none; }
+    .pg-buscador-input { height: 38px; font-size: 0.9rem; }
+    .pg-buscador-boton { width: 38px; height: 38px; padding: 0; flex-shrink: 0; }
+    .pg-resultados { grid-template-columns: minmax(0, 1fr); margin-top: -4px; }
+
+    /* Secciones */
+    .pg-seccion { padding: 16px; margin-bottom: 14px; border-radius: 14px; }
+    .pg-seccion-cabecera { flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .pg-seccion-cabecera h2 { font-size: 1rem; }
+    .pg-seccion-cabecera p { font-size: 0.85rem; }
+    .pg-contador { padding: 3px 10px; font-size: 0.75rem; }
+    .pg-nota { margin-top: 14px; padding-top: 10px; font-size: 0.72rem; align-items: flex-start; }
+    .pg-nota svg { margin-top: 2px; }
+    .pg-vacio { padding: 14px; font-size: 0.85rem; }
+
+    .pg-grafico { height: 180px; }
+    .pg-ranking { margin-top: 12px; }
+    .pg-ranking li { font-size: 0.85rem; }
+
+    .pg-persona { padding: 12px; gap: 12px; align-items: flex-start; }
+    .pg-avatar { width: 34px; height: 34px; font-size: 0.75rem; }
+    .pg-persona-detalle { font-size: 0.8rem; }
+
+    .pg-niveles { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .pg-nivel { padding: 12px 14px; }
+    .pg-nivel-valor { font-size: 1.1rem; margin: 2px 0 8px; }
+    .pg-nivel-detalle { margin-top: 6px; font-size: 0.75rem; }
+    .pg-subtitulo-seccion { margin: 18px 0 10px; font-size: 0.9rem; }
+}
+
+@media (max-width: 360px) {
+    .pg-indicador-valor { font-size: 1.1rem; }
 }

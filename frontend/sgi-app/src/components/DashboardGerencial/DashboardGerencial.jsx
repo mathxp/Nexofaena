@@ -460,12 +460,18 @@ const DashboardGerencial = () => {
         <input
           type="text"
           className="pg-buscador-input"
-          placeholder="Busca un producto: cascos, guantes, lentes..."
+          placeholder="Busca un producto (cascos, guantes…)"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />
-        <button type="submit" className="pg-boton pg-boton-primario" disabled={busquedaLoading || !busqueda.trim()}>
-          {busquedaLoading ? 'Buscando…' : 'Buscar'}
+        <button
+          type="submit"
+          className="pg-boton pg-boton-primario pg-buscador-boton"
+          disabled={busquedaLoading || !busqueda.trim()}
+          aria-label="Buscar"
+        >
+          <FaSearch className="pg-solo-movil" />
+          <span className="pg-solo-escritorio">{busquedaLoading ? 'Buscando…' : 'Buscar'}</span>
         </button>
       </form>
 
@@ -508,7 +514,26 @@ const DashboardGerencial = () => {
         {recomendaciones.length === 0 ? (
           <Vacio>Todo en orden: no hay que comprar nada por ahora.</Vacio>
         ) : (
-          <div className="pg-tabla-contenedor">
+          <>
+          {/* En celular, cada compra en dos líneas en vez de una tarjeta de 5 filas. */}
+          <ul className="pg-lista pg-solo-movil">
+            {recomendaciones.slice(0, 8).map((r) => {
+              const urgencia = textoUrgencia(r.probabilidad_quiebre);
+              return (
+                <li key={r.inventario_id} className="pg-lista-item">
+                  <div className="pg-lista-linea">
+                    <span className="pg-fuerte">{r.producto_nombre}</span>
+                    <span className={`pg-pill ${urgencia.clase}`}><span className="pg-punto" />{urgencia.texto}</span>
+                  </div>
+                  <div className="pg-lista-detalle">
+                    Pedir <strong className="pg-num">{r.cantidad_sugerida} un.</strong> antes del{' '}
+                    <strong className="pg-num">{formatearFecha(r.fecha_sugerida_pedido)}</strong> · {r.bodega_nombre}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="pg-tabla-contenedor pg-solo-escritorio">
             <table className="pg-tabla">
               <thead>
                 <tr>
@@ -537,6 +562,7 @@ const DashboardGerencial = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <NotaCalculo>Regresión Logística con los días de stock disponibles y el tiempo de entrega del proveedor.</NotaCalculo>
@@ -661,7 +687,24 @@ const DashboardGerencial = () => {
         {capitalInmovilizado.items.length === 0 ? (
           <Vacio>Sin exceso de stock.</Vacio>
         ) : (
-          <div className="pg-tabla-contenedor">
+          <>
+          <ul className="pg-lista pg-solo-movil">
+            {capitalInmovilizado.items.slice(0, 6).map((c) => (
+              <li key={c.inventario_id} className="pg-lista-item">
+                <div className="pg-lista-linea">
+                  <span className="pg-fuerte">{c.producto_nombre}</span>
+                  <span className="pg-num pg-fuerte">{formatearCLP(c.capital_inmovilizado_clp)}</span>
+                </div>
+                <div className="pg-lista-detalle">
+                  {c.dias_cobertura_estimados
+                    ? <>Alcanza para <strong className="pg-num">{Math.round(c.dias_cobertura_estimados / 30)} meses</strong></>
+                    : 'Sin consumo reciente'}
+                  {' · '}{c.bodega_nombre}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="pg-tabla-contenedor pg-solo-escritorio">
             <table className="pg-tabla">
               <thead>
                 <tr>
@@ -685,6 +728,7 @@ const DashboardGerencial = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <NotaCalculo>K-Means clasifica el catálogo por precio y rotación (clasificación ABC).</NotaCalculo>

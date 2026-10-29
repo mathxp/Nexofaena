@@ -21,12 +21,16 @@ ICONOS_POR_TIPO = {
 # (setMyCommands). Vive aquí, junto al resto del transporte, para que quede
 # en un solo lugar si mañana se agrega/renombra un comando.
 COMANDOS_BOT = [
+    {"command": "menu", "description": "Menú principal con botones"},
+    {"command": "resumen", "description": "Resumen del día de la bodega"},
+    {"command": "comprar", "description": "Qué hay que comprar y cuándo"},
+    {"command": "alertas", "description": "Alertas abiertas (con botón para atender)"},
+    {"command": "inusual", "description": "Trabajadores con consumo fuera de lo normal"},
+    {"command": "prestamos", "description": "Radios y equipos sin devolver"},
+    {"command": "stock", "description": "Stock de un producto (o escribe su nombre)"},
+    {"command": "historial", "description": "Entregas de un trabajador (o escribe su RUT)"},
+    {"command": "ayuda", "description": "Cómo usar el bot"},
     {"command": "vincular", "description": "Vincula tu cuenta NexoFaena con un código"},
-    {"command": "stock", "description": "Stock de un producto por bodega"},
-    {"command": "alertas", "description": "Alertas críticas abiertas"},
-    {"command": "historial", "description": "Últimas entregas de un trabajador (por RUT)"},
-    {"command": "atender", "description": "Marca una alerta como atendida"},
-    {"command": "ayuda", "description": "Lista de comandos disponibles"},
 ]
 
 
