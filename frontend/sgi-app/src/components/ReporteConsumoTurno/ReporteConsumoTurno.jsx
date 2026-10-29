@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import {
   FaUserClock,
   FaSearch,
@@ -10,8 +10,12 @@ import {
   FaWifi,
   FaUsers,
   FaBoxes,
-  FaChartBar,
   FaFlag,
+  FaSun,
+  FaMoon,
+  FaDoorOpen,
+  FaChevronDown,
+  FaChevronUp,
 } from 'react-icons/fa';
 
 import ExcelJS from 'exceljs';
@@ -22,6 +26,8 @@ import { db } from '../../db';
 import './ReporteConsumoTurno.css';
 
 const CLAVE_CACHE = 'epp_por_turno';
+const FILAS_INICIALES = 15;
+const PRODUCTOS_EN_RESUMEN = 3;
 
 const fechaISO = (date) => date.toISOString().slice(0, 10);
 
@@ -41,11 +47,15 @@ const filtrosPorDefecto = () => {
 
 const reporteVacio = {
   periodo: { fecha_desde: '', fecha_hasta: '' },
-  filas: [],
   resumen_por_trabajador: [],
-  resumen_general: { total_unidades: 0, trabajadores_evaluados: 0, promedio_por_trabajador: 0 },
+  por_turno: [],
+  resumen_general: { total_unidades: 0, trabajadores_evaluados: 0, promedio_por_trabajador: 0, total_visitas: 0, a_revisar: 0 },
   casos_revisar_historico: [],
 };
+
+const etiquetaTurno = (turno) => (turno === 'noche' ? 'Noche' : 'Día');
+
+const formatearNumero = (valor) => Number(valor || 0).toLocaleString('es-CL', { maximumFractionDigits: 1 });
 
 const ReporteConsumoTurno = () => {
   const [filtros, setFiltros] = useState(filtrosPorDefecto);
@@ -54,6 +64,8 @@ const ReporteConsumoTurno = () => {
   const [error, setError] = useState('');
   const [offline, setOffline] = useState(false);
   const [sincronizadoEn, setSincronizadoEn] = useState(null);
+  const [verTodos, setVerTodos] = useState(false);
+  const [expandido, setExpandido] = useState(null);
 
   const role = localStorage.getItem('user_role') || '';
   const esAdministrador = role === 'Administrador';
@@ -61,6 +73,7 @@ const ReporteConsumoTurno = () => {
   const cargarReporte = useCallback(async (filtrosActuales) => {
     setCargando(true);
     setError('');
+    setExpandido(null);
 
     const params = {
       fecha_desde: filtrosActuales.fechaDesde,
@@ -118,45 +131,12 @@ const ReporteConsumoTurno = () => {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const etiquetaTurno = (turno) => (turno === 'dia' ? 'Día' : turno === 'noche' ? 'Noche' : turno);
-
-  // Agrupa visualmente las filas consecutivas de un mismo trabajador+turno
-  // (el backend ya las entrega contiguas, ordenadas por trabajador y turno)
-  // para no repetir su nombre/cargo/turno en cada producto que retiró: se
-  // combinan esas celdas con rowSpan y solo cambia la fila por producto.
-  const filasAgrupadas = useMemo(() => {
-    const filas = reporte.filas;
-    const agrupadas = [];
-    let i = 0;
-
-    while (i < filas.length) {
-      const actual = filas[i];
-      let tamanoGrupo = 1;
-
-      while (
-        i + tamanoGrupo < filas.length &&
-        filas[i + tamanoGrupo].trabajador_id === actual.trabajador_id &&
-        filas[i + tamanoGrupo].turno === actual.turno
-      ) {
-        tamanoGrupo += 1;
-      }
-
-      for (let j = 0; j < tamanoGrupo; j += 1) {
-        agrupadas.push({
-          ...filas[i + j],
-          _inicioGrupo: j === 0,
-          _tamanoGrupo: tamanoGrupo,
-        });
-      }
-
-      i += tamanoGrupo;
-    }
-
-    return agrupadas;
-  }, [reporte.filas]);
+  const trabajadores = reporte.resumen_por_trabajador || [];
+  const visibles = verTodos ? trabajadores : trabajadores.slice(0, FILAS_INICIALES);
+  const general = reporte.resumen_general;
 
   const exportarExcel = async () => {
-    if (reporte.filas.length === 0) {
+    if (trabajadores.length === 0) {
       alert('No hay datos para exportar con estos filtros.');
       return;
     }
@@ -165,69 +145,76 @@ const ReporteConsumoTurno = () => {
     workbook.creator = 'NexoFaena SGI';
     workbook.created = new Date();
 
-    const columnasBase = [
-      { header: 'Trabajador', key: 'trabajador', width: 30 },
-      ...(esAdministrador ? [{ header: 'RUT', key: 'rut', width: 16 }] : []),
-      { header: 'Cargo', key: 'cargo', width: 24 },
-      { header: 'Turno', key: 'turno', width: 12 },
-      { header: 'Producto', key: 'producto', width: 30 },
-      { header: 'Cantidad', key: 'cantidad', width: 14 },
-      { header: 'Promedio del grupo', key: 'promedio', width: 18 },
-      { header: 'Estado', key: 'estado', width: 18 },
+    const estiloEncabezado = (hoja, color = 'FF1F6FD1') => {
+      hoja.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      hoja.getRow(1).eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+    };
+
+    const columnaRut = esAdministrador ? [{ header: 'RUT', key: 'rut', width: 16 }] : [];
+
+    const resumen = workbook.addWorksheet('Resumen por trabajador');
+    resumen.columns = [
+      { header: 'Trabajador', key: 'trabajador', width: 28 },
+      ...columnaRut,
+      { header: 'Cargo', key: 'cargo', width: 20 },
+      { header: 'Turno principal', key: 'turno', width: 16 },
+      { header: 'Unidades', key: 'unidades', width: 12 },
+      { header: 'Visitas al pañol', key: 'visitas', width: 16 },
+      { header: 'Unidades por visita', key: 'porVisita', width: 18 },
+      { header: 'Promedio del cargo', key: 'promedioCargo', width: 18 },
+      { header: 'Estado', key: 'estado', width: 14 },
     ];
-
-    const detalle = workbook.addWorksheet('Consumo por Turno');
-    detalle.columns = columnasBase;
-    detalle.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    detalle.getRow(1).eachCell((cell) => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6FD1' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    });
-
-    reporte.filas.forEach((f) => {
-      detalle.addRow({
-        trabajador: f.trabajador_nombre,
-        rut: f.rut,
-        cargo: f.cargo,
-        turno: etiquetaTurno(f.turno),
-        producto: f.producto_nombre,
-        cantidad: f.cantidad,
-        promedio: f.promedio_cuadrilla,
-        estado: f.estado_revision === 'revisar' ? 'Fuera del promedio' : 'Normal',
+    estiloEncabezado(resumen);
+    trabajadores.forEach((t) => {
+      resumen.addRow({
+        trabajador: t.trabajador_nombre,
+        rut: t.rut,
+        cargo: t.cargo,
+        turno: etiquetaTurno(t.turno_principal),
+        unidades: t.total_unidades,
+        visitas: t.num_visitas,
+        porVisita: t.unidades_por_visita,
+        promedioCargo: t.promedio_cargo,
+        estado: t.estado_revision === 'revisar' ? 'Revisar' : 'Normal',
       });
     });
 
-    const revisar = workbook.addWorksheet('Casos a Revisar (histórico)');
-    revisar.columns = [
-      { header: 'Trabajador', key: 'trabajador', width: 30 },
-      ...(esAdministrador ? [{ header: 'RUT', key: 'rut', width: 16 }] : []),
-      { header: 'Producto', key: 'producto', width: 30 },
-      { header: 'Promedio del período', key: 'periodo', width: 20 },
-      { header: 'Promedio histórico propio', key: 'historico', width: 22 },
-      { header: 'Z-score', key: 'z', width: 12 },
+    const detalle = workbook.addWorksheet('Detalle por producto');
+    detalle.columns = [
+      { header: 'Trabajador', key: 'trabajador', width: 28 },
+      ...columnaRut,
+      { header: 'Cargo', key: 'cargo', width: 20 },
+      { header: 'Producto', key: 'producto', width: 32 },
+      { header: 'Unidades', key: 'cantidad', width: 12 },
     ];
-    revisar.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    revisar.getRow(1).eachCell((cell) => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2647' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    estiloEncabezado(detalle);
+    trabajadores.forEach((t) => {
+      t.desglose_por_producto.forEach((p) => {
+        detalle.addRow({ trabajador: t.trabajador_nombre, rut: t.rut, cargo: t.cargo, producto: p.producto_nombre, cantidad: p.cantidad });
+      });
     });
 
+    const revisar = workbook.addWorksheet('Casos según historial propio');
+    revisar.columns = [
+      { header: 'Trabajador', key: 'trabajador', width: 28 },
+      ...columnaRut,
+      { header: 'Producto', key: 'producto', width: 30 },
+      { header: 'Por visita (período)', key: 'periodo', width: 20 },
+      { header: 'Por visita (habitual)', key: 'historico', width: 20 },
+    ];
+    estiloEncabezado(revisar, 'FF0F2647');
     reporte.casos_revisar_historico.forEach((c) => {
       revisar.addRow({
-        trabajador: c.trabajador_nombre,
-        rut: c.rut,
-        producto: c.producto_nombre,
-        periodo: c.promedio_periodo,
-        historico: c.promedio_historico,
-        z: c.z_score,
+        trabajador: c.trabajador_nombre, rut: c.rut, producto: c.producto_nombre,
+        periodo: c.promedio_periodo, historico: c.promedio_historico,
       });
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `NexoFaena_Consumo_EPP_Turno_${Date.now()}.xlsx`);
   };
 
@@ -235,8 +222,8 @@ const ReporteConsumoTurno = () => {
     <div className="reportes-wrapper">
       <h1 className="page-title"><FaUserClock /> Consumo de EPP por Trabajador y Turno</h1>
       <p className="page-subtitle">
-        Radiografía de lo entregado por el pañol: cuánto retira cada trabajador, en qué turno, y cómo se compara
-        contra el promedio de su cuadrilla.
+        Cuánto retira cada trabajador del pañol y cómo se compara con otros de su mismo cargo.
+        Las radios no cuentan: se prestan y se devuelven.
       </p>
 
       {offline && (
@@ -261,6 +248,7 @@ const ReporteConsumoTurno = () => {
               className="filter-input"
               value={filtros.fechaDesde}
               onChange={(e) => handleChange('fechaDesde', e.target.value)}
+              aria-label="Desde"
             />
           </div>
 
@@ -271,6 +259,7 @@ const ReporteConsumoTurno = () => {
               className="filter-input"
               value={filtros.fechaHasta}
               onChange={(e) => handleChange('fechaHasta', e.target.value)}
+              aria-label="Hasta"
             />
           </div>
 
@@ -303,7 +292,7 @@ const ReporteConsumoTurno = () => {
             <input
               type="text"
               className="filter-input"
-              placeholder="Producto (ej. casco)..."
+              placeholder="Producto (ej. guantes)..."
               value={filtros.producto}
               onChange={(e) => handleChange('producto', e.target.value)}
             />
@@ -321,144 +310,192 @@ const ReporteConsumoTurno = () => {
         </div>
       </form>
 
-      <div className="kpi-row-reporte">
-        <div className="kpi-card-reporte">
-          <FaUsers className="kpi-icon-reporte" />
+      {/* ============ RESUMEN ============ */}
+      <div className="rct-indicadores">
+        <div className="rct-indicador">
+          <FaUsers className="rct-indicador-icono" />
           <div>
-            <div className="kpi-value-reporte">{reporte.resumen_general.trabajadores_evaluados}</div>
-            <div className="kpi-label-reporte">Trabajadores evaluados</div>
+            <div className="rct-indicador-valor">{general.trabajadores_evaluados}</div>
+            <div className="rct-indicador-titulo">Trabajadores</div>
           </div>
         </div>
-
-        <div className="kpi-card-reporte">
-          <FaChartBar className="kpi-icon-reporte" />
+        <div className="rct-indicador">
+          <FaBoxes className="rct-indicador-icono" />
           <div>
-            <div className="kpi-value-reporte">{reporte.resumen_general.total_unidades}</div>
-            <div className="kpi-label-reporte">Unidades totales entregadas</div>
+            <div className="rct-indicador-valor">{formatearNumero(general.total_unidades)}</div>
+            <div className="rct-indicador-titulo">Unidades entregadas</div>
           </div>
         </div>
-
-        <div className="kpi-card-reporte">
-          <FaBoxes className="kpi-icon-reporte" />
+        <div className="rct-indicador">
+          <FaDoorOpen className="rct-indicador-icono" />
           <div>
-            <div className="kpi-value-reporte">{reporte.resumen_general.promedio_por_trabajador}</div>
-            <div className="kpi-label-reporte">Promedio por trabajador</div>
+            <div className="rct-indicador-valor">{formatearNumero(general.total_visitas)}</div>
+            <div className="rct-indicador-titulo">Visitas al pañol</div>
+          </div>
+        </div>
+        <div className={`rct-indicador ${general.a_revisar > 0 ? 'rct-indicador-alerta' : ''}`}>
+          <FaFlag className="rct-indicador-icono" />
+          <div>
+            <div className="rct-indicador-valor">{general.a_revisar}</div>
+            <div className="rct-indicador-titulo">Para revisar</div>
           </div>
         </div>
       </div>
 
+      {reporte.por_turno.length > 0 && (
+        <div className="rct-turnos">
+          {reporte.por_turno.map((t) => (
+            <div key={t.turno} className={`rct-turno rct-turno-${t.turno}`}>
+              <div className="rct-turno-nombre">
+                {t.turno === 'noche' ? <FaMoon /> : <FaSun />} Turno {etiquetaTurno(t.turno).toLowerCase()}
+              </div>
+              <div className="rct-turno-datos">
+                <span><strong>{formatearNumero(t.unidades)}</strong> unidades</span>
+                <span><strong>{t.visitas}</strong> visitas</span>
+                <span><strong>{t.trabajadores}</strong> trabajadores</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ============ POR TRABAJADOR ============ */}
       <div className="reportes-card">
         <div className="reportes-card-header">
-          <FaFilter /> Detalle por trabajador y turno ({reporte.filas.length} registros)
+          <FaUsers /> Por trabajador
+          <span className="rct-ayuda-tabla">Toca una fila para ver todo lo que retiró</span>
         </div>
 
-        <div className="table-responsive">
-          <table className="reportes-table">
-            <thead>
-              <tr>
-                <th>Trabajador</th>
-                <th>Turno</th>
-                <th>Producto</th>
-                <th className="text-center">Cantidad</th>
-                <th className="text-center">Promedio del grupo</th>
-                <th className="text-center">Estado</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {cargando ? (
-                <tr><td colSpan="6" className="loading-state">Cargando reporte...</td></tr>
-              ) : reporte.filas.length === 0 ? (
-                <tr><td colSpan="6" className="empty-state">Sin entregas registradas con estos filtros.</td></tr>
-              ) : (
-                filasAgrupadas.map((f, idx) => (
-                  <tr
-                    key={idx}
-                    className={[
-                      f.estado_revision === 'revisar' ? 'fila-fuera-promedio' : '',
-                      f._inicioGrupo ? 'fila-inicio-grupo' : '',
-                    ].join(' ').trim()}
-                    // En mobile la fila se arma como tarjeta (ver CSS): el
-                    // rowSpan de trabajador/turno no tiene equivalente ahí,
-                    // así que ambos datos quedan disponibles en cada fila
-                    // vía estos atributos para que el encabezado de la
-                    // tarjeta los muestre aunque esta no sea la fila que
-                    // abre el grupo.
-                    data-trabajador={f.trabajador_nombre}
-                    data-turno={etiquetaTurno(f.turno)}
-                  >
-                    {f._inicioGrupo && (
-                      <>
-                        <td rowSpan={f._tamanoGrupo} className="td-grupo">
-                          {f.trabajador_nombre}
-                          <div className="ml-table-subtext">{f.cargo}</div>
-                        </td>
-                        <td rowSpan={f._tamanoGrupo} className="td-grupo">{etiquetaTurno(f.turno)}</td>
-                      </>
-                    )}
-                    <td data-label="Producto">{f.producto_nombre}</td>
-                    <td className="text-center" data-label="Cantidad">{f.cantidad}</td>
-                    <td className="text-center" data-label="Promedio del grupo">{f.promedio_cuadrilla}</td>
-                    <td className="text-center" data-label="Estado">
-                      {f.estado_revision === 'revisar' ? (
-                        <span className="badge-revisar"><FaFlag /> Fuera del promedio</span>
-                      ) : (
-                        <span className="badge-normal">Normal</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="reportes-card casos-revisar-card">
-        <div className="reportes-card-header">
-          <FaExclamationTriangle /> Casos a revisar según historial propio ({reporte.casos_revisar_historico.length})
-        </div>
-
-        <p className="casos-revisar-desc">
-          Compara a cada trabajador contra su propio promedio histórico, no contra el resto del equipo. Es
-          informativo: ningún caso queda bloqueado ni se etiqueta como sospechoso, solo se marca para revisar.
-        </p>
-
-        {reporte.casos_revisar_historico.length === 0 ? (
-          <div className="empty-state">Sin desviaciones relevantes respecto del historial propio en este período.</div>
+        {cargando ? (
+          <div className="loading-state">Cargando reporte...</div>
+        ) : trabajadores.length === 0 ? (
+          <div className="empty-state">Sin entregas registradas con estos filtros.</div>
         ) : (
-          <div className="table-responsive">
-            <table className="reportes-table">
-              <thead>
-                <tr>
-                  <th>Trabajador</th>
-                  <th>Producto</th>
-                  <th className="text-center">Promedio del período</th>
-                  <th className="text-center">Promedio histórico propio</th>
-                  <th className="text-center">Z-score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reporte.casos_revisar_historico.map((c, idx) => (
-                  <tr key={idx} className="fila-fuera-promedio">
-                    <td data-label="Trabajador">
-                      {c.trabajador_nombre}
-                      <div className="ml-table-subtext">{c.cargo}</div>
-                    </td>
-                    <td data-label="Producto">{c.producto_nombre}</td>
-                    <td className="text-center" data-label="Promedio del período">{c.promedio_periodo}</td>
-                    <td className="text-center" data-label="Promedio histórico propio">{c.promedio_historico}</td>
-                    <td className="text-center" data-label="Z-score">
-                      <span className="badge-revisar"><FaFlag /> {c.z_score}</span>
-                    </td>
+          <>
+            <div className="table-responsive">
+              <table className="rct-tabla">
+                <thead>
+                  <tr>
+                    <th>Trabajador</th>
+                    <th>Turno</th>
+                    <th className="rct-der">Unidades</th>
+                    <th className="rct-der">Visitas</th>
+                    <th>Lo que más retira</th>
+                    <th className="rct-der">Estado</th>
+                    <th aria-label="Expandir" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {visibles.map((t) => {
+                    const abierto = expandido === t.trabajador_id;
+                    const principales = t.desglose_por_producto.slice(0, PRODUCTOS_EN_RESUMEN);
+                    const restantes = t.desglose_por_producto.length - principales.length;
+                    return (
+                      <Fragment key={t.trabajador_id}>
+                        <tr
+                          className={`rct-fila ${t.estado_revision === 'revisar' ? 'rct-fila-revisar' : ''} ${abierto ? 'rct-fila-abierta' : ''}`}
+                          onClick={() => setExpandido(abierto ? null : t.trabajador_id)}
+                        >
+                          <td>
+                            <div className="rct-nombre">{t.trabajador_nombre}</div>
+                            <div className="rct-sub">{t.cargo}{esAdministrador && ` · ${t.rut}`}</div>
+                          </td>
+                          <td
+                            data-label="Turno"
+                            data-resumen={`${formatearNumero(t.total_unidades)} unidades · ${t.num_visitas} visitas`}
+                          >
+                            <span className={`rct-chip-turno rct-chip-${t.turno_principal}`}>
+                              {t.turno_principal === 'noche' ? <FaMoon /> : <FaSun />} {etiquetaTurno(t.turno_principal)}
+                            </span>
+                          </td>
+                          <td className="rct-der rct-num" data-label="Unidades">{formatearNumero(t.total_unidades)}</td>
+                          <td className="rct-der rct-num" data-label="Visitas">{t.num_visitas}</td>
+                          <td className="rct-productos" data-label="Lo que más retira">
+                            {principales.map((p) => `${p.producto_nombre} (${formatearNumero(p.cantidad)})`).join(' · ')}
+                            {restantes > 0 && <span className="rct-sub"> +{restantes} más</span>}
+                          </td>
+                          <td className="rct-der" data-label="Estado">
+                            {t.estado_revision === 'revisar' ? (
+                              <span
+                                className="badge-revisar"
+                                title={`Retiró ${formatearNumero(t.total_unidades)}; el promedio de su cargo es ${formatearNumero(t.promedio_cargo)}`}
+                              >
+                                <FaFlag /> Revisar
+                              </span>
+                            ) : (
+                              <span className="badge-normal">Normal</span>
+                            )}
+                          </td>
+                          <td className="rct-flecha">{abierto ? <FaChevronUp /> : <FaChevronDown />}</td>
+                        </tr>
+
+                        {abierto && (
+                          <tr className="rct-detalle">
+                            <td colSpan={7}>
+                              <div className="rct-detalle-cuerpo">
+                                <div className="rct-detalle-resumen">
+                                  <span><strong>{t.unidades_por_visita}</strong> unidades por visita</span>
+                                  <span>Promedio de su cargo: <strong>{formatearNumero(t.promedio_cargo)}</strong> ({t.companeros_en_cargo} personas)</span>
+                                  <span><FaSun /> {formatearNumero(t.unidades_por_turno.dia)} · <FaMoon /> {formatearNumero(t.unidades_por_turno.noche)}</span>
+                                </div>
+                                <ul className="rct-detalle-lista">
+                                  {t.desglose_por_producto.map((p) => (
+                                    <li key={p.producto_nombre}>
+                                      <span>{p.producto_nombre}</span>
+                                      <strong className="rct-num">{formatearNumero(p.cantidad)}</strong>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {trabajadores.length > FILAS_INICIALES && (
+              <button type="button" className="rct-ver-todos" onClick={() => setVerTodos((v) => !v)}>
+                {verTodos ? 'Ver menos' : `Ver los ${trabajadores.length} trabajadores`}
+              </button>
+            )}
+          </>
         )}
       </div>
 
+      {/* ============ HISTORIAL PROPIO ============ */}
+      <div className="reportes-card casos-revisar-card">
+        <div className="reportes-card-header">
+          <FaExclamationTriangle /> Retiró más de lo que acostumbra ({reporte.casos_revisar_historico.length})
+        </div>
+
+        <p className="casos-revisar-desc">
+          Compara a cada trabajador con su propia historia, no con el resto del equipo. Es informativo:
+          solo marca para revisar, nunca bloquea ni acusa.
+        </p>
+
+        {reporte.casos_revisar_historico.length === 0 ? (
+          <div className="empty-state">Nadie retiró más de lo habitual en este período.</div>
+        ) : (
+          <ul className="rct-casos">
+            {reporte.casos_revisar_historico.map((c) => (
+              <li key={`${c.trabajador_id}-${c.inventario_id}`}>
+                <div>
+                  <div className="rct-nombre">{c.trabajador_nombre}</div>
+                  <div className="rct-sub">{c.cargo}</div>
+                </div>
+                <div className="rct-caso-dato">
+                  <strong>{c.producto_nombre}</strong>: {formatearNumero(c.promedio_periodo)} por visita
+                  <span className="rct-sub"> (lo habitual: {formatearNumero(c.promedio_historico)})</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

@@ -19,12 +19,11 @@ from django.db.models import Count, Sum
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from nexofaena.models.entrega import DetalleEntregaEPP, EntregaEPP
+from nexofaena.models.entrega import DetalleEntregaEPP
 
 DIAS_PERIODO_POR_DEFECTO = 30
 
 MIN_CUADRILLA_PARA_DESVIACION_ESTADISTICA = 3
-FACTOR_DESVIACION_GRUPO_PEQUENO = 1.5  # 50% sobre el promedio cuando hay <3 pares
 
 
 class ReporteService:
@@ -58,6 +57,16 @@ class ReporteService:
     @staticmethod
     def consumo_epp_por_turno(fecha_desde=None, fecha_hasta=None, rut=None,
                                turno=None, producto=None, mostrar_rut_completo=False):
+        """
+        Una fila por trabajador (no una por trabajador x turno x producto,
+        que con 40 personas eran cientos de filas): cuánto retiró, en
+        cuántas visitas al pañol, en qué turno y sus productos principales.
+
+        "Revisar" se decide por el TOTAL del trabajador frente a su cargo, no
+        producto por producto: comparar "3 guantes vs. un promedio de 2" en
+        grupos de 2-3 personas marcaba a casi todos. Los equipos devolutivos
+        (radios) no cuentan: se prestan y vuelven, no se consumen.
+        """
         desde, hasta = ReporteService._resolver_periodo(fecha_desde, fecha_hasta)
 
         detalles = (
@@ -66,190 +75,140 @@ class ReporteService:
                 entrega__estado="COMPLETADA",
                 entrega__fecha_entrega__date__gte=desde,
                 entrega__fecha_entrega__date__lte=hasta,
+                inventario__es_devolutivo=False,
             )
         )
-
         if rut:
             detalles = detalles.filter(entrega__trabajador__rut__icontains=rut)
         if turno in ("dia", "noche"):
             detalles = detalles.filter(entrega__turno=turno)
         if producto:
-            # Texto, no ID: el mismo producto puede existir como filas de
-            # Inventario distintas por bodega y un trabajador puede recibirlo
-            # de más de una.
             detalles = detalles.filter(inventario__nombre__icontains=producto)
 
-        filas_agrupadas = (
+        # Por nombre de producto, no por fila de Inventario: el mismo
+        # producto puede existir en las dos bodegas (o en varias tallas).
+        filas = (
             detalles
             .values(
-                "entrega__trabajador_id",
-                "entrega__trabajador__rut",
-                "entrega__trabajador__nombres",
-                "entrega__trabajador__apellido_paterno",
-                "entrega__trabajador__cargo",
-                "entrega__turno",
-                "inventario_id",
-                "inventario__nombre",
+                "entrega__trabajador_id", "entrega__trabajador__rut", "entrega__trabajador__nombres",
+                "entrega__trabajador__apellido_paterno", "entrega__trabajador__cargo",
+                "entrega__turno", "inventario__nombre",
             )
             .annotate(cantidad=Sum("cantidad"))
-            # trabajador_id después del apellido: mantiene el orden alfabético
-            # para mostrar, pero garantiza que las filas de una misma persona
-            # queden contiguas incluso si dos trabajadores comparten apellido
-            # (el frontend agrupa visualmente por trabajador+turno asumiendo
-            # que las filas de cada grupo vienen una detrás de otra).
-            .order_by(
-                "entrega__trabajador__apellido_paterno",
-                "entrega__trabajador_id",
-                "entrega__turno",
-                "inventario__nombre",
-            )
         )
 
-        filas_crudas = list(filas_agrupadas)
+        # Visitas al pañol contadas sobre los MISMOS detalles filtrados: así,
+        # filtrando por producto o turno, las unidades por visita cuadran.
+        visitas = {
+            (fila["entrega__trabajador_id"], fila["entrega__turno"]): fila["visitas"]
+            for fila in (
+                detalles.values("entrega__trabajador_id", "entrega__turno")
+                .annotate(visitas=Count("entrega_id", distinct=True))
+            )
+        }
 
-        if not filas_crudas:
+        trabajadores = {}
+        for fila in filas:
+            trabajador_id = fila["entrega__trabajador_id"]
+            rut_trabajador = fila["entrega__trabajador__rut"]
+            datos = trabajadores.setdefault(trabajador_id, {
+                "trabajador_id": trabajador_id,
+                "trabajador_nombre": f"{fila['entrega__trabajador__nombres']} {fila['entrega__trabajador__apellido_paterno']}",
+                "rut": rut_trabajador if mostrar_rut_completo else ReporteService.mascarar_rut(rut_trabajador),
+                "cargo": fila["entrega__trabajador__cargo"] or "Sin cargo",
+                "unidades_por_turno": {"dia": 0.0, "noche": 0.0},
+                "productos": {},
+            })
+            cantidad = float(fila["cantidad"])
+            datos["unidades_por_turno"][fila["entrega__turno"]] = (
+                datos["unidades_por_turno"].get(fila["entrega__turno"], 0.0) + cantidad
+            )
+            datos["productos"][fila["inventario__nombre"]] = datos["productos"].get(fila["inventario__nombre"], 0.0) + cantidad
+
+        if not trabajadores:
             return {
                 "periodo": {"fecha_desde": desde.isoformat(), "fecha_hasta": hasta.isoformat()},
                 "filtros": {"rut": rut, "turno": turno, "producto": producto},
-                "filas": [],
                 "resumen_por_trabajador": [],
-                "resumen_general": {"total_unidades": 0, "trabajadores_evaluados": 0, "promedio_por_trabajador": 0},
+                "por_turno": [],
+                "resumen_general": {
+                    "total_unidades": 0, "trabajadores_evaluados": 0, "promedio_por_trabajador": 0,
+                    "total_visitas": 0, "a_revisar": 0,
+                },
             }
 
-        # Promedio de la "cuadrilla" (mismo cargo) por producto + turno, para
-        # poder comparar a cada trabajador contra sus pares equivalentes.
-        cantidades_por_grupo = {}
-        for fila in filas_crudas:
-            clave = (fila["inventario_id"], fila["entrega__turno"], fila["entrega__trabajador__cargo"])
-            cantidades_por_grupo.setdefault(clave, []).append(float(fila["cantidad"]))
-
-        promedio_grupo = {}
-        umbral_grupo = {}
-        for clave, cantidades in cantidades_por_grupo.items():
-            promedio = mean(cantidades)
-            promedio_grupo[clave] = promedio
-
-            if len(cantidades) >= MIN_CUADRILLA_PARA_DESVIACION_ESTADISTICA:
-                desviacion = pstdev(cantidades)
-                umbral_grupo[clave] = promedio + max(1, desviacion)
-            else:
-                # Muy pocos pares en la cuadrilla: la desviación estándar no es
-                # confiable, se usa un umbral simple por sobre el promedio.
-                umbral_grupo[clave] = promedio * FACTOR_DESVIACION_GRUPO_PEQUENO
-
-        filas = []
-        for fila in filas_crudas:
-            clave = (fila["inventario_id"], fila["entrega__turno"], fila["entrega__trabajador__cargo"])
-            cantidad = float(fila["cantidad"])
-            promedio_cuadrilla = round(promedio_grupo[clave], 2)
-            pares_en_cuadrilla = len(cantidades_por_grupo[clave])
-
-            fuera_de_promedio = (
-                pares_en_cuadrilla > 1
-                and cantidad > umbral_grupo[clave]
-            )
-
-            rut_trabajador = fila["entrega__trabajador__rut"]
-
-            filas.append({
-                "trabajador_id": fila["entrega__trabajador_id"],
-                "trabajador_nombre": f"{fila['entrega__trabajador__nombres']} {fila['entrega__trabajador__apellido_paterno']}",
-                "rut": rut_trabajador if mostrar_rut_completo else ReporteService.mascarar_rut(rut_trabajador),
-                "cargo": fila["entrega__trabajador__cargo"],
-                "turno": fila["entrega__turno"],
-                "inventario_id": fila["inventario_id"],
-                "producto_nombre": fila["inventario__nombre"],
-                "cantidad": cantidad,
-                "promedio_cuadrilla": promedio_cuadrilla,
-                "pares_en_cuadrilla": pares_en_cuadrilla,
-                "estado_revision": "revisar" if fuera_de_promedio else "normal",
+        resumen = []
+        for trabajador_id, datos in trabajadores.items():
+            total = sum(datos["unidades_por_turno"].values())
+            visitas_dia = visitas.get((trabajador_id, "dia"), 0)
+            visitas_noche = visitas.get((trabajador_id, "noche"), 0)
+            num_visitas = visitas_dia + visitas_noche
+            resumen.append({
+                "trabajador_id": trabajador_id,
+                "trabajador_nombre": datos["trabajador_nombre"],
+                "rut": datos["rut"],
+                "cargo": datos["cargo"],
+                "turno_principal": "noche" if visitas_noche > visitas_dia else "dia",
+                "total_unidades": round(total, 1),
+                "num_visitas": num_visitas,
+                "unidades_por_visita": round(total / num_visitas, 1) if num_visitas else 0,
+                "unidades_por_turno": {k: round(v, 1) for k, v in datos["unidades_por_turno"].items()},
+                "desglose_por_producto": [
+                    {"producto_nombre": nombre, "cantidad": round(cantidad, 1)}
+                    for nombre, cantidad in sorted(datos["productos"].items(), key=lambda p: p[1], reverse=True)
+                ],
             })
 
-        # Conteo de entregas (visitas) distintas por trabajador/turno, para
-        # expresar el "promedio por turno" como unidades por visita al pañol.
-        entregas_por_turno = (
-            EntregaEPP.objects
-            .filter(estado="COMPLETADA", fecha_entrega__date__gte=desde, fecha_entrega__date__lte=hasta)
-            .values("trabajador_id", "turno")
-            .annotate(num_entregas=Count("id", distinct=True))
-        )
-        num_entregas_map = {
-            (fila["trabajador_id"], fila["turno"]): fila["num_entregas"]
-            for fila in entregas_por_turno
-        }
+        ReporteService._comparar_con_cargo(resumen)
+        resumen.sort(key=lambda r: (r["estado_revision"] != "revisar", -r["total_unidades"]))
 
-        resumen_por_trabajador = ReporteService._agregar_por_trabajador(filas, num_entregas_map)
+        por_turno = []
+        for clave in ("dia", "noche"):
+            del_turno = [r for r in resumen if r["unidades_por_turno"].get(clave, 0) > 0]
+            if not del_turno:
+                continue
+            por_turno.append({
+                "turno": clave,
+                "unidades": round(sum(r["unidades_por_turno"][clave] for r in del_turno), 1),
+                "visitas": sum(visitas.get((r["trabajador_id"], clave), 0) for r in del_turno),
+                "trabajadores": len(del_turno),
+            })
 
-        total_unidades = sum(f["cantidad"] for f in filas)
-        trabajadores_evaluados = len(resumen_por_trabajador)
-
+        total_unidades = sum(r["total_unidades"] for r in resumen)
         return {
             "periodo": {"fecha_desde": desde.isoformat(), "fecha_hasta": hasta.isoformat()},
             "filtros": {"rut": rut, "turno": turno, "producto": producto},
-            "filas": filas,
-            "resumen_por_trabajador": resumen_por_trabajador,
+            "resumen_por_trabajador": resumen,
+            "por_turno": por_turno,
             "resumen_general": {
                 "total_unidades": round(total_unidades, 1),
-                "trabajadores_evaluados": trabajadores_evaluados,
-                "promedio_por_trabajador": round(total_unidades / trabajadores_evaluados, 2) if trabajadores_evaluados else 0,
+                "trabajadores_evaluados": len(resumen),
+                "promedio_por_trabajador": round(total_unidades / len(resumen), 1),
+                "total_visitas": sum(r["num_visitas"] for r in resumen),
+                "a_revisar": sum(1 for r in resumen if r["estado_revision"] == "revisar"),
             },
         }
 
     @staticmethod
-    def _agregar_por_trabajador(filas, num_entregas_map):
-        por_trabajador = {}
+    def _comparar_con_cargo(resumen):
+        """Marca "revisar" a quien retiró claramente más que su cargo: al
+        menos una desviación estándar sobre el promedio Y 1,5 veces el
+        promedio (misma regla que el Panel Gerencial). Con menos de
+        MIN_CUADRILLA_PARA_DESVIACION_ESTADISTICA personas en el cargo no hay
+        con quién comparar y queda "normal"."""
+        por_cargo = {}
+        for r in resumen:
+            por_cargo.setdefault(r["cargo"], []).append(r)
 
-        for fila in filas:
-            trabajador_id = fila["trabajador_id"]
-            grupo = por_trabajador.setdefault(trabajador_id, {
-                "trabajador_id": trabajador_id,
-                "trabajador_nombre": fila["trabajador_nombre"],
-                "rut": fila["rut"],
-                "cargo": fila["cargo"],
-                "total_unidades": 0.0,
-                "productos": {},
-                "unidades_por_turno": {"dia": 0.0, "noche": 0.0},
-                "tiene_desviacion": False,
-            })
-
-            grupo["total_unidades"] += fila["cantidad"]
-            grupo["unidades_por_turno"][fila["turno"]] = (
-                grupo["unidades_por_turno"].get(fila["turno"], 0.0) + fila["cantidad"]
-            )
-
-            producto = grupo["productos"].setdefault(fila["inventario_id"], {
-                "inventario_id": fila["inventario_id"],
-                "producto_nombre": fila["producto_nombre"],
-                "cantidad": 0.0,
-            })
-            producto["cantidad"] += fila["cantidad"]
-
-            if fila["estado_revision"] == "revisar":
-                grupo["tiene_desviacion"] = True
-
-        resultado = []
-        for trabajador_id, grupo in por_trabajador.items():
-            promedio_por_turno = {}
-            for turno in ("dia", "noche"):
-                num_entregas = num_entregas_map.get((trabajador_id, turno), 0)
-                total_turno = grupo["unidades_por_turno"].get(turno, 0.0)
-                promedio_por_turno[turno] = round(total_turno / num_entregas, 2) if num_entregas else 0
-
-            resultado.append({
-                "trabajador_id": trabajador_id,
-                "trabajador_nombre": grupo["trabajador_nombre"],
-                "rut": grupo["rut"],
-                "cargo": grupo["cargo"],
-                "total_unidades": round(grupo["total_unidades"], 1),
-                "desglose_por_producto": sorted(
-                    grupo["productos"].values(), key=lambda p: p["cantidad"], reverse=True
-                ),
-                "promedio_por_turno": promedio_por_turno,
-                "estado_revision": "revisar" if grupo["tiene_desviacion"] else "normal",
-            })
-
-        resultado.sort(key=lambda r: r["total_unidades"], reverse=True)
-        return resultado
+        for grupo in por_cargo.values():
+            totales = [r["total_unidades"] for r in grupo]
+            promedio = mean(totales)
+            umbral = max(promedio + pstdev(totales), promedio * 1.5)
+            for r in grupo:
+                r["promedio_cargo"] = round(promedio, 1)
+                r["companeros_en_cargo"] = len(grupo)
+                destaca = len(grupo) >= MIN_CUADRILLA_PARA_DESVIACION_ESTADISTICA and r["total_unidades"] > umbral
+                r["estado_revision"] = "revisar" if destaca else "normal"
 
     @staticmethod
     def prestamos_pendientes(mostrar_rut_completo=False):

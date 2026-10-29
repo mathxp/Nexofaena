@@ -89,6 +89,29 @@ class SeedRentamaqTests(TestCase):
             self.assertEqual(producto.bodega.tipo, "CENTRAL")
             self.assertFalse(producto.es_devolutivo)
 
+    def test_un_producto_por_nombre_y_bodega(self, _now):
+        from django.db.models import Count
+
+        repetidos = (
+            Inventario.objects.values("bodega__codigo", "nombre")
+            .annotate(n=Count("id")).filter(n__gt=1)
+        )
+        self.assertFalse(repetidos.exists(), list(repetidos))
+        self.assertLessEqual(Inventario.objects.filter(nombre="Zapato de seguridad").count(), 2)
+        # La reserva solo guarda respaldo: tiene bastante menos que la central.
+        self.assertLess(
+            Inventario.objects.filter(bodega__codigo="BOD-RES").count(),
+            Inventario.objects.filter(bodega__codigo="BOD-CEN").count() / 2,
+        )
+
+    def test_la_talla_se_anota_en_cada_entrega(self, _now):
+        tallas = set(
+            DetalleEntregaEPP.objects.filter(inventario__nombre="Zapato de seguridad")
+            .values_list("talla", flat=True)
+        )
+        if tallas:  # se entregan solo cada varios meses: puede no haber en 4 meses
+            self.assertTrue(tallas <= {str(t) for t in range(38, 47)}, tallas)
+
     def test_personal_de_bodega_no_puede_iniciar_sesion(self, _now):
         for usuario in Usuario.objects.filter(username__in=["bodeguero1", "encargado1"]):
             self.assertFalse(usuario.is_active)

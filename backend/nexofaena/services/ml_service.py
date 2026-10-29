@@ -1043,6 +1043,7 @@ class MLService:
             entrega__estado="COMPLETADA",
             entrega__fecha_entrega__date__gte=desde,
             entrega__fecha_entrega__date__lte=hasta,
+            inventario__es_devolutivo=False,  # una radio prestada no es consumo
         )
 
         if rut:
@@ -1056,21 +1057,31 @@ class MLService:
             .annotate(total_periodo=Sum("cantidad"), num_entregas_periodo=Count("entrega_id", distinct=True))
         )
 
+        pares = list(pares)
+
+        # Todo el historial previo en UNA consulta (antes era una por cada
+        # par trabajador-producto: cientos de consultas por reporte).
+        historial_por_par = {}
+        if pares:
+            filas_historial = (
+                DetalleEntregaEPP.objects
+                .filter(
+                    entrega__estado="COMPLETADA",
+                    entrega__fecha_entrega__date__lt=desde,
+                    entrega__trabajador_id__in={p["entrega__trabajador_id"] for p in pares},
+                    inventario_id__in={p["inventario_id"] for p in pares},
+                )
+                .values_list("entrega__trabajador_id", "inventario_id", "cantidad")
+            )
+            for trabajador_id, inventario_id, cantidad in filas_historial:
+                historial_por_par.setdefault((trabajador_id, inventario_id), []).append(cantidad)
+
         candidatos = []
         for par in pares:
             num_entregas_periodo = par["num_entregas_periodo"] or 1
             promedio_periodo = float(par["total_periodo"]) / num_entregas_periodo
 
-            historial = list(
-                DetalleEntregaEPP.objects
-                .filter(
-                    entrega__estado="COMPLETADA",
-                    entrega__trabajador_id=par["entrega__trabajador_id"],
-                    inventario_id=par["inventario_id"],
-                    entrega__fecha_entrega__date__lt=desde,
-                )
-                .values_list("cantidad", flat=True)
-            )
+            historial = historial_por_par.get((par["entrega__trabajador_id"], par["inventario_id"]), [])
 
             if len(historial) < MIN_ENTREGAS_HISTORICO_PROPIO:
                 continue  # sin historial previo suficiente para juzgar (ej. trabajador nuevo)

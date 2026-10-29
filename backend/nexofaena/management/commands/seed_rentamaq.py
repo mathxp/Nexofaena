@@ -411,7 +411,9 @@ class Command(BaseCommand):
         return Trabajador.objects.bulk_create(trabajadores)
 
     # =================================================================
-    # 4. CATÁLOGO (con variantes de talla como filas separadas)
+    # 4. CATÁLOGO — una ficha por producto; la talla se anota en cada
+    #    entrega (como en el pañol real), no es un producto aparte. Antes
+    #    eran 18 "Zapato de seguridad" (9 tallas x 2 bodegas).
     # =================================================================
     def _crear_catalogo(self, bodegas):
         # RM-0001, RM-0002...: nunca colisiona y es fácil de verificar.
@@ -432,50 +434,56 @@ class Command(BaseCommand):
             alta_rotacion = nombre in NOMBRES_ALTA_ROTACION
             renovacion = nombre in NOMBRES_RENOVACION
 
-            for talla in (tallas or [None]):
-                for clave_bodega, bodega in bodegas.items():
-                    # Alta rotación -> más stock en Central, poco respaldo en
-                    # Reserva. Baja rotación / respaldo -> al revés.
-                    if alta_rotacion:
-                        minimo, maximo = (20, 200) if clave_bodega == "central" else (10, 60)
-                    elif renovacion:
-                        minimo, maximo = (8, 40) if clave_bodega == "central" else (15, 80)
-                    else:
-                        minimo, maximo = (5, 30) if clave_bodega == "central" else (10, 60)
+            # La Reserva solo guarda respaldo de lo que más rota; herramientas,
+            # oficina, izaje y radios viven solo en Central.
+            bodegas_del_producto = (
+                bodegas.items() if (alta_rotacion or renovacion) else [("central", bodegas["central"])]
+            )
 
-                    if nombre in PEDIDO_PENDIENTE and clave_bodega == "central":
-                        # Se piden de a poco (máximo bajo): sin la reposición
-                        # que no ha llegado, se agotan en días.
-                        maximo = 45
+            for clave_bodega, bodega in bodegas_del_producto:
+                # Alta rotación -> más stock en Central, poco respaldo en
+                # Reserva. Baja rotación / respaldo -> al revés.
+                if alta_rotacion:
+                    minimo, maximo = (20, 200) if clave_bodega == "central" else (10, 60)
+                elif renovacion:
+                    minimo, maximo = (8, 40) if clave_bodega == "central" else (15, 80)
+                else:
+                    minimo, maximo = (5, 30) if clave_bodega == "central" else (10, 60)
 
-                    inventario = Inventario(
-                        bodega=bodega,
-                        codigo=siguiente_codigo(),
-                        nombre=nombre,
-                        descripcion=f"{nombre} — {categoria}, uso operacional en faena.",
-                        marca=marca,
-                        modelo=modelo,
-                        talla=talla,
-                        unidad_medida=unidad,
-                        stock_actual=random.randint((minimo + maximo) // 2, maximo),
-                        stock_minimo=minimo,
-                        stock_maximo=maximo,
-                        precio_unitario=Decimal(str(precio)),
-                        ubicacion=f"Rack {categoria[:3].upper()}-{random.randint(1, 9)}",
-                        estado=True,
-                        es_devolutivo=es_devolutivo,
-                        es_activo_critico=es_critico,
-                        tiempo_reposicion_dias=14 if clave_bodega == "reserva" else 7,
-                    )
-                    objetos.append(inventario)
-                    productos.append({
-                        "inventario": inventario,
-                        "nombre_base": nombre,
-                        "bodega_clave": clave_bodega,
-                        "alta_rotacion": alta_rotacion,
-                        "renovacion": renovacion,
-                        "es_devolutivo": es_devolutivo,
-                    })
+                if nombre in PEDIDO_PENDIENTE and clave_bodega == "central":
+                    # Se piden de a poco (máximo bajo): sin la reposición
+                    # que no ha llegado, se agotan en días.
+                    maximo = 45
+
+                inventario = Inventario(
+                    bodega=bodega,
+                    codigo=siguiente_codigo(),
+                    nombre=nombre,
+                    descripcion=f"{nombre} — {categoria}, uso operacional en faena.",
+                    marca=marca,
+                    modelo=modelo,
+                    talla=None,
+                    unidad_medida=unidad,
+                    stock_actual=random.randint((minimo + maximo) // 2, maximo),
+                    stock_minimo=minimo,
+                    stock_maximo=maximo,
+                    precio_unitario=Decimal(str(precio)),
+                    ubicacion=f"Rack {categoria[:3].upper()}-{random.randint(1, 9)}",
+                    estado=True,
+                    es_devolutivo=es_devolutivo,
+                    es_activo_critico=es_critico,
+                    tiempo_reposicion_dias=14 if clave_bodega == "reserva" else 7,
+                )
+                objetos.append(inventario)
+                productos.append({
+                    "inventario": inventario,
+                    "nombre_base": nombre,
+                    "bodega_clave": clave_bodega,
+                    "alta_rotacion": alta_rotacion,
+                    "renovacion": renovacion,
+                    "es_devolutivo": es_devolutivo,
+                    "tallas": tallas,
+                })
 
         Inventario.objects.bulk_create(objetos, batch_size=200)
 
@@ -546,6 +554,7 @@ class Command(BaseCommand):
         inicio_sin_reposicion = hoy - timedelta(days=DIAS_SIN_REPOSICION)
 
         stock = {p["inventario"].id: Decimal(p["inventario"].stock_actual) for p in productos["lista"]}
+        tallas = {p["inventario"].id: p["tallas"] for p in productos["lista"] if p["tallas"]}
         radios_disponibles = list(productos["unidades_radio"])
         ultima_renovacion = {}
 
@@ -620,7 +629,8 @@ class Command(BaseCommand):
 
                 detalle = DetalleEntregaEPP(
                     entrega=entrega, inventario=inventario, cantidad=cantidad,
-                    talla=inventario.talla or "", precio_unitario=inventario.precio_unitario,
+                    talla=random.choice(tallas[inventario.id]) if inventario.id in tallas else "",
+                    precio_unitario=inventario.precio_unitario,
                     fecha_vencimiento_vida_util=vencimiento, unidad_activo=unidad,
                 )
                 detalles.append(detalle)
