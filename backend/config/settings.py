@@ -185,6 +185,20 @@ TELEGRAM_CODIGO_TTL_MINUTOS = config("TELEGRAM_CODIGO_TTL_MINUTOS", default=10, 
 TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
 
 # ==========================================
+# INTEGRACIÓN CON N8N (reposición automática)
+# ==========================================
+# Integración TEMPORAL de evaluación (prueba de 14 días de n8n Cloud, no se
+# contratará). Para desactivarla basta con borrar estas dos variables.
+# Cuando un producto entra en stock crítico se envía un POST a
+# N8N_WEBHOOK_URL (el nodo Webhook del flujo en n8n). N8N_TOKEN es la clave
+# compartida en ambos sentidos: viaja en el header X-NexoFaena-Token del
+# aviso, y n8n debe mandarla de vuelta al informar la orden de compra.
+# Sin N8N_WEBHOOK_URL no se envía nada; sin N8N_TOKEN el endpoint de
+# respuesta rechaza todo.
+N8N_WEBHOOK_URL = config("N8N_WEBHOOK_URL", default="")
+N8N_TOKEN = config("N8N_TOKEN", default="")
+
+# ==========================================
 # USUARIO PERSONALIZADO
 # ==========================================
 AUTH_USER_MODEL = "nexofaena.Usuario"

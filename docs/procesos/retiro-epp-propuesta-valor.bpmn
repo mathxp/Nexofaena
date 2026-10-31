@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_NexoFaena" targetNamespace="http://nexofaena.cl/bpmn" exporter="NexoFaena" exporterVersion="1.0">
+  <collaboration id="Colaboracion">
+    <participant id="Pool" name="Proceso de retiro de EPP con NexoFaena" processRef="Proceso_RetiroEPP"/>
+  </collaboration>
+  <process id="Proceso_RetiroEPP" name="Retiro de EPP con NexoFaena" isExecutable="false">
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Trabajador" name="Trabajador">
+        <flowNodeRef>Inicio</flowNodeRef>
+        <flowNodeRef>T_Acercarse</flowNodeRef>
+        <flowNodeRef>T_Registrar</flowNodeRef>
+        <flowNodeRef>T_Seleccionar</flowNodeRef>
+        <flowNodeRef>Fin_Entregado</flowNodeRef>
+      </lane>
+      <lane id="Lane_Kiosco" name="Kiosco NexoFaena (sistema)">
+        <flowNodeRef>T_Reconocer</flowNodeRef>
+        <flowNodeRef>G_Reconocido</flowNodeRef>
+        <flowNodeRef>T_RegistrarEntrega</flowNodeRef>
+        <flowNodeRef>G_Stock</flowNodeRef>
+        <flowNodeRef>T_Alerta</flowNodeRef>
+      </lane>
+      <lane id="Lane_Bodeguero" name="Bodeguero / Supervisor">
+        <flowNodeRef>T_Reponer</flowNodeRef>
+        <flowNodeRef>Fin_Repuesto</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="Inicio" name="Trabajador necesita EPP">
+      <outgoing>F1</outgoing>
+    </startEvent>
+    <task id="T_Acercarse" name="Acercarse al kiosco">
+      <incoming>F1</incoming>
+      <outgoing>F2</outgoing>
+    </task>
+    <serviceTask id="T_Reconocer" name="Reconocer rostro">
+      <incoming>F2</incoming>
+      <outgoing>F3</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="G_Reconocido" name="¿Rostro reconocido?">
+      <incoming>F3</incoming>
+      <outgoing>F4</outgoing>
+      <outgoing>F6</outgoing>
+    </exclusiveGateway>
+    <task id="T_Registrar" name="Registrar rostro con RUT">
+      <incoming>F4</incoming>
+      <outgoing>F5</outgoing>
+    </task>
+    <task id="T_Seleccionar" name="Seleccionar EPP y firmar">
+      <incoming>F5</incoming>
+      <incoming>F6</incoming>
+      <outgoing>F7</outgoing>
+    </task>
+    <serviceTask id="T_RegistrarEntrega" name="Registrar entrega y descontar stock">
+      <incoming>F7</incoming>
+      <outgoing>F8</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="G_Stock" name="¿Stock bajo el mínimo?">
+      <incoming>F8</incoming>
+      <outgoing>F9</outgoing>
+      <outgoing>F10</outgoing>
+    </exclusiveGateway>
+    <sendTask id="T_Alerta" name="Enviar alerta al bodeguero">
+      <incoming>F9</incoming>
+      <outgoing>F11</outgoing>
+    </sendTask>
+    <task id="T_Reponer" name="Reponer stock">
+      <incoming>F11</incoming>
+      <outgoing>F12</outgoing>
+    </task>
+    <endEvent id="Fin_Entregado" name="EPP entregado">
+      <incoming>F10</incoming>
+    </endEvent>
+    <endEvent id="Fin_Repuesto" name="Stock repuesto">
+      <incoming>F12</incoming>
+    </endEvent>
+    <sequenceFlow id="F1" sourceRef="Inicio" targetRef="T_Acercarse"/>
+    <sequenceFlow id="F2" sourceRef="T_Acercarse" targetRef="T_Reconocer"/>
+    <sequenceFlow id="F3" sourceRef="T_Reconocer" targetRef="G_Reconocido"/>
+    <sequenceFlow id="F4" name="No" sourceRef="G_Reconocido" targetRef="T_Registrar"/>
+    <sequenceFlow id="F5" sourceRef="T_Registrar" targetRef="T_Seleccionar"/>
+    <sequenceFlow id="F6" name="Sí" sourceRef="G_Reconocido" targetRef="T_Seleccionar"/>
+    <sequenceFlow id="F7" sourceRef="T_Seleccionar" targetRef="T_RegistrarEntrega"/>
+    <sequenceFlow id="F8" sourceRef="T_RegistrarEntrega" targetRef="G_Stock"/>
+    <sequenceFlow id="F9" name="Sí" sourceRef="G_Stock" targetRef="T_Alerta"/>
+    <sequenceFlow id="F10" name="No" sourceRef="G_Stock" targetRef="Fin_Entregado"/>
+    <sequenceFlow id="F11" sourceRef="T_Alerta" targetRef="T_Reponer"/>
+    <sequenceFlow id="F12" sourceRef="T_Reponer" targetRef="Fin_Repuesto"/>
+    <textAnnotation id="A_Antifraude"><text>Antifraude: identidad verificada en persona</text></textAnnotation>
+    <textAnnotation id="A_Autoservicio"><text>Autoservicio: retiro en menos de 1 minuto</text></textAnnotation>
+    <textAnnotation id="A_Trazabilidad"><text>Trazabilidad: quién, qué, cuándo y dónde</text></textAnnotation>
+    <textAnnotation id="A_Reposicion"><text>Reposición proactiva, sin quiebres de stock</text></textAnnotation>
+    <association id="Asoc_A_Antifraude" sourceRef="A_Antifraude" targetRef="T_Reconocer"/>
+    <association id="Asoc_A_Autoservicio" sourceRef="A_Autoservicio" targetRef="T_Seleccionar"/>
+    <association id="Asoc_A_Trazabilidad" sourceRef="A_Trazabilidad" targetRef="T_RegistrarEntrega"/>
+    <association id="Asoc_A_Reposicion" sourceRef="A_Reposicion" targetRef="T_Alerta"/>
+  </process>
+  <bpmndi:BPMNDiagram id="Diagrama_1" name="Propuesta de valor NexoFaena">
+    <bpmndi:BPMNPlane id="Plano_1" bpmnElement="Colaboracion">
+      <bpmndi:BPMNShape id="Pool_di" bpmnElement="Pool" isHorizontal="true"><dc:Bounds x="100" y="80" width="1560" height="540"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Trabajador_di" bpmnElement="Lane_Trabajador" isHorizontal="true"><dc:Bounds x="130" y="80" width="1530" height="180"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Kiosco_di" bpmnElement="Lane_Kiosco" isHorizontal="true"><dc:Bounds x="130" y="260" width="1530" height="180"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Bodeguero_di" bpmnElement="Lane_Bodeguero" isHorizontal="true"><dc:Bounds x="130" y="440" width="1530" height="180"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Inicio_di" bpmnElement="Inicio"><dc:Bounds x="162" y="152" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Acercarse_di" bpmnElement="T_Acercarse"><dc:Bounds x="235" y="138" width="110" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Reconocer_di" bpmnElement="T_Reconocer"><dc:Bounds x="385" y="318" width="110" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Reconocido_di" bpmnElement="G_Reconocido" isMarkerVisible="true"><dc:Bounds x="555" y="325" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Registrar_di" bpmnElement="T_Registrar"><dc:Bounds x="645" y="138" width="110" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Seleccionar_di" bpmnElement="T_Seleccionar"><dc:Bounds x="805" y="138" width="110" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_RegistrarEntrega_di" bpmnElement="T_RegistrarEntrega"><dc:Bounds x="955" y="318" width="110" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Stock_di" bpmnElement="G_Stock" isMarkerVisible="true"><dc:Bounds x="1125" y="325" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Alerta_di" bpmnElement="T_Alerta"><dc:Bounds x="1235" y="318" width="110" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Reponer_di" bpmnElement="T_Reponer"><dc:Bounds x="1375" y="498" width="110" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fin_Entregado_di" bpmnElement="Fin_Entregado"><dc:Bounds x="1562" y="152" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fin_Repuesto_di" bpmnElement="Fin_Repuesto"><dc:Bounds x="1562" y="512" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1">
+        <di:waypoint x="198" y="170"/>
+        <di:waypoint x="235" y="170"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2">
+        <di:waypoint x="290" y="202"/>
+        <di:waypoint x="290" y="350"/>
+        <di:waypoint x="385" y="350"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3">
+        <di:waypoint x="495" y="350"/>
+        <di:waypoint x="555" y="350"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4">
+        <di:waypoint x="580" y="325"/>
+        <di:waypoint x="580" y="170"/>
+        <di:waypoint x="645" y="170"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F5_di" bpmnElement="F5">
+        <di:waypoint x="755" y="170"/>
+        <di:waypoint x="805" y="170"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F6_di" bpmnElement="F6">
+        <di:waypoint x="605" y="350"/>
+        <di:waypoint x="860" y="350"/>
+        <di:waypoint x="860" y="202"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F7_di" bpmnElement="F7">
+        <di:waypoint x="915" y="170"/>
+        <di:waypoint x="1010" y="170"/>
+        <di:waypoint x="1010" y="318"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F8_di" bpmnElement="F8">
+        <di:waypoint x="1065" y="350"/>
+        <di:waypoint x="1125" y="350"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F9_di" bpmnElement="F9">
+        <di:waypoint x="1175" y="350"/>
+        <di:waypoint x="1235" y="350"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F10_di" bpmnElement="F10">
+        <di:waypoint x="1150" y="325"/>
+        <di:waypoint x="1150" y="170"/>
+        <di:waypoint x="1562" y="170"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F11_di" bpmnElement="F11">
+        <di:waypoint x="1345" y="350"/>
+        <di:waypoint x="1430" y="350"/>
+        <di:waypoint x="1430" y="498"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F12_di" bpmnElement="F12">
+        <di:waypoint x="1485" y="530"/>
+        <di:waypoint x="1562" y="530"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_Antifraude_di" bpmnElement="A_Antifraude"><dc:Bounds x="360" y="390" width="160" height="46"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Asoc_A_Antifraude_di" bpmnElement="Asoc_A_Antifraude"><di:waypoint x="440" y="390"/><di:waypoint x="440" y="382"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_Autoservicio_di" bpmnElement="A_Autoservicio"><dc:Bounds x="785" y="88" width="150" height="40"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Asoc_A_Autoservicio_di" bpmnElement="Asoc_A_Autoservicio"><di:waypoint x="860" y="128"/><di:waypoint x="860" y="138"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_Trazabilidad_di" bpmnElement="A_Trazabilidad"><dc:Bounds x="925" y="390" width="170" height="46"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Asoc_A_Trazabilidad_di" bpmnElement="Asoc_A_Trazabilidad"><di:waypoint x="1010" y="390"/><di:waypoint x="1010" y="382"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_Reposicion_di" bpmnElement="A_Reposicion"><dc:Bounds x="1205" y="390" width="170" height="46"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Asoc_A_Reposicion_di" bpmnElement="Asoc_A_Reposicion"><di:waypoint x="1290" y="390"/><di:waypoint x="1290" y="382"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

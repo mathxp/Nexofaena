@@ -15,6 +15,7 @@ from .views.auditoria_views import AuditoriaInventarioViewSet
 from .views.reporte_views import ReporteEppPorTurnoView, ReportePrestamosPendientesView
 from .views.telegram_views import TelegramEstadoVinculacionView, TelegramGenerarCodigoView
 from .views.telegram_webhook_views import telegram_webhook
+from .views.n8n_views import N8nResolverAlertaView
 
 router = DefaultRouter()
 
@@ -44,4 +45,5 @@ urlpatterns = [
     path("telegram/estado/", TelegramEstadoVinculacionView.as_view(), name="telegram_estado"),
     path("telegram/generar-codigo/", TelegramGenerarCodigoView.as_view(), name="telegram_generar_codigo"),
     path("telegram/webhook/<str:secreto>/", telegram_webhook, name="telegram_webhook"),
+    path("integraciones/n8n/alertas/<int:alerta_id>/resolver/", N8nResolverAlertaView.as_view(), name="n8n_resolver_alerta"),
 ]
