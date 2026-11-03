@@ -179,7 +179,10 @@ class MLService:
                 X = np.array([[i] for i in range(len(valores))])
                 y = np.array(valores)
 
-                modelo = RandomForestRegressor(n_estimators=150, random_state=42)
+                # 40 árboles poco profundos: con 12 puntos semanales por serie,
+                # 150 árboles daban la misma proyección pero tomaban ~5 s para
+                # todo el catálogo (el grueso del tiempo de cálculo del panel).
+                modelo = RandomForestRegressor(n_estimators=40, max_depth=4, random_state=42)
                 modelo.fit(X, y)
 
                 proyeccion_semana = float(modelo.predict(np.array([[len(valores)]]))[0])

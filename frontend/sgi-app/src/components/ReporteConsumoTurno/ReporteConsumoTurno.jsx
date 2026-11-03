@@ -29,7 +29,10 @@ const CLAVE_CACHE = 'epp_por_turno';
 const FILAS_INICIALES = 15;
 const PRODUCTOS_EN_RESUMEN = 3;
 
-const fechaISO = (date) => date.toISOString().slice(0, 10);
+// Fecha local (AAAA-MM-DD). Con toISOString (UTC), después de las 21:00 en
+// Chile el filtro "hasta hoy" quedaba en el día siguiente.
+const fechaISO = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const filtrosPorDefecto = () => {
   const hoy = new Date();

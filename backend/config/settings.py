@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import sys
 from datetime import timedelta  # <-- IMPORTANTE: Necesario para definir los tiempos del Token
 import dj_database_url
 from decouple import config
@@ -149,6 +150,13 @@ CACHES = {
         "LOCATION": "nexofaena_cache",
     }
 }
+
+# El panel se recalcula en un hilo aparte cuando sus datos quedan
+# desactualizados (ver DashboardService). En los tests se hace en el mismo
+# hilo: uno aparte no vería los datos de la transacción de prueba.
+DASHBOARD_RECALCULO_EN_SEGUNDO_PLANO = config(
+    "DASHBOARD_RECALCULO_EN_SEGUNDO_PLANO", default="test" not in sys.argv, cast=bool,
+)
 
 # ==========================================
 # REPORTES OPERATIVOS

@@ -1,45 +1,99 @@
+import logging
+import threading
+import time
+
+from django.conf import settings
 from django.core.cache import cache
-from django.db.models import Sum, Count
+from django.db import connection
+from django.db.models import Count, F, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from nexofaena.models.trabajador import Trabajador
 from nexofaena.models.inventario import Inventario
 from nexofaena.models.movimiento_inventario import MovimientoInventario
-from nexofaena.models.entrega import EntregaEPP
+from nexofaena.models.entrega import DetalleEntregaEPP, EntregaEPP
 from nexofaena.models.alerta import Alerta
 from nexofaena.services.ml_service import MLService
 
 CACHE_KEY_DASHBOARD = "nexofaena:dashboard:resumen"
 CACHE_KEY_ML_AVANZADO = "nexofaena:dashboard:ml_avanzado"
-# 10 minutos: reentrenar Random Forest + Regresión Logística + K-Means (por
-# cada cargo) toma ~4-5s con 12 meses de historial real. Un TTL de 60s hacía
-# que cualquier usuario que entrara a los ~60s de otro pagara ese costo de
-# nuevo. Es seguro subirlo porque toda escritura que cambia stock (entregas,
-# movimientos, traspasos, ajustes de auditoría) ya llama a
-# invalidar_cache() de inmediato — este TTL es solo la red de seguridad para
-# cambios que no pasan por esos servicios (ej. edición directa en el admin).
-#
-# El comando "recalcular_dashboard" (pensado para un Render Cron Job cada
-# 8 min, ver README del comando) llama a recalcular_cache() para repoblar
-# el cache ANTES de que este TTL expire — así el entrenamiento corre en el
-# cron, nunca en la request de un usuario real.
+CACHE_KEY_SUCIO = "nexofaena:dashboard:sucio"
+CACHE_KEY_RECALCULANDO = "nexofaena:dashboard:recalculando"
+
+# Cada cuánto se recalcula aunque nadie haya cambiado datos (ej. ediciones
+# directas en el admin, o el paso del tiempo en las ventanas de los modelos).
 CACHE_TTL_SEGUNDOS = 600
+
+# Si un recálculo en segundo plano muere sin liberar el candado, otro puede
+# empezar pasado este tiempo.
+CANDADO_RECALCULO_SEGUNDOS = 300
+
+logger = logging.getLogger("nexofaena")
 
 
 class DashboardService:
+
+    # ------------------------------------------------------------------
+    # Caché "stale-while-revalidate"
+    #
+    # Antes, cada entrega o movimiento BORRABA el caché, y el siguiente en
+    # abrir el panel esperaba que se reentrenaran todos los modelos (~7 s con
+    # 4 meses de datos; bastante más en el plan gratuito de Render). Ahora el
+    # caché nunca se borra: un cambio solo lo marca "sucio", el panel responde
+    # al instante con el último cálculo y el recálculo corre en un hilo aparte.
+    # ------------------------------------------------------------------
 
     @staticmethod
     def invalidar_cache():
         """
         Se llama desde cualquier operación que cambie stock, entregas o
-        alertas (entregas, devoluciones, movimientos, ajustes de auditoría,
-        altas/bajas de unidades) para que el próximo GET del dashboard no
-        sirva datos de antes del cambio durante los CACHE_TTL_SEGUNDOS
-        restantes.
+        alertas. Marca los datos como desactualizados; el próximo GET del
+        panel los sirve igual y dispara el recálculo en segundo plano.
         """
-        cache.delete(CACHE_KEY_DASHBOARD)
-        cache.delete(CACHE_KEY_ML_AVANZADO)
+        cache.set(CACHE_KEY_SUCIO, True, None)
+
+    @staticmethod
+    def _guardar(clave, datos):
+        cache.set(clave, {"datos": datos, "ts": time.time()}, None)
+
+    @staticmethod
+    def _obtener(clave, calcular):
+        entrada = cache.get(clave)
+        if not isinstance(entrada, dict) or "datos" not in entrada:
+            # Primera vez (o formato antiguo del caché): no hay nada que
+            # mostrar todavía, así que se calcula en la request. Se recalcula
+            # todo (no solo esta clave) para que la marca de "sucio" quede
+            # limpia y la siguiente carga no vuelva a recalcular.
+            DashboardService.recalcular_cache()
+            return cache.get(clave)["datos"]
+
+        vencido = time.time() - entrada.get("ts", 0) > CACHE_TTL_SEGUNDOS
+        if vencido or cache.get(CACHE_KEY_SUCIO):
+            DashboardService._recalcular_en_segundo_plano()
+        return entrada["datos"]
+
+    @staticmethod
+    def _recalcular_en_segundo_plano():
+        if not getattr(settings, "DASHBOARD_RECALCULO_EN_SEGUNDO_PLANO", True):
+            DashboardService.recalcular_cache()
+            return
+
+        # cache.add es atómico: si otro proceso ya está recalculando, no se
+        # lanza un segundo entrenamiento en paralelo.
+        if not cache.add(CACHE_KEY_RECALCULANDO, True, CANDADO_RECALCULO_SEGUNDOS):
+            return
+
+        def recalcular():
+            try:
+                DashboardService.recalcular_cache()
+            except Exception:
+                logger.exception("Falló el recálculo del panel en segundo plano.")
+            finally:
+                cache.delete(CACHE_KEY_RECALCULANDO)
+                connection.close()  # el hilo abrió su propia conexión a la BD
+
+        threading.Thread(target=recalcular, daemon=True).start()
 
     @staticmethod
     def _calcular_dashboard():
@@ -63,24 +117,13 @@ class DashboardService:
             "recomendaciones_reposicion": analitica_stock["recomendaciones_reposicion"],
             "capital_inmovilizado": analitica_stock["capital_inmovilizado"],
             "entregas_por_canal": DashboardService.obtener_entregas_por_canal(),
+            "calculado_en": timezone.now().isoformat(),
         }
 
     @staticmethod
     def obtener_dashboard():
-        """
-        Entrena Random Forest, Regresión Logística y K-Means en cada llamada,
-        así que se cachea brevemente: sin esto, cada carga del Dashboard
-        Gerencial (o refresco de varios usuarios a la vez) reentrena los tres
-        modelos desde cero.
-        """
-        cacheado = cache.get(CACHE_KEY_DASHBOARD)
-        if cacheado is not None:
-            return cacheado
-
-        data = DashboardService._calcular_dashboard()
-        cache.set(CACHE_KEY_DASHBOARD, data, CACHE_TTL_SEGUNDOS)
-
-        return data
+        """Datos del panel: siempre responde al instante salvo la primera vez."""
+        return DashboardService._obtener(CACHE_KEY_DASHBOARD, DashboardService._calcular_dashboard)
 
     @staticmethod
     def _calcular_ml_avanzado():
@@ -91,31 +134,50 @@ class DashboardService:
 
     @staticmethod
     def obtener_ml_avanzado():
-        """
-        Bloque de IA "extendido" del Dashboard Gerencial: clasificación ABC
-        dinámica del inventario. Se cachea por la misma razón que
-        obtener_dashboard() — reentrenar en cada request sería trabajo
-        perdido si nadie cambió datos desde la última carga.
-        """
-        cacheado = cache.get(CACHE_KEY_ML_AVANZADO)
-        if cacheado is not None:
-            return cacheado
-
-        data = DashboardService._calcular_ml_avanzado()
-        cache.set(CACHE_KEY_ML_AVANZADO, data, CACHE_TTL_SEGUNDOS)
-
-        return data
+        """Clasificación ABC del panel, con el mismo caché que obtener_dashboard()."""
+        return DashboardService._obtener(CACHE_KEY_ML_AVANZADO, DashboardService._calcular_ml_avanzado)
 
     @staticmethod
     def recalcular_cache():
         """
-        Fuerza el reentrenamiento y repuebla el cache sin importar si el TTL
-        sigue vigente — a diferencia de obtener_dashboard()/obtener_ml_avanzado(),
-        que solo calculan en un cache-miss. Pensado para el comando
-        "recalcular_dashboard" (Render Cron Job), no para servir requests.
+        Reentrena y repuebla el caché. La marca de "sucio" se borra ANTES de
+        calcular: si llega un cambio mientras se entrena, vuelve a quedar
+        marcada y el próximo GET lanza otro recálculo.
         """
-        cache.set(CACHE_KEY_DASHBOARD, DashboardService._calcular_dashboard(), CACHE_TTL_SEGUNDOS)
-        cache.set(CACHE_KEY_ML_AVANZADO, DashboardService._calcular_ml_avanzado(), CACHE_TTL_SEGUNDOS)
+        cache.delete(CACHE_KEY_SUCIO)
+        DashboardService._guardar(CACHE_KEY_DASHBOARD, DashboardService._calcular_dashboard())
+        DashboardService._guardar(CACHE_KEY_ML_AVANZADO, DashboardService._calcular_ml_avanzado())
+
+    @staticmethod
+    def obtener_operativo():
+        """
+        Resumen operativo para todos los roles: solo conteos baratos (no
+        entrena modelos ni usa el caché del panel). Reemplaza descargar el
+        inventario, los trabajadores y las alertas completos solo para
+        contarlos en el navegador.
+        """
+        alertas_abiertas = Alerta.objects.filter(leida=False)
+
+        return {
+            "trabajadores_activos": Trabajador.objects.filter(activo=True).count(),
+            "productos_bajo_minimo": Inventario.objects.filter(
+                estado=True, stock_minimo__gt=0, stock_actual__lte=F("stock_minimo"),
+            ).count(),
+            "alertas_abiertas": alertas_abiertas.count(),
+            "radios_por_devolver": DetalleEntregaEPP.objects.filter(
+                unidad_activo__isnull=False, devuelto=False, entrega__estado="COMPLETADA",
+            ).count(),
+            "alertas_recientes": [
+                {
+                    "id": alerta.id,
+                    "tipo_alerta": alerta.tipo_alerta,
+                    "tipo_nombre": alerta.get_tipo_alerta_display(),
+                    "mensaje": alerta.mensaje,
+                    "fecha_alerta": alerta.fecha_alerta.isoformat(),
+                }
+                for alerta in alertas_abiertas.order_by("-fecha_alerta")[:5]
+            ],
+        }
 
     @staticmethod
     def obtener_kpis():

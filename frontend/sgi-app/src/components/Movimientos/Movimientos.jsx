@@ -7,6 +7,9 @@ import api from '../../api';
 import './Movimientos.css';
 
 const MOVIMIENTOS_POR_PAGINA = 12;
+// Historial reciente: el completo pesaba megas (miles de movimientos) y nadie
+// pagina más allá de unas decenas de páginas. Los reportes usan su propia consulta.
+const LIMITE_HISTORIAL = 500;
 
 const Movimientos = () => {
     const [movimientos, setMovimientos] = useState([]);
@@ -64,7 +67,7 @@ const Movimientos = () => {
     const cargarDatos = async () => {
         try {
             const [resMovs, resProds, resBodegas] = await Promise.all([
-                api.get('/movimientos/'),
+                api.get(`/movimientos/?limite=${LIMITE_HISTORIAL}`),
                 api.get('/inventario/'),
                 api.get('/bodegas/'),
             ]);
@@ -222,6 +225,7 @@ const Movimientos = () => {
             <div className="table-section">
                 <div className="table-header">
                     <FaHistory style={{ color: '#9aabc4' }} /> Historial de Movimientos
+                    <span className="historial-nota">(últimos {LIMITE_HISTORIAL})</span>
 
                     <div className="filtros-historial">
                         <FaFilter className="filtro-icon" />

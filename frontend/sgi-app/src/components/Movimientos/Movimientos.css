@@ -426,3 +426,10 @@
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+/* Aclara que el historial muestra solo lo más reciente. */
+.historial-nota {
+    margin-left: 6px;
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    font-weight: 500;
+}

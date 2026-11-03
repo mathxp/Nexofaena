@@ -5,7 +5,7 @@ from .views.auth_views import RolViewSet, UsuarioViewSet, RegistroConInvitacionV
 from .views.bodega_views import BodegaViewSet
 from .views.trabajador_views import TrabajadorViewSet
 from .views.inventario_views import InventarioViewSet
-from .views.dashboard_views import AlertaViewSet, DashboardResumenView, MLAnalyticsView, MLBusquedaView
+from .views.dashboard_views import AlertaViewSet, DashboardOperativoView, DashboardResumenView, MLAnalyticsView, MLBusquedaView
 from .views.movimiento_views import MovimientoInventarioViewSet
 from .views.entrega_views import EntregaEPPViewSet, DetalleEntregaEPPViewSet
 from .views.unidad_activo_views import UnidadActivoViewSet
@@ -34,6 +34,7 @@ router.register(r"auditorias-inventario", AuditoriaInventarioViewSet, basename="
 urlpatterns = [
     path("", include(router.urls)),
     path("dashboard/resumen/", DashboardResumenView.as_view(), name="dashboard_resumen"),
+    path("dashboard/operativo/", DashboardOperativoView.as_view(), name="dashboard_operativo"),
     path("dashboard/ml-avanzado/", MLAnalyticsView.as_view(), name="dashboard_ml_avanzado"),
     path("dashboard/ml-busqueda/", MLBusquedaView.as_view(), name="dashboard_ml_busqueda"),
     path("reportes/epp-por-turno/", ReporteEppPorTurnoView.as_view(), name="reporte_epp_por_turno"),

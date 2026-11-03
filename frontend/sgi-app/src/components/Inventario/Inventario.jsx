@@ -104,7 +104,7 @@ const Inventario = () => {
       const [resProductos, resBodegas, resMovs] = await Promise.all([
         api.get('/inventario/'),
         api.get('/bodegas/'),
-        api.get('/movimientos/').catch(() => ({ data: [] })),
+        api.get('/movimientos/?limite=5').catch(() => ({ data: [] })),
       ]);
 
       setProductos(resProductos.data);

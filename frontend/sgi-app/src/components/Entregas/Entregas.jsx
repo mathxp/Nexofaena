@@ -112,7 +112,7 @@ const Entregas = () => {
         api.get('/trabajadores/'),
         api.get('/inventario/'),
         api.get('/bodegas/'),
-        api.get('/entregas-epp/').catch(() => ({ data: [] })),
+        api.get('/entregas-epp/?limite=10').catch(() => ({ data: [] })),
         api.get('/unidades-activo/?estado=DISPONIBLE').catch(() => ({ data: [] })),
       ]);
 

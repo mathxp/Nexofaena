@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 
 import Sidebar from './components/Sidebar/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -16,7 +16,6 @@ const Registro = lazyConRecarga(() => import('./components/Registro/Registro'));
 const OlvidePassword = lazyConRecarga(() => import('./components/OlvidePassword/OlvidePassword'));
 const ResetPassword = lazyConRecarga(() => import('./components/ResetPassword/ResetPassword'));
 const Dashboard = lazyConRecarga(() => import('./components/Dashboard/Dashboard'));
-const DashboardGerencial = lazyConRecarga(() => import('./components/DashboardGerencial/DashboardGerencial'));
 const Trabajadores = lazyConRecarga(() => import('./components/Trabajadores/Trabajadores'));
 const Bodegas = lazyConRecarga(() => import('./components/Bodegas/Bodegas'));
 const Inventario = lazyConRecarga(() => import('./components/Inventario/Inventario'));
@@ -84,14 +83,8 @@ function App() {
                 }
               />
 
-              <Route
-                path="/dashboard-gerencial"
-                element={
-                  <RoleProtectedRoute allowedRoles={['Administrador', 'Supervisor']}>
-                    <DashboardGerencial />
-                  </RoleProtectedRoute>
-                }
-              />
+              {/* El Panel Gerencial se unió al Dashboard: la dirección antigua redirige. */}
+              <Route path="/dashboard-gerencial" element={<Navigate to="/dashboard" replace />} />
 
               <Route
                 path="/trabajadores"

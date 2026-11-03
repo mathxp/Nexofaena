@@ -13,12 +13,13 @@ from nexofaena.permissions import IsBodeguero, IsEncargadoBodega
 from nexofaena.serializers.movimiento_inventario_serializer import MovimientoInventarioSerializer
 from nexofaena.services.alerta_service import AlertaService
 from nexofaena.services.dashboard_service import DashboardService
+from nexofaena.views.mixins import LimiteListaMixin
 
 
 logger = logging.getLogger("nexofaena")
 
 
-class MovimientoInventarioViewSet(viewsets.ModelViewSet):
+class MovimientoInventarioViewSet(LimiteListaMixin, viewsets.ModelViewSet):
     serializer_class = MovimientoInventarioSerializer
     permission_classes = [IsBodeguero]
 

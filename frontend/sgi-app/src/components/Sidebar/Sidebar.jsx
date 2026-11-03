@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FaTachometerAlt, FaChartPie, FaTools, FaBoxes, FaBuilding,
+  FaTachometerAlt, FaTools, FaBoxes, FaBuilding,
   FaExchangeAlt, FaUserFriends, FaBell, FaClipboardCheck,
   FaFileAlt, FaSignOutAlt, FaUserCircle, FaBars, FaTimes, FaUndo
 } from 'react-icons/fa';
 
-import api from '../../api';
+import api, { limpiarCacheApi } from '../../api';
 import LogoNexoFaena from '../Marca/LogoNexoFaena';
 import './Sidebar.css';
 
@@ -46,6 +46,7 @@ const Sidebar = () => {
     localStorage.removeItem('user_role');
     localStorage.removeItem('username');
     localStorage.removeItem('user_id');
+    limpiarCacheApi();
     navigate('/');
   };
 
@@ -55,12 +56,6 @@ const Sidebar = () => {
       icon: <FaTachometerAlt />,
       label: 'Dashboard',
       roles: ['Administrador', 'Supervisor', 'Bodeguero', 'Operador'],
-    },
-    {
-      path: '/dashboard-gerencial',
-      icon: <FaChartPie />,
-      label: 'Gerencial',
-      roles: ['Administrador', 'Supervisor'],
     },
     {
       path: '/entregas',

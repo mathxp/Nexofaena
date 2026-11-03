@@ -11,23 +11,31 @@ from nexofaena.models.entrega import EntregaEPP, DetalleEntregaEPP
 from nexofaena.permissions import IsBodeguero
 from nexofaena.serializers.entrega_serializer import EntregaEPPSerializer, DetalleEntregaEPPSerializer
 from nexofaena.services.entrega_service import EntregaService
+from nexofaena.views.mixins import LimiteListaMixin
 
 
 logger = logging.getLogger("nexofaena")
 
 
-class EntregaEPPViewSet(viewsets.ModelViewSet):
+class EntregaEPPViewSet(LimiteListaMixin, viewsets.ModelViewSet):
     serializer_class = EntregaEPPSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
+        queryset = (
             EntregaEPP.objects
             .select_related("trabajador", "usuario", "bodega")
             .prefetch_related("detalles__inventario", "detalles__unidad_activo")
-            .all()
             .order_by("-fecha_entrega")
         )
+
+        # ?mes=AAAA-MM: Reportes pide un mes a la vez en vez de todo el
+        # historial (con meses de entregas eran varios MB por carga).
+        mes = self.request.GET.get("mes", "")
+        if len(mes) == 7 and mes[4] == "-" and mes[:4].isdigit() and mes[5:].isdigit():
+            queryset = queryset.filter(fecha_entrega__year=int(mes[:4]), fecha_entrega__month=int(mes[5:]))
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         data = request.data

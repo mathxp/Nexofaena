@@ -31,27 +31,33 @@ const ReporteEntregas = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
-  const [filtroMes, setFiltroMes] = useState('');
+  // Parte en el mes actual: el historial completo de entregas pesaba megas.
+  // Si se borra el filtro, se carga todo (decisión explícita del usuario).
+  const [filtroMes, setFiltroMes] = useState(() => {
+    const hoy = new Date(); // fecha local: con toISOString (UTC) el último día del mes saltaba al siguiente
+    return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroBodega, setFiltroBodega] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
 
   useEffect(() => {
-    cargarDatos();
-  }, []);
+    cargarDatos(filtroMes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroMes]);
 
   useEffect(() => {
     setPaginaActual(1);
   }, [filtroMes, filtroTexto, filtroBodega, filtroEstado]);
 
-  const cargarDatos = async () => {
+  const cargarDatos = async (mes) => {
     try {
       setCargando(true);
       setError('');
 
       const [resEntregas, resBodegas] = await Promise.all([
-        api.get('/entregas-epp/'),
+        api.get('/entregas-epp/', { params: mes ? { mes } : {} }),
         api.get('/bodegas/').catch(() => ({ data: [] })),
       ]);
 
