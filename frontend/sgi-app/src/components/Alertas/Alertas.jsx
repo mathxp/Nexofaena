@@ -19,6 +19,7 @@ import { saveAs } from 'file-saver';
 
 import api from '../../api';
 import './Alertas.css';
+import { entero } from '../../utils/numeros';
 
 const ALERTAS_POR_PAGINA = 12;
 
@@ -560,7 +561,7 @@ const Alertas = () => {
                       <div className="item-details">
                         <div className="item-name">{item.nombre}</div>
                         <div className="item-stats">
-                          Stock Actual: {item.stock_actual} | Mínimo: {item.stock_minimo}
+                          Stock Actual: {entero(item.stock_actual)} | Mínimo: {entero(item.stock_minimo)}
                         </div>
                       </div>
                     </div>
@@ -590,7 +591,7 @@ const Alertas = () => {
                       <div className="item-details">
                         <div className="item-name">{item.nombre}</div>
                         <div className="item-stats">
-                          Stock Actual: {item.stock_actual} | Mínimo: {item.stock_minimo}
+                          Stock Actual: {entero(item.stock_actual)} | Mínimo: {entero(item.stock_minimo)}
                         </div>
                       </div>
                     </div>
@@ -620,7 +621,7 @@ const Alertas = () => {
                       <div className="item-details">
                         <div className="item-name">{item.nombre}</div>
                         <div className="item-stats">
-                          Stock Actual: {item.stock_actual} | Mínimo: {item.stock_minimo}
+                          Stock Actual: {entero(item.stock_actual)} | Mínimo: {entero(item.stock_minimo)}
                         </div>
                       </div>
                     </div>
@@ -650,7 +651,7 @@ const Alertas = () => {
                       <div className="item-details">
                         <div className="item-name">{item.nombre}</div>
                         <div className="item-stats">
-                          Stock Actual: {item.stock_actual} | Máximo: {item.stock_maximo}
+                          Stock Actual: {entero(item.stock_actual)} | Máximo: {entero(item.stock_maximo)}
                         </div>
                       </div>
                     </div>

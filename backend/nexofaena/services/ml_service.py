@@ -39,6 +39,7 @@ from nexofaena.models.entrega import DetalleEntregaEPP
 from nexofaena.models.inventario import Inventario
 from nexofaena.models.movimiento_inventario import MovimientoInventario
 from nexofaena.models.trabajador import Trabajador
+from nexofaena.services.numeros import redondear
 
 SEMANAS_HISTORICO = 12
 MIN_SEMANAS_RANDOM_FOREST = 4
@@ -121,7 +122,7 @@ class MLService:
                 "labels": [s["semana"].strftime("%d-%b") for s in semanas],
                 "data": [float(v) for v in y],
             },
-            "proyeccion_proxima_semana": max(0, round(float(prediccion), 1)),
+            "proyeccion_proxima_semana": max(0, redondear(float(prediccion))),
             "confiable": len(semanas) >= 4,
         }
 
@@ -191,20 +192,22 @@ class MLService:
                 proyeccion_semana = mean(valores)
                 algoritmo = "Promedio histórico"
 
-            proyeccion_semana = max(0, round(proyeccion_semana, 1))
-            proyeccion_mes = round(proyeccion_semana * 4, 1)
+            # Se calcula con decimales y se redondea solo lo que se muestra.
+            proyeccion_semana = max(0.0, proyeccion_semana)
             precio_unitario = float(producto.precio_unitario)
 
             proyecciones.append({
                 "inventario_id": producto.id,
                 "producto_nombre": producto.nombre,
                 "bodega_nombre": producto.bodega.nombre,
-                "proyeccion_semana": proyeccion_semana,
-                "proyeccion_mes": proyeccion_mes,
+                "proyeccion_semana": redondear(proyeccion_semana),
+                "proyeccion_mes": redondear(proyeccion_semana * 4),
+                # Sin redondear: lo usa el modelo de quiebre (0,4/semana no es 0).
+                "consumo_diario_proyectado": round(proyeccion_semana / 7, 4),
                 "precio_unitario": precio_unitario,
                 # Valorización financiera: cuánto costará reponer lo que se proyecta consumir.
-                "proyeccion_gasto_clp": round(proyeccion_semana * precio_unitario, 2),
-                "proyeccion_gasto_mensual_clp": round(proyeccion_mes * precio_unitario, 2),
+                "proyeccion_gasto_clp": redondear(proyeccion_semana * precio_unitario),
+                "proyeccion_gasto_mensual_clp": redondear(proyeccion_semana * 4 * precio_unitario),
                 "algoritmo": algoritmo,
             })
 
@@ -324,7 +327,7 @@ class MLService:
             proyecciones_producto = MLService._calcular_proyecciones_producto()
 
         proyecciones_rf = {
-            p["inventario_id"]: p["proyeccion_semana"] / 7
+            p["inventario_id"]: p["consumo_diario_proyectado"]
             for p in proyecciones_producto
         }
 
@@ -355,7 +358,7 @@ class MLService:
                         "stock_actual": stock_actual,
                         "dias_cobertura_estimados": None,
                         "precio_unitario": precio_unitario,
-                        "capital_inmovilizado_clp": round(stock_actual * precio_unitario, 2),
+                        "capital_inmovilizado_clp": redondear(stock_actual * precio_unitario),
                         "motivo": "Sin consumo registrado en el período reciente (posible obsolescencia).",
                     })
                 continue
@@ -371,7 +374,7 @@ class MLService:
                 probabilidad = MLService._probabilidad_quiebre_fallback(dias_restantes, tiempo_reposicion) * 100
                 algoritmo = "Regresión Logística (fórmula base)"
 
-            probabilidad = round(min(100, probabilidad), 1)
+            probabilidad = redondear(min(100, probabilidad))
 
             # Optimización de capital: riesgo de quiebre ~nulo + cobertura de
             # varios meses = dinero inmovilizado en sobre-stock, no en riesgo.
@@ -385,9 +388,9 @@ class MLService:
                     "producto_nombre": producto.nombre,
                     "bodega_nombre": producto.bodega.nombre,
                     "stock_actual": stock_actual,
-                    "dias_cobertura_estimados": round(dias_restantes, 1),
+                    "dias_cobertura_estimados": redondear(dias_restantes),
                     "precio_unitario": precio_unitario,
-                    "capital_inmovilizado_clp": round(stock_actual * precio_unitario, 2),
+                    "capital_inmovilizado_clp": redondear(stock_actual * precio_unitario),
                     "motivo": "Sobre-stock: más de 6 meses de cobertura con riesgo de quiebre prácticamente nulo.",
                 })
 
@@ -401,7 +404,7 @@ class MLService:
                 "bodega_nombre": producto.bodega.nombre,
                 "stock_actual": stock_actual,
                 "consumo_diario_promedio": round(diario, 2),
-                "dias_restantes_estimados": round(dias_restantes, 1),
+                "dias_restantes_estimados": redondear(dias_restantes),
                 "tiempo_reposicion_dias": tiempo_reposicion,
                 "probabilidad_quiebre": probabilidad,
                 "algoritmo": algoritmo,
@@ -422,7 +425,7 @@ class MLService:
                 "producto_nombre": producto.nombre,
                 "bodega_nombre": producto.bodega.nombre,
                 "fecha_sugerida_pedido": fecha_sugerida.isoformat(),
-                "cantidad_sugerida": round(max(cantidad_sugerida, 1), 0),
+                "cantidad_sugerida": redondear(max(cantidad_sugerida, 1)),
                 "probabilidad_quiebre": probabilidad,
             })
 
@@ -448,8 +451,8 @@ class MLService:
         quiebre_stock, recomendaciones, capital_inmovilizado = MLService._analizar_riesgo_quiebre(proyecciones_producto)
 
         presupuesto_proyectado = {
-            "semanal_clp": round(sum(p["proyeccion_gasto_clp"] for p in proyecciones_producto), 2),
-            "mensual_clp": round(sum(p["proyeccion_gasto_mensual_clp"] for p in proyecciones_producto), 2),
+            "semanal_clp": sum(p["proyeccion_gasto_clp"] for p in proyecciones_producto),
+            "mensual_clp": sum(p["proyeccion_gasto_mensual_clp"] for p in proyecciones_producto),
         }
 
         capital_inmovilizado_ordenado = sorted(
@@ -463,7 +466,7 @@ class MLService:
             "recomendaciones_reposicion": recomendaciones,
             "capital_inmovilizado": {
                 "items": capital_inmovilizado_ordenado[:TOP_N_PRODUCTOS_PLANIFICACION],
-                "total_clp": round(sum(c["capital_inmovilizado_clp"] for c in capital_inmovilizado), 2),
+                "total_clp": sum(c["capital_inmovilizado_clp"] for c in capital_inmovilizado),
                 "cantidad_items": len(capital_inmovilizado),
             },
         }
@@ -652,7 +655,7 @@ class MLService:
             precio_referencia = float(top_producto["inventario__precio_unitario"] or 0)
             promedio_referencia = registro.get("promedio_referencia", 0)
             exceso_unidades = max(0.0, float(registro["total"]) - promedio_referencia)
-            impacto_financiero_clp = round(exceso_unidades * precio_referencia, 2)
+            impacto_financiero_clp = redondear(exceso_unidades * precio_referencia)
 
             anomalias.append({
                 "trabajador_id": registro["trabajador_id"],
@@ -661,10 +664,10 @@ class MLService:
                 "inventario_id": top_producto["inventario_id"],
                 "producto_nombre": top_producto["inventario__nombre"],
                 "bodega_nombre": top_producto["bodega__nombre"],
-                "cantidad_mes": float(registro["total"]),
+                "cantidad_mes": redondear(registro["total"]),
                 "num_entregas": registro["num_entregas"],
                 "productos_distintos": registro["productos_distintos"],
-                "exceso_unidades": round(exceso_unidades, 1),
+                "exceso_unidades": redondear(exceso_unidades),
                 "impacto_financiero_clp": impacto_financiero_clp,
                 "algoritmo": registro["algoritmo"],
                 "mensaje": (
@@ -760,12 +763,12 @@ class MLService:
             "producto_nombre": producto.nombre,
             "producto_codigo": producto.codigo,
             "bodega_nombre": producto.bodega.nombre,
-            "stock_actual": float(producto.stock_actual),
-            "stock_minimo": float(producto.stock_minimo),
+            "stock_actual": redondear(producto.stock_actual),
+            "stock_minimo": redondear(producto.stock_minimo),
             "necesita_reposicion": producto.necesita_reposicion,
             "consumo_diario_promedio": round(consumo_diario, 2),
-            "consumo_mensual_estimado": round(consumo_diario * 30, 1),
-            "similitud": round(float(puntaje_similitud) * 100, 1),
+            "consumo_mensual_estimado": redondear(consumo_diario * 30),
+            "similitud": redondear(float(puntaje_similitud) * 100),
         }
 
     @staticmethod
@@ -995,10 +998,10 @@ class MLService:
                 "producto_nombre": producto.nombre,
                 "bodega_nombre": producto.bodega.nombre,
                 "precio_unitario": f["precio_unitario"],
-                "rotacion_mensual": round(f["rotacion_mensual"], 1),
+                "rotacion_mensual": redondear(f["rotacion_mensual"]),
                 "stock_actual": stock_actual,
-                "valor_stock_clp": round(stock_actual * f["precio_unitario"], 2),
-                "valor_movido_mensual_clp": round(f["precio_unitario"] * f["rotacion_mensual"], 2),
+                "valor_stock_clp": redondear(stock_actual * f["precio_unitario"]),
+                "valor_movido_mensual_clp": redondear(f["precio_unitario"] * f["rotacion_mensual"]),
                 "clase_abc": f["clase_abc"],
                 "es_activo_critico": producto.es_activo_critico,
                 "algoritmo": algoritmo,
@@ -1009,7 +1012,7 @@ class MLService:
         resumen = {
             clase: {
                 "cantidad": sum(1 for i in items if i["clase_abc"] == clase),
-                "valor_stock_clp": round(sum(i["valor_stock_clp"] for i in items if i["clase_abc"] == clase), 2),
+                "valor_stock_clp": sum(i["valor_stock_clp"] for i in items if i["clase_abc"] == clase),
             }
             for clase in ("A", "B", "C")
         }
@@ -1102,8 +1105,8 @@ class MLService:
             candidatos.append({
                 "trabajador_id": par["entrega__trabajador_id"],
                 "inventario_id": par["inventario_id"],
-                "promedio_periodo": round(promedio_periodo, 2),
-                "promedio_historico": round(promedio_historico, 2),
+                "promedio_periodo": redondear(promedio_periodo),
+                "promedio_historico": redondear(promedio_historico),
                 "z_score": round(z_score, 2),
                 "num_entregas_periodo": num_entregas_periodo,
                 "num_entregas_historicas": len(historial_f),

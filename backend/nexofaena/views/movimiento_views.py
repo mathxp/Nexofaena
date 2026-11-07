@@ -13,6 +13,7 @@ from nexofaena.permissions import IsBodeguero, IsEncargadoBodega
 from nexofaena.serializers.movimiento_inventario_serializer import MovimientoInventarioSerializer
 from nexofaena.services.alerta_service import AlertaService
 from nexofaena.services.dashboard_service import DashboardService
+from nexofaena.services.numeros import cantidad_entera
 from nexofaena.views.mixins import LimiteListaMixin
 
 
@@ -78,13 +79,16 @@ class MovimientoInventarioViewSet(LimiteListaMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cantidad = Decimal(str(cantidad))
+        try:
+            cantidad = cantidad_entera(cantidad)
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         # En AJUSTE la cantidad es "el nuevo stock exacto" (línea más abajo:
         # nuevo_stock = cantidad), no una cantidad a sumar/restar: 0 es un
         # valor legítimo (el producto se agotó por completo). En INGRESO y
         # SALIDA, en cambio, un movimiento de 0 unidades no representa nada.
-        limite_minimo = Decimal("0") if tipo == "AJUSTE" else Decimal("0.01")
+        limite_minimo = Decimal("0") if tipo == "AJUSTE" else Decimal("1")
 
         if cantidad < limite_minimo:
             mensaje = (
@@ -204,9 +208,9 @@ class MovimientoInventarioViewSet(LimiteListaMixin, viewsets.ModelViewSet):
             )
 
         try:
-            cantidad = Decimal(str(cantidad))
-        except (ArithmeticError, ValueError):
-            return Response({"detail": "Cantidad inválida."}, status=status.HTTP_400_BAD_REQUEST)
+            cantidad = cantidad_entera(cantidad)
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         if cantidad <= 0:
             return Response({"detail": "La cantidad debe ser mayor a cero."}, status=status.HTTP_400_BAD_REQUEST)

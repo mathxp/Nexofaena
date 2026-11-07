@@ -27,6 +27,7 @@ import { useReconocimientoFacial } from './hooks/useReconocimientoFacial';
 import LogoNexoFaena from '../Marca/LogoNexoFaena';
 import TutorialKiosco from './TutorialKiosco';
 import './Kiosco.css';
+import { entero } from '../../utils/numeros';
 
 // Datos técnicos del reconocimiento (distancia, giro, ms por lectura): sirven
 // para calibrar la cámara en terreno, pero al trabajador solo lo confunden.
@@ -568,7 +569,7 @@ const Kiosco = () => {
                       <div key={p.id} className={`kiosco-producto ${seleccionado ? 'seleccionado' : ''}`}>
                         <div className="kiosco-producto-info" onClick={() => toggleProducto(p.id)}>
                           <span className="kiosco-producto-nombre">{p.nombre}</span>
-                          <span className="kiosco-producto-stock">Stock: {p.stock_actual}</span>
+                          <span className="kiosco-producto-stock">Stock: {entero(p.stock_actual)}</span>
                         </div>
 
                         {seleccionado && (

@@ -1,6 +1,5 @@
 import logging
 from datetime import timedelta
-from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -13,6 +12,7 @@ from nexofaena.models.trabajador import Trabajador
 from nexofaena.models.unidad_activo import UnidadActivo
 from nexofaena.services.alerta_service import AlertaService
 from nexofaena.services.dashboard_service import DashboardService
+from nexofaena.services.numeros import cantidad_entera
 
 logger = logging.getLogger("nexofaena")
 
@@ -56,9 +56,9 @@ class EntregaService:
             inventario_id = item.get("inventario")
 
             try:
-                cantidad = Decimal(str(item.get("cantidad") or "0"))
-            except (ArithmeticError, ValueError):
-                raise ValidationError("Detalle inválido: producto o cantidad incorrecta.")
+                cantidad = cantidad_entera(item.get("cantidad") or "0")
+            except ValueError:
+                raise ValidationError("Detalle inválido: la cantidad debe ser un número entero mayor a cero.")
 
             if not inventario_id or cantidad <= 0:
                 raise ValidationError("Detalle inválido: producto o cantidad incorrecta.")

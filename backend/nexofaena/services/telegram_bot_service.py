@@ -14,6 +14,7 @@ from nexofaena.models.movimiento_inventario import MovimientoInventario
 from nexofaena.models.telegram_bot import TelegramCodigoVinculacion, TelegramVinculo
 from nexofaena.models.trabajador import Trabajador
 from nexofaena.services.notificacion_service import escapar_html
+from nexofaena.services.numeros import redondear
 
 MAX_RESULTADOS = 8
 MAX_BOTONES_PRODUCTO = 5
@@ -62,9 +63,18 @@ def _clp(valor):
 
 
 def _cantidad(valor):
-    """10.0 -> "10", 2.5 -> "2,5": los Decimal/float del stock se ven como números de persona."""
-    numero = float(valor or 0)
-    return f"{numero:.0f}" if numero == int(numero) else f"{numero:.1f}".replace(".", ",")
+    """10.0 -> "10", 2.5 -> "3": en el bot todas las cantidades son enteras."""
+    return str(redondear(valor))
+
+
+def _ritmo_entrega(diario):
+    """Ritmo de entrega en entero: "~3 por día", o por semana/mes si es
+    menos de uno al día (mostrar "~0 por día" sería engañoso)."""
+    if redondear(diario) >= 1:
+        return f"~<b>{redondear(diario)}</b> por día"
+    if redondear(diario * 7) >= 1:
+        return f"~<b>{redondear(diario * 7)}</b> por semana"
+    return f"~<b>{max(1, redondear(diario * 30))}</b> por mes"
 
 
 def _urgencia(probabilidad):
@@ -484,7 +494,7 @@ class TelegramBotService:
 
         if diario > 0:
             dias = stock / diario
-            lineas.append(f"📉 Se entregan ~<b>{_cantidad(round(diario, 1))}</b> por día")
+            lineas.append(f"📉 Se entregan {_ritmo_entrega(diario)}")
             lineas.append(
                 f"⏳ Alcanza para ~<b>{_cantidad(round(dias))}</b> día(s) · "
                 f"el proveedor tarda {producto.tiempo_reposicion_dias or 7}"

@@ -22,6 +22,7 @@ import { saveAs } from 'file-saver';
 import api from '../../api';
 import ReporteConsumoTurno from '../ReporteConsumoTurno/ReporteConsumoTurno';
 import './Reportes.css';
+import { entero } from '../../utils/numeros';
 
 const REGISTROS_POR_PAGINA = 15;
 
@@ -75,7 +76,7 @@ const ReporteEntregas = () => {
     if (!entrega.detalles || entrega.detalles.length === 0) return 'Sin productos';
 
     return entrega.detalles
-      .map((d) => `${d.producto_nombre || 'Producto'} (${d.cantidad})`)
+      .map((d) => `${d.producto_nombre || 'Producto'} (${entero(d.cantidad)})`)
       .join(', ');
   };
 

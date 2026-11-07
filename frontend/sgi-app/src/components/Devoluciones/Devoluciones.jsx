@@ -12,6 +12,7 @@ import {
 
 import api from '../../api';
 import './Devoluciones.css';
+import { entero } from '../../utils/numeros';
 
 const Devoluciones = () => {
   const [bodegas, setBodegas] = useState([]);
@@ -215,7 +216,7 @@ const Devoluciones = () => {
                       ) : (
                         <>
                           {detalle.producto_nombre}
-                          <span className="devolucion-cantidad"> x{detalle.cantidad}</span>
+                          <span className="devolucion-cantidad"> x{entero(detalle.cantidad)}</span>
                         </>
                       )}
                     </div>

@@ -28,7 +28,7 @@ class DetalleEntregaEPPSerializer(serializers.ModelSerializer):
     trabajador_rut = serializers.SerializerMethodField()
     bodega_nombre = serializers.CharField(source="entrega.bodega.nombre", read_only=True)
     dias_para_vencer = serializers.SerializerMethodField()
-    subtotal = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    subtotal = serializers.DecimalField(max_digits=14, decimal_places=0, read_only=True)
 
     class Meta:
         model = DetalleEntregaEPP

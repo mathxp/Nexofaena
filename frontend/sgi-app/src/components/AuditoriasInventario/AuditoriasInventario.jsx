@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 import api from '../../api';
 import ConteoCiclico from '../ConteoCiclico/ConteoCiclico';
 import './AuditoriasInventario.css';
+import { entero } from '../../utils/numeros';
 
 const AuditoriasHistorial = () => {
   const [auditorias, setAuditorias] = useState([]);
@@ -188,10 +189,10 @@ const AuditoriasHistorial = () => {
                   <tr key={index}>
                     <td>{d.codigo}</td>
                     <td>{d.producto}</td>
-                    <td>{d.stock_sistema}</td>
-                    <td>{d.stock_fisico}</td>
+                    <td>{entero(d.stock_sistema)}</td>
+                    <td>{entero(d.stock_fisico)}</td>
                     <td className={Number(d.diferencia) === 0 ? 'ok' : 'danger'}>
-                      {d.diferencia}
+                      {entero(d.diferencia)}
                     </td>
                     <td>{d.observacion || 'N/A'}</td>
                   </tr>

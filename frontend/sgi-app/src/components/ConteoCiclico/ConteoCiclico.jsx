@@ -8,6 +8,7 @@ import {
 import api from "../../api";
 import { db } from "../../db";
 import "./ConteoCiclico.css";
+import { PROPS_ENTERO, entero } from '../../utils/numeros';
 
 const UMBRAL_DESCUADRE_PORCENTAJE = 0.2;
 const AUDITORIA_STORAGE_KEY = "conteo_auditoria_activa";
@@ -220,7 +221,7 @@ const ConteoCiclico = () => {
 
     let productosBase = lista.map((p) => ({
       ...p,
-      stock_fisico: p.stock_actual,
+      stock_fisico: entero(p.stock_actual),
       diferencia: 0,
     }));
 
@@ -235,7 +236,7 @@ const ConteoCiclico = () => {
 
         return {
           ...p,
-          stock_fisico: detalle.stock_fisico,
+          stock_fisico: entero(detalle.stock_fisico),
           diferencia: Number(detalle.diferencia),
         };
       });
@@ -288,7 +289,9 @@ const ConteoCiclico = () => {
     }
   };
 
-  const actualizarConteo = (index, valor) => {
+  const actualizarConteo = (index, valorIngresado) => {
+    // Solo enteros: si llega "4.7" (pegado), se queda en 4.
+    const valor = valorIngresado === '' ? '' : String(Math.max(0, Math.trunc(Number(valorIngresado) || 0)));
     const copia = [...productos];
 
     copia[index].stock_fisico = valor;
@@ -731,12 +734,13 @@ const ConteoCiclico = () => {
                     </span>
                   )}
                 </td>
-                <td data-label="Sistema">{p.stock_actual}</td>
+                <td data-label="Sistema">{entero(p.stock_actual)}</td>
                 <td data-label="Conteo">
                   <input
                     ref={(el) => { inputRefs.current[p.id] = el; }}
                     type="number"
                     min="0"
+                    {...PROPS_ENTERO}
                     value={p.stock_fisico}
                     disabled={!auditoria || auditoria.estado !== "ABIERTA"}
                     onChange={(e) => actualizarConteo(index, e.target.value)}
@@ -754,7 +758,7 @@ const ConteoCiclico = () => {
                       : "danger"
                   }
                 >
-                  {p.diferencia}
+                  {entero(p.diferencia)}
                   {esDescuadreCritico(p) && <FaExclamationTriangle style={{ marginLeft: 6 }} />}
                 </td>
               </tr>
@@ -830,7 +834,7 @@ const ConteoCiclico = () => {
               {itemsCriticos.map((p) => (
                 <div key={p.id} className="critico-item">
                   <FaExclamationTriangle />
-                  <span>{p.nombre}: diferencia de {p.diferencia} unidades</span>
+                  <span>{p.nombre}: diferencia de {entero(p.diferencia)} unidades</span>
                 </div>
               ))}
             </div>

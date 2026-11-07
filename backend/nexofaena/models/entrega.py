@@ -118,14 +118,14 @@ class DetalleEntregaEPP(models.Model):
     entrega = models.ForeignKey(EntregaEPP, on_delete=models.CASCADE, related_name="detalles")
     inventario = models.ForeignKey(Inventario, on_delete=models.PROTECT, verbose_name="Producto en Inventario")
     
-    cantidad = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Cantidad Entregada")
+    cantidad = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Cantidad Entregada")
     talla = models.CharField(max_length=20, blank=True, null=True, verbose_name="Talla")
     observacion = models.TextField(blank=True, null=True, verbose_name="Observaciones del Ítem")
 
     # Precio congelado al momento de la entrega (independiente de cambios futuros
     # en Inventario.precio_unitario), para un seguimiento fiel del dinero entregado.
     precio_unitario = models.DecimalField(
-        max_digits=12, decimal_places=2, default=Decimal('0'),
+        max_digits=12, decimal_places=0, default=Decimal('0'),
         verbose_name="Precio Unitario al Entregar (CLP)",
     )
 

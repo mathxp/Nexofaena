@@ -39,6 +39,7 @@ import { saveAs } from 'file-saver';
 
 import api from '../../api';
 import './Dashboard.css';
+import { entero } from '../../utils/numeros';
 
 ChartJS.register(
   CategoryScale,
@@ -298,7 +299,7 @@ const Dashboard = () => {
       prevencion.addRow({
         producto: q.producto_nombre,
         bodega: q.bodega_nombre,
-        stock: q.stock_actual,
+        stock: entero(q.stock_actual),
         dias: q.dias_restantes_estimados,
         reposicion: q.tiempo_reposicion_dias,
         prob: `${q.probabilidad_quiebre}%`,
@@ -633,7 +634,7 @@ const Dashboard = () => {
                   {r.necesita_reposicion && <span className="pg-pill pg-pill-ambar">Bajo el mínimo</span>}
                 </div>
                 <div className="pg-resultado-datos">
-                  <span><strong className="pg-num">{r.stock_actual}</strong> en stock</span>
+                  <span><strong className="pg-num">{entero(r.stock_actual)}</strong> en stock</span>
                   <span><strong className="pg-num">{r.consumo_mensual_estimado}</strong> al mes</span>
                   <span>{r.bodega_nombre}</span>
                 </div>

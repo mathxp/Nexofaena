@@ -7,6 +7,7 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 
 from nexofaena.services.reporte_service import ReporteService
+from nexofaena.services.numeros import redondear
 
 AHORA = datetime(2026, 10, 15, 13, 0, tzinfo=ZoneInfo("America/Santiago"))
 
@@ -61,7 +62,7 @@ class ReporteConsumoTurnoTests(TestCase):
         for fila in filtrado:
             self.assertLessEqual(fila["num_visitas"], general[fila["trabajador_id"]]["num_visitas"])
             self.assertTrue(all("Guantes" in p["producto_nombre"] for p in fila["desglose_por_producto"]))
-            self.assertAlmostEqual(fila["unidades_por_visita"], round(fila["total_unidades"] / fila["num_visitas"], 1))
+            self.assertEqual(fila["unidades_por_visita"], redondear(fila["total_unidades"] / fila["num_visitas"]))
 
     def test_filtrar_por_turno(self, _now):
         reporte = self._reporte(turno="noche")

@@ -77,17 +77,17 @@ class DetalleAuditoriaInventario(models.Model):
 
     stock_sistema = models.DecimalField(
         max_digits=12,
-        decimal_places=2,
+        decimal_places=0,
     )
 
     stock_fisico = models.DecimalField(
         max_digits=12,
-        decimal_places=2,
+        decimal_places=0,
     )
 
     diferencia = models.DecimalField(
         max_digits=12,
-        decimal_places=2,
+        decimal_places=0,
     )
 
     observacion = models.TextField(blank=True, null=True)

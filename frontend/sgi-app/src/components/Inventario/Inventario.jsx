@@ -20,6 +20,7 @@ import {
 } from 'react-icons/fa';
 import api from '../../api';
 import './Inventario.css';
+import { PROPS_ENTERO, entero } from '../../utils/numeros';
 
 const PRODUCTOS_POR_PAGINA = 12;
 
@@ -222,15 +223,15 @@ const Inventario = () => {
       codigo: producto.codigo || '',
       nombre: producto.nombre || '',
       descripcion: producto.descripcion || '',
-      stock_actual: producto.stock_actual ?? '',
-      stock_minimo: producto.stock_minimo ?? '',
-      stock_maximo: producto.stock_maximo ?? '',
+      stock_actual: entero(producto.stock_actual) ?? '',
+      stock_minimo: entero(producto.stock_minimo) ?? '',
+      stock_maximo: entero(producto.stock_maximo) ?? '',
       ubicacion: producto.ubicacion || '',
       estado: producto.estado ?? true,
       vida_util_dias: producto.vida_util_dias ?? '',
       es_devolutivo: producto.es_devolutivo ?? false,
       es_activo_critico: producto.es_activo_critico ?? false,
-      precio_unitario: producto.precio_unitario ?? '',
+      precio_unitario: entero(producto.precio_unitario) ?? '',
       clasificacion_5s: producto.clasificacion_5s || '',
     });
 
@@ -260,16 +261,16 @@ const Inventario = () => {
     const stockMinimo = Number(formData.stock_minimo);
     const stockMaximo = Number(formData.stock_maximo);
 
-    if (formData.stock_actual === '' || Number.isNaN(stockActual) || stockActual < 0) {
-      errores.stock_actual = 'Stock inicial inválido.';
+    if (formData.stock_actual === '' || !Number.isInteger(stockActual) || stockActual < 0) {
+      errores.stock_actual = 'Stock inicial inválido (número entero, 0 o más).';
     }
 
-    if (formData.stock_minimo === '' || Number.isNaN(stockMinimo) || stockMinimo < 0) {
-      errores.stock_minimo = 'Stock mínimo inválido.';
+    if (formData.stock_minimo === '' || !Number.isInteger(stockMinimo) || stockMinimo < 0) {
+      errores.stock_minimo = 'Stock mínimo inválido (número entero, 0 o más).';
     }
 
-    if (formData.stock_maximo === '' || Number.isNaN(stockMaximo) || stockMaximo < 0) {
-      errores.stock_maximo = 'Stock máximo inválido.';
+    if (formData.stock_maximo === '' || !Number.isInteger(stockMaximo) || stockMaximo < 0) {
+      errores.stock_maximo = 'Stock máximo inválido (número entero, 0 o más).';
     }
 
     if (!errores.stock_minimo && !errores.stock_maximo && stockMaximo > 0 && stockMinimo > stockMaximo) {
@@ -282,8 +283,8 @@ const Inventario = () => {
 
     const precioUnitario = Number(formData.precio_unitario);
 
-    if (formData.precio_unitario === '' || Number.isNaN(precioUnitario) || precioUnitario < 0) {
-      errores.precio_unitario = 'Ingresa el precio real del producto (0 o más).';
+    if (formData.precio_unitario === '' || !Number.isInteger(precioUnitario) || precioUnitario < 0) {
+      errores.precio_unitario = 'Ingresa el precio real en pesos, sin decimales (0 o más).';
     }
 
     setErroresForm(errores);
@@ -505,6 +506,7 @@ const Inventario = () => {
                 value={formData.stock_actual}
                 onChange={handleChange}
                 min="0"
+                {...PROPS_ENTERO}
               />
               {erroresForm.stock_actual && <small className="field-error">{erroresForm.stock_actual}</small>}
             </div>
@@ -518,6 +520,7 @@ const Inventario = () => {
                 value={formData.stock_minimo}
                 onChange={handleChange}
                 min="0"
+                {...PROPS_ENTERO}
               />
               {erroresForm.stock_minimo && <small className="field-error">{erroresForm.stock_minimo}</small>}
             </div>
@@ -531,6 +534,7 @@ const Inventario = () => {
                 value={formData.stock_maximo}
                 onChange={handleChange}
                 min="0"
+                {...PROPS_ENTERO}
               />
               {erroresForm.stock_maximo && <small className="field-error">{erroresForm.stock_maximo}</small>}
             </div>
@@ -544,7 +548,7 @@ const Inventario = () => {
                 value={formData.precio_unitario}
                 onChange={handleChange}
                 min="0"
-                step="1"
+                {...PROPS_ENTERO}
               />
               {erroresForm.precio_unitario && <small className="field-error">{erroresForm.precio_unitario}</small>}
             </div>
@@ -581,6 +585,7 @@ const Inventario = () => {
                 value={formData.vida_util_dias}
                 onChange={handleChange}
                 min="1"
+                {...PROPS_ENTERO}
               />
               {erroresForm.vida_util_dias && <small className="field-error">{erroresForm.vida_util_dias}</small>}
             </div>
@@ -690,9 +695,9 @@ const Inventario = () => {
                     </td>
 
                     <td data-label="Bodega">{prod.bodega_nombre || 'Sin bodega'}</td>
-                    <td className="text-center stock-number highlight-stock" data-label="Stock">{prod.stock_actual}</td>
-                    <td className="text-center stock-number min-stock" data-label="Mín.">{prod.stock_minimo}</td>
-                    <td className="text-center stock-number" data-label="Máx.">{prod.stock_maximo}</td>
+                    <td className="text-center stock-number highlight-stock" data-label="Stock">{entero(prod.stock_actual)}</td>
+                    <td className="text-center stock-number min-stock" data-label="Mín.">{entero(prod.stock_minimo)}</td>
+                    <td className="text-center stock-number" data-label="Máx.">{entero(prod.stock_maximo)}</td>
                     <td className="text-center" data-label="Precio unit.">{formatearCLP(prod.precio_unitario)}</td>
                     <td className="text-center" data-label="Valor stock">
                       {formatearCLP((Number(prod.stock_actual) || 0) * (Number(prod.precio_unitario) || 0))}
@@ -793,7 +798,7 @@ const Inventario = () => {
                   <tr key={mov.id}>
                     <td data-label="Fecha y hora">{new Date(mov.fecha).toLocaleString()}</td>
                     <td data-label="Tipo de movimiento">
-                      <strong>{mov.tipo_movimiento}</strong>: {mov.cantidad} unidades
+                      <strong>{mov.tipo_movimiento}</strong>: {entero(mov.cantidad)} unidades
                     </td>
                     <td data-label="Responsable">{mov.usuario_nombre || 'Sistema Automático'}</td>
                   </tr>

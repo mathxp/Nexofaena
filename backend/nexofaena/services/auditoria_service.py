@@ -1,4 +1,4 @@
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -12,6 +12,7 @@ from nexofaena.models.inventario import Inventario
 from nexofaena.models.movimiento_inventario import MovimientoInventario
 from nexofaena.services.alerta_service import AlertaService
 from nexofaena.services.dashboard_service import DashboardService
+from nexofaena.services.numeros import cantidad_entera
 
 # Un faltante se considera "crítico" (exige firma de supervisor y genera
 # alerta de posible pérdida) si supera este porcentaje del stock del sistema,
@@ -89,10 +90,10 @@ class AuditoriaInventarioService:
             )
 
         try:
-            stock_fisico_decimal = Decimal(str(stock_fisico))
-        except InvalidOperation:
+            stock_fisico_decimal = cantidad_entera(stock_fisico)
+        except ValueError:
             raise ValidationError(
-                f"El stock físico '{stock_fisico}' no es un número válido."
+                f"El stock físico '{stock_fisico}' debe ser un número entero."
             )
 
         if stock_fisico_decimal < 0:

@@ -58,7 +58,7 @@ const reporteVacio = {
 
 const etiquetaTurno = (turno) => (turno === 'noche' ? 'Noche' : 'Día');
 
-const formatearNumero = (valor) => Number(valor || 0).toLocaleString('es-CL', { maximumFractionDigits: 1 });
+const formatearNumero = (valor) => Math.round(Number(valor || 0)).toLocaleString('es-CL', { maximumFractionDigits: 0 });
 
 const ReporteConsumoTurno = () => {
   const [filtros, setFiltros] = useState(filtrosPorDefecto);

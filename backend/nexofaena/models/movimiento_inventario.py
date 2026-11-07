@@ -43,11 +43,11 @@ class MovimientoInventario(models.Model):
     )
 
     tipo_movimiento = models.CharField(max_length=20, choices=TIPOS_MOVIMIENTO, verbose_name="Tipo")
-    cantidad = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Cantidad")
+    cantidad = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Cantidad")
 
     # Campos de trazabilidad (Cruciales para auditoría)
-    stock_anterior = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Stock Antes")
-    stock_actual = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Stock Después")
+    stock_anterior = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Stock Antes")
+    stock_actual = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Stock Después")
 
     # Solo para TRASPASO: un traspaso mueve stock entre DOS filas de Inventario
     # (una por bodega). `bodega`/`inventario`/`stock_anterior`/`stock_actual` de
@@ -63,10 +63,10 @@ class MovimientoInventario(models.Model):
         related_name="movimientos_como_destino", verbose_name="Producto en bodega destino (traspaso)",
     )
     stock_anterior_destino = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Stock Antes (destino)",
+        max_digits=12, decimal_places=0, null=True, blank=True, verbose_name="Stock Antes (destino)",
     )
     stock_actual_destino = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Stock Después (destino)",
+        max_digits=12, decimal_places=0, null=True, blank=True, verbose_name="Stock Después (destino)",
     )
 
     fecha = models.DateTimeField(auto_now_add=True, verbose_name="Fecha y Hora")

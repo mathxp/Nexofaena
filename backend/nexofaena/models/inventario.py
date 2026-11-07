@@ -31,14 +31,14 @@ class Inventario(models.Model):
         help_text="Solo para productos con variantes de talla (guantes, buzos, zapatos). Vacío si no aplica.",
     )
 
-    # Control de Stock (DecimalField para precisión contable)
-    stock_actual = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'), verbose_name="Stock Actual")
-    stock_minimo = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'), verbose_name="Stock Mínimo")
-    stock_maximo = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'), verbose_name="Stock Máximo")
+    # Control de Stock (enteros: el pañol entrega unidades, pares o cajas completas)
+    stock_actual = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal('0'), verbose_name="Stock Actual")
+    stock_minimo = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal('0'), verbose_name="Stock Mínimo")
+    stock_maximo = models.DecimalField(max_digits=12, decimal_places=0, default=Decimal('0'), verbose_name="Stock Máximo")
 
     # Valorización (seguimiento del dinero entregado por pañol)
     precio_unitario = models.DecimalField(
-        max_digits=12, decimal_places=2, default=Decimal('0'),
+        max_digits=12, decimal_places=0, default=Decimal('0'),
         verbose_name="Precio Unitario (CLP)",
         help_text="Precio real de costo/reposición por unidad. Se usa para valorizar el stock y las entregas de pañol.",
     )

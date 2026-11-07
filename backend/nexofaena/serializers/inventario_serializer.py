@@ -6,7 +6,7 @@ class InventarioSerializer(serializers.ModelSerializer):
     bodega_nombre = serializers.CharField(source="bodega.nombre", read_only=True)
     necesita_reposicion = serializers.BooleanField(read_only=True)
     exceso_stock = serializers.BooleanField(read_only=True)
-    valor_stock = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    valor_stock = serializers.DecimalField(max_digits=14, decimal_places=0, read_only=True)
     clasificacion_5s_display = serializers.CharField(source="get_clasificacion_5s_display", read_only=True)
 
     class Meta:
@@ -22,6 +22,16 @@ class InventarioSerializer(serializers.ModelSerializer):
             "clasificacion_5s", "clasificacion_5s_display",
         ]
         read_only_fields = ["fecha_creacion", "fecha_actualizacion"]
+        # Solo enteros: el pañol maneja unidades, pares o cajas completas, y
+        # los precios en pesos chilenos no llevan decimales.
+        extra_kwargs = {
+            campo: {"error_messages": {
+                "max_decimal_places": "Ingresa un número entero, sin decimales.",
+                "max_whole_digits": "El número es demasiado grande.",
+                "invalid": "Ingresa un número entero.",
+            }}
+            for campo in ("stock_actual", "stock_minimo", "stock_maximo", "precio_unitario")
+        }
 
     def validate_codigo(self, value):
         value = value.strip().upper()

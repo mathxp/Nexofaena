@@ -5,6 +5,7 @@ import {
 } from 'react-icons/fa';
 import api from '../../api';
 import './Movimientos.css';
+import { PROPS_ENTERO, entero } from '../../utils/numeros';
 
 const MOVIMIENTOS_POR_PAGINA = 12;
 // Historial reciente: el completo pesaba megas (miles de movimientos) y nadie
@@ -193,7 +194,7 @@ const Movimientos = () => {
                         <select className="custom-select" name="inventario" value={formData.inventario} onChange={handleChange} required disabled={!formData.bodega}>
                             <option value="">{formData.bodega ? '-- Seleccione Producto --' : 'Primero seleccione bodega'}</option>
                             {productos.filter(p => p.bodega === parseInt(formData.bodega)).map(p => (
-                                <option key={p.id} value={p.id}>[{p.codigo}] {p.nombre} (Stock actual: {p.stock_actual})</option>
+                                <option key={p.id} value={p.id}>[{p.codigo}] {p.nombre} (Stock actual: {entero(p.stock_actual)})</option>
                             ))}
                         </select>
                         {productoSeleccionado?.es_devolutivo && (
@@ -205,7 +206,7 @@ const Movimientos = () => {
 
                     <div className="input-group">
                         <label className="input-label">{etiquetaCantidad}</label>
-                        <input className="form-input" type="number" step="0.01" min="0" name="cantidad" placeholder="Ej: 10" value={formData.cantidad} onChange={handleChange} required />
+                        <input className="form-input" type="number" {...PROPS_ENTERO} min="0" name="cantidad" placeholder="Ej: 10" value={formData.cantidad} onChange={handleChange} required />
                     </div>
 
                     <div className="input-group full-width">
@@ -268,8 +269,8 @@ const Movimientos = () => {
                                         <td data-label="Tipo">{renderBadge(mov.tipo_movimiento)}</td>
                                         <td data-label="Producto" style={{ fontWeight: '700' }}>{mov.producto_nombre || 'Desconocido'}</td>
                                         <td data-label="Bodega">{mov.bodega_nombre || 'N/A'}</td>
-                                        <td data-label="Cantidad" style={{ fontWeight: '900', fontSize: '1.1rem' }}>{mov.cantidad}</td>
-                                        <td data-label="Stock resultante" style={{ color: '#9aabc4' }}>{mov.stock_anterior} → {mov.stock_actual}</td>
+                                        <td data-label="Cantidad" style={{ fontWeight: '900', fontSize: '1.1rem' }}>{entero(mov.cantidad)}</td>
+                                        <td data-label="Stock resultante" style={{ color: '#9aabc4' }}>{entero(mov.stock_anterior)} → {entero(mov.stock_actual)}</td>
                                         <td data-label="Responsable">{mov.usuario_nombre || 'N/A'}</td>
                                         <td data-label="Observación" style={{ color: '#9aabc4' }}>{mov.observacion || '—'}</td>
                                         <td data-label="Fecha y Hora" style={{ color: '#9aabc4' }}>{new Date(mov.fecha).toLocaleString()}</td>

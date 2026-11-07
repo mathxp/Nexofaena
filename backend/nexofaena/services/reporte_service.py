@@ -20,6 +20,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from nexofaena.models.entrega import DetalleEntregaEPP
+from nexofaena.services.numeros import redondear
 
 DIAS_PERIODO_POR_DEFECTO = 30
 
@@ -149,12 +150,12 @@ class ReporteService:
                 "rut": datos["rut"],
                 "cargo": datos["cargo"],
                 "turno_principal": "noche" if visitas_noche > visitas_dia else "dia",
-                "total_unidades": round(total, 1),
+                "total_unidades": redondear(total),
                 "num_visitas": num_visitas,
-                "unidades_por_visita": round(total / num_visitas, 1) if num_visitas else 0,
-                "unidades_por_turno": {k: round(v, 1) for k, v in datos["unidades_por_turno"].items()},
+                "unidades_por_visita": redondear(total / num_visitas) if num_visitas else 0,
+                "unidades_por_turno": {k: redondear(v) for k, v in datos["unidades_por_turno"].items()},
                 "desglose_por_producto": [
-                    {"producto_nombre": nombre, "cantidad": round(cantidad, 1)}
+                    {"producto_nombre": nombre, "cantidad": redondear(cantidad)}
                     for nombre, cantidad in sorted(datos["productos"].items(), key=lambda p: p[1], reverse=True)
                 ],
             })
@@ -169,7 +170,7 @@ class ReporteService:
                 continue
             por_turno.append({
                 "turno": clave,
-                "unidades": round(sum(r["unidades_por_turno"][clave] for r in del_turno), 1),
+                "unidades": sum(r["unidades_por_turno"][clave] for r in del_turno),
                 "visitas": sum(visitas.get((r["trabajador_id"], clave), 0) for r in del_turno),
                 "trabajadores": len(del_turno),
             })
@@ -181,9 +182,9 @@ class ReporteService:
             "resumen_por_trabajador": resumen,
             "por_turno": por_turno,
             "resumen_general": {
-                "total_unidades": round(total_unidades, 1),
+                "total_unidades": total_unidades,
                 "trabajadores_evaluados": len(resumen),
-                "promedio_por_trabajador": round(total_unidades / len(resumen), 1),
+                "promedio_por_trabajador": redondear(total_unidades / len(resumen)),
                 "total_visitas": sum(r["num_visitas"] for r in resumen),
                 "a_revisar": sum(1 for r in resumen if r["estado_revision"] == "revisar"),
             },
@@ -205,7 +206,7 @@ class ReporteService:
             promedio = mean(totales)
             umbral = max(promedio + pstdev(totales), promedio * 1.5)
             for r in grupo:
-                r["promedio_cargo"] = round(promedio, 1)
+                r["promedio_cargo"] = redondear(promedio)
                 r["companeros_en_cargo"] = len(grupo)
                 destaca = len(grupo) >= MIN_CUADRILLA_PARA_DESVIACION_ESTADISTICA and r["total_unidades"] > umbral
                 r["estado_revision"] = "revisar" if destaca else "normal"

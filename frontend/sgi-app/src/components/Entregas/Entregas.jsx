@@ -21,6 +21,7 @@ import { db } from '../../db';
 import { useGeolocalizacion } from '../../hooks/useGeolocalizacion';
 import { sincronizarEntregasPendientes as sincronizarEntregasPendientesCompartido } from '../../services/entregasOffline';
 import './Entregas.css';
+import { PROPS_ENTERO, entero } from '../../utils/numeros';
 
 const formatoCLP = new Intl.NumberFormat('es-CL', {
   style: 'currency',
@@ -216,8 +217,8 @@ const Entregas = () => {
   };
 
   const updateCantidad = (id, cantidad) => {
-    const valor = Number(cantidad);
-    if (valor < 1) return;
+    const valor = Math.trunc(Number(cantidad));
+    if (!(valor >= 1)) return;
 
     setProductosSeleccionados((prev) => ({
       ...prev,
@@ -286,7 +287,7 @@ const Entregas = () => {
       if (!producto) return `Producto ID ${productoId} no encontrado.`;
       if (cantidad <= 0) return `Cantidad inválida para ${producto.nombre}.`;
       if (cantidad > Number(producto.stock_actual)) {
-        return `Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock_actual}`;
+        return `Stock insuficiente para ${producto.nombre}. Disponible: ${entero(producto.stock_actual)}`;
       }
     }
 
@@ -590,7 +591,7 @@ const Entregas = () => {
                                   {producto.nombre}
                                   <small className="epp-stock-info">
                                     {' '}
-                                    [{producto.codigo}] Stock: {producto.stock_actual}
+                                    [{producto.codigo}] Stock: {entero(producto.stock_actual)}
                                   </small>
                                 </span>
 
@@ -618,6 +619,7 @@ const Entregas = () => {
                                 onChange={(e) => updateCantidad(producto.id, e.target.value)}
                                 min="1"
                                 max={producto.stock_actual}
+                                {...PROPS_ENTERO}
                               />
                             )}
                           </div>
