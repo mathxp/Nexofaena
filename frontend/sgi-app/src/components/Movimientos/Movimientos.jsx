@@ -6,6 +6,7 @@ import {
 import api from '../../api';
 import './Movimientos.css';
 import { PROPS_ENTERO, entero } from '../../utils/numeros';
+import SelectorBuscable from '../SelectorBuscable/SelectorBuscable';
 
 const MOVIMIENTOS_POR_PAGINA = 12;
 // Historial reciente: el completo pesaba megas (miles de movimientos) y nadie
@@ -93,6 +94,16 @@ const Movimientos = () => {
     };
 
     const productoSeleccionado = productos.find((p) => p.id === parseInt(formData.inventario));
+
+    const opcionesProducto = productos
+        .filter((p) => p.bodega === parseInt(formData.bodega))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+        .map((p) => ({
+            valor: p.id,
+            etiqueta: p.nombre,
+            detalle: `${p.codigo} · Stock ${entero(p.stock_actual)}`,
+            busqueda: p.codigo,
+        }));
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -191,12 +202,16 @@ const Movimientos = () => {
 
                     <div className="input-group">
                         <label className="input-label">Producto Afectado</label>
-                        <select className="custom-select" name="inventario" value={formData.inventario} onChange={handleChange} required disabled={!formData.bodega}>
-                            <option value="">{formData.bodega ? '-- Seleccione Producto --' : 'Primero seleccione bodega'}</option>
-                            {productos.filter(p => p.bodega === parseInt(formData.bodega)).map(p => (
-                                <option key={p.id} value={p.id}>[{p.codigo}] {p.nombre} (Stock actual: {entero(p.stock_actual)})</option>
-                            ))}
-                        </select>
+                        <SelectorBuscable
+                            opciones={opcionesProducto}
+                            valor={formData.inventario}
+                            onCambio={(id) => setFormData((prev) => ({ ...prev, inventario: String(id) }))}
+                            placeholder={formData.bodega ? 'Buscar producto…' : 'Primero seleccione bodega'}
+                            placeholderBusqueda="Escribe el nombre o código…"
+                            sinResultados="Ningún producto coincide en esta bodega."
+                            deshabilitado={!formData.bodega}
+                            requerido
+                        />
                         {productoSeleccionado?.es_devolutivo && (
                             <small className="aviso-devolutivo-inline">
                                 ⚠️ Este producto es devolutivo. Para entregarlo a un trabajador usa <strong>Entregas</strong>, no Movimientos.
