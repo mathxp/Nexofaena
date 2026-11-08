@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import (
 
 from drf_spectacular.views import (
     SpectacularAPIView,
-    SpectacularSwaggerView,
+    SpectacularSwaggerSplitView,
 )
 
 urlpatterns = [
@@ -77,7 +77,7 @@ urlpatterns = [
     ),
     path(
         "api/docs/",
-        SpectacularSwaggerView.as_view(
+        SpectacularSwaggerSplitView.as_view(
             url_name="schema"
         ),
         name="swagger-ui",

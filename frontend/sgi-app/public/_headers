@@ -1,0 +1,13 @@
+# Cabeceras de seguridad para Cloudflare Pages (se aplican a todo el sitio).
+#
+# CSP: la app solo carga código propio. Conexiones permitidas: la API en
+# Render y Sentry (errores). Estilos: Google Fonts (Inter) y estilos inline de
+# React. Imágenes: data:/blob: por los íconos, el logo y las fotos del kiosco.
+# 'wasm-unsafe-eval' lo necesita face-api.js (TensorFlow) en algunos navegadores.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://nexofaena.onrender.com https://*.ingest.us.sentry.io https://*.ingest.sentry.io; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(self), payment=(), usb=()

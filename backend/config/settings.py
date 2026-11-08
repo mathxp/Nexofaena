@@ -80,6 +80,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
 ]
 
 # ==========================================
@@ -222,6 +223,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    # Solo JSON: la vista HTML navegable de DRF mostraba el docstring de cada
+    # endpoint (detalles internos) a cualquiera, incluso sin sesión.
+    "DEFAULT_RENDERER_CLASSES": (
+        ("rest_framework.renderers.JSONRenderer", "rest_framework.renderers.BrowsableAPIRenderer")
+        if DEBUG else ("rest_framework.renderers.JSONRenderer",)
+    ),
+    # Sin respuestas a OPTIONS: devolvían el docstring de la vista (por ejemplo,
+    # cómo se autentica la integración con n8n) sin pedir login. El preflight
+    # CORS no se ve afectado: lo responde CorsMiddleware antes de llegar aquí.
+    "DEFAULT_METADATA_CLASS": None,
 }
 
 SPECTACULAR_SETTINGS = {
@@ -229,7 +240,46 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API para gestión de inventario, bodegas, entregas, movimientos, alertas y dashboard.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # El esquema y /api/docs/ describen toda la API: solo para administradores
+    # con sesión iniciada en /admin/ (antes eran públicos).
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+    "SERVE_AUTHENTICATION": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
 }
+
+# ==========================================
+# CABECERAS DE SEGURIDAD
+# ==========================================
+from django.utils.csp import CSP  # noqa: E402
+
+# La API solo devuelve JSON, así que la política es estricta. Se permite lo
+# mínimo para el panel /admin/ y la documentación (Swagger carga desde jsDelivr).
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF, "https://cdn.jsdelivr.net"],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE, "https://cdn.jsdelivr.net"],
+    "img-src": [CSP.SELF, "data:", "https://cdn.jsdelivr.net"],
+    "connect-src": [CSP.SELF],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.NONE],
+    "form-action": [CSP.SELF],
+    "frame-ancestors": [CSP.NONE],
+}
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+X_FRAME_OPTIONS = "DENY"
+
+if not DEBUG:
+    # Render termina el HTTPS y avisa con X-Forwarded-Proto: sin esto Django
+    # cree que la petición es http y no envía HSTS.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # HSTS: el navegador recordará usar solo HTTPS durante un año.
+    SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 # ==========================================
 # SIMPLE JWT (Configuración del Token)
 # ==========================================
