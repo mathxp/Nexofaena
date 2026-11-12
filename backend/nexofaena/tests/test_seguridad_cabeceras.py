@@ -63,3 +63,11 @@ class SeguridadCabecerasTests(TestCase):
         self.assertEqual(docs.status_code, 200)
         # La CSP bloquea scripts inline: Swagger debe cargar su script aparte.
         self.assertNotIn("<script>", docs.content.decode())
+
+
+class SaludTests(TestCase):
+    def test_salud_responde_sin_login_y_sin_datos_internos(self):
+        respuesta = APIClient().get("/api/salud/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.json(), {"estado": "ok"})

@@ -14,6 +14,8 @@ import {
   FaWifi,
   FaSignal,
   FaQuestionCircle,
+  FaSearch,
+  FaTimes,
 } from 'react-icons/fa';
 
 import api from '../../api';
@@ -21,6 +23,7 @@ import { db } from '../../db';
 import { useGeolocalizacion } from '../../hooks/useGeolocalizacion';
 import { sincronizarEntregasPendientes } from '../../services/entregasOffline';
 import { useWakeLock } from './hooks/useWakeLock';
+import { useServidorDespierto } from './hooks/useServidorDespierto';
 import { useConexionKiosco } from './hooks/useConexionKiosco';
 import { useDatosKioscoCache } from './hooks/useDatosKioscoCache';
 import { useReconocimientoFacial } from './hooks/useReconocimientoFacial';
@@ -28,6 +31,10 @@ import LogoNexoFaena from '../Marca/LogoNexoFaena';
 import TutorialKiosco from './TutorialKiosco';
 import './Kiosco.css';
 import { entero } from '../../utils/numeros';
+
+// "Guantes Nitrilo" y "guantes nitrilo" son lo mismo para quien busca.
+const normalizar = (texto) =>
+  String(texto ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 // Datos técnicos del reconocimiento (distancia, giro, ms por lectura): sirven
 // para calibrar la cámara en terreno, pero al trabajador solo lo confunden.
@@ -49,6 +56,7 @@ const Kiosco = () => {
   const [estadosDevolucion, setEstadosDevolucion] = useState({});
 
   const [carrito, setCarrito] = useState({});
+  const [busqueda, setBusqueda] = useState('');
   const [unidadesSeleccionadas, setUnidadesSeleccionadas] = useState({});
 
   const sigCanvas = useRef({});
@@ -56,6 +64,7 @@ const Kiosco = () => {
   const { capturar: capturarGeolocalizacion } = useGeolocalizacion();
   const isOffline = useConexionKiosco();
   useWakeLock();
+  useServidorDespierto();
 
   const { trabajadores, inventario, bodegas, unidadesDisponibles, cargarDatos } = useDatosKioscoCache();
 
@@ -67,6 +76,7 @@ const Kiosco = () => {
   const confirmarTrabajador = async (trabajador) => {
     setTrabajadorActual(trabajador);
     setCarrito({});
+    setBusqueda('');
     setUnidadesSeleccionadas({});
     setEstadosDevolucion({});
     setError('');
@@ -178,12 +188,27 @@ const Kiosco = () => {
 
   // --- Autoservicio: selección de productos a retirar ---
 
-  const productosDisponibles = inventario.filter(
-    (item) =>
-      String(item.bodega) === String(bodegaId) &&
-      !item.es_devolutivo &&
-      Number(item.stock_actual) > 0
-  );
+  const productosDisponibles = inventario
+    .filter(
+      (item) =>
+        String(item.bodega) === String(bodegaId) &&
+        !item.es_devolutivo &&
+        Number(item.stock_actual) > 0
+    )
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+  // Buscador: primero los que empiezan con lo escrito, luego los que lo
+  // contienen (en el nombre o el código). Lo ya elegido siempre se muestra,
+  // para poder cambiar su cantidad aunque no calce con la búsqueda.
+  const consulta = normalizar(busqueda);
+  const calza = (p) => normalizar(p.nombre).includes(consulta) || normalizar(p.codigo).includes(consulta);
+  const productosVisibles = !consulta
+    ? productosDisponibles
+    : [
+        ...productosDisponibles.filter((p) => normalizar(p.nombre).startsWith(consulta)),
+        ...productosDisponibles.filter((p) => !normalizar(p.nombre).startsWith(consulta) && calza(p)),
+        ...productosDisponibles.filter((p) => carrito[p.id] && !calza(p)),
+      ];
 
   const unidadesEnBodega = unidadesDisponibles.filter((u) => String(u.bodega) === String(bodegaId));
 
@@ -559,24 +584,62 @@ const Kiosco = () => {
             <div className="kiosco-seccion">
               <div className="kiosco-seccion-titulo">EPP e insumos</div>
 
+              {productosDisponibles.length > 0 && (
+                <div className="kiosco-buscador">
+                  <FaSearch className="kiosco-buscador-lupa" />
+                  <input
+                    type="search"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder="Buscar producto (ej: guantes, casco)…"
+                    aria-label="Buscar producto"
+                    autoComplete="off"
+                    enterKeyHint="search"
+                  />
+                  {busqueda && (
+                    <button type="button" className="kiosco-buscador-limpiar" onClick={() => setBusqueda('')} aria-label="Borrar búsqueda">
+                      <FaTimes />
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="kiosco-grid-productos">
                 {productosDisponibles.length === 0 ? (
                   <div className="kiosco-vacio">No hay productos disponibles en esta bodega.</div>
+                ) : productosVisibles.length === 0 ? (
+                  <div className="kiosco-vacio">Ningún producto coincide con "{busqueda}".</div>
                 ) : (
-                  productosDisponibles.map((p) => {
+                  productosVisibles.map((p) => {
                     const seleccionado = !!carrito[p.id];
                     return (
-                      <div key={p.id} className={`kiosco-producto ${seleccionado ? 'seleccionado' : ''}`}>
-                        <div className="kiosco-producto-info" onClick={() => toggleProducto(p.id)}>
+                      // Toda la tarjeta responde al toque (antes solo el
+                      // texto: tocar el borde no hacía nada y parecía lento).
+                      <div
+                        key={p.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={seleccionado}
+                        className={`kiosco-producto ${seleccionado ? 'seleccionado' : ''}`}
+                        onClick={() => toggleProducto(p.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleProducto(p.id);
+                          }
+                        }}
+                      >
+                        <div className="kiosco-producto-info">
                           <span className="kiosco-producto-nombre">{p.nombre}</span>
                           <span className="kiosco-producto-stock">Stock: {entero(p.stock_actual)}</span>
                         </div>
 
                         {seleccionado && (
-                          <div className="kiosco-cantidad">
-                            <button onClick={() => cambiarCantidad(p.id, -1, p.stock_actual)}>−</button>
+                          // Los botones +/− no deben des-seleccionar la tarjeta.
+                          <div className="kiosco-cantidad" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                            <button type="button" onClick={() => cambiarCantidad(p.id, -1, p.stock_actual)} aria-label="Quitar uno">−</button>
                             <span>{carrito[p.id]}</span>
-                            <button onClick={() => cambiarCantidad(p.id, 1, p.stock_actual)}>+</button>
+                            <button type="button" onClick={() => cambiarCantidad(p.id, 1, p.stock_actual)} aria-label="Agregar uno">+</button>
                           </div>
                         )}
                       </div>

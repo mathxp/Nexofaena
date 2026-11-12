@@ -46,6 +46,9 @@ MIN_SEMANAS_RANDOM_FOREST = 4
 TOP_N_PRODUCTOS_PLANIFICACION = 8
 
 DIAS_VENTANA_CONSUMO = 30
+# Anomalías: últimos 30 días corridos. Antes se contaba desde el día 1 del
+# mes calendario y a comienzos de mes casi no había datos (no detectaba nada).
+DIAS_VENTANA_ANOMALIAS = 30
 MIN_FILAS_REGRESION_LOGISTICA = 40
 DIAS_VENTANA_ENTRENAMIENTO = 180
 MAX_FILAS_ENTRENAMIENTO = 5000
@@ -501,7 +504,7 @@ class MLService:
         directo del stakeholder). Se agrupa por cargo primero y el
         clustering/estadístico corre por separado dentro de cada grupo.
         """
-        inicio_mes = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        inicio_ventana = timezone.now() - timedelta(days=DIAS_VENTANA_ANOMALIAS)
 
         consumos = (
             MovimientoInventario.objects
@@ -509,7 +512,7 @@ class MLService:
             # a diario no es consumo, y contarlos marcaba como "inusual" a
             # quien simplemente usa radio en cada turno.
             .filter(
-                tipo_movimiento="SALIDA", fecha__gte=inicio_mes, trabajador__isnull=False,
+                tipo_movimiento="SALIDA", fecha__gte=inicio_ventana, trabajador__isnull=False,
                 inventario__es_devolutivo=False,
             )
             .values("trabajador_id", "trabajador__nombres", "trabajador__apellido_paterno", "trabajador__cargo")
@@ -540,12 +543,12 @@ class MLService:
             else:
                 anomalias.extend(MLService._detectar_anomalias_fallback(registros_cargo))
 
-        return MLService._enriquecer_anomalias(anomalias, inicio_mes)
+        return MLService._enriquecer_anomalias(anomalias, inicio_ventana)
 
     @staticmethod
     def _detectar_anomalias_kmeans(registros):
         """
-        Agrupa a los trabajadores por su patrón de consumo del mes
+        Agrupa a los trabajadores por su patrón de consumo de los últimos 30 días
         (total retirado, N° de entregas, variedad de productos). Al
         trabajador que cae en el clúster de consumo elevado -y que además
         se aleja claramente del promedio general- se le marca como anómalo.
@@ -597,7 +600,7 @@ class MLService:
     @staticmethod
     def _detectar_anomalias_fallback(registros):
         """Fallback estadístico (Z-score) cuando hay muy pocos trabajadores
-        activos este mes como para formar clústeres representativos."""
+        activos en los últimos 30 días como para formar clústeres representativos."""
         totales = [float(r["total"]) for r in registros]
         promedio = mean(totales)
         desviacion = pstdev(totales) if len(totales) > 1 else 0
@@ -610,7 +613,7 @@ class MLService:
         ]
 
     @staticmethod
-    def _enriquecer_anomalias(anomalos, inicio_mes):
+    def _enriquecer_anomalias(anomalos, inicio_ventana):
         """Añade el producto que más retiró cada trabajador anómalo, para
         que la alerta sea concreta (ej. '3 cascos') y no solo un total.
 
@@ -626,7 +629,7 @@ class MLService:
             MovimientoInventario.objects
             .filter(
                 tipo_movimiento="SALIDA",
-                fecha__gte=inicio_mes,
+                fecha__gte=inicio_ventana,
                 trabajador_id__in=trabajador_ids,
                 inventario__es_devolutivo=False,
             )
@@ -672,7 +675,7 @@ class MLService:
                 "algoritmo": registro["algoritmo"],
                 "mensaje": (
                     f"{nombre_trabajador} ({registro.get('trabajador__cargo') or 'sin cargo'}) retiró "
-                    f"{float(registro['total']):.0f} unidades en total este mes "
+                    f"{float(registro['total']):.0f} unidades en total en los últimos 30 días "
                     f"({registro['num_entregas']} entregas, {registro['productos_distintos']} productos distintos), "
                     f"destacando {top_producto['inventario__nombre']}. "
                     f"Consumo fuera del patrón normal de su mismo cargo."

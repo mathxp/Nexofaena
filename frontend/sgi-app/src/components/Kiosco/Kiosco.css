@@ -581,7 +581,15 @@
   flex-direction: column;
   gap: 12px;
   cursor: pointer;
+  user-select: none;
+  /* Sin la espera de "doble toque para zoom": el toque responde al instante. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.08s ease, border-color 0.12s ease, background-color 0.12s ease;
 }
+
+.kiosco-producto:active { transform: scale(0.97); }
+.kiosco-producto:focus-visible { outline: 3px solid var(--k-brand-light); outline-offset: 2px; }
 
 .kiosco-producto.seleccionado {
   border-color: var(--k-brand);
@@ -614,6 +622,7 @@
 }
 
 .kiosco-cantidad button {
+  touch-action: manipulation;
   background: var(--k-brand);
   color: white;
   border: none;
@@ -702,4 +711,52 @@
   .kiosco-enrolar-box {
     width: 100%;
   }
+}
+
+/* --- Buscador de productos --- */
+
+.kiosco-buscador {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 0 16px;
+  min-height: 56px;
+  background: var(--k-bg);
+  border: 2px solid var(--k-border);
+  border-radius: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.kiosco-buscador:focus-within { border-color: var(--k-brand); }
+
+.kiosco-buscador-lupa { flex: none; font-size: 1.1rem; color: var(--k-brand-light); }
+
+.kiosco-buscador input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--k-text);
+  font-size: 1.05rem;
+  font-family: inherit;
+}
+
+.kiosco-buscador input::placeholder { color: var(--k-text-soft); }
+.kiosco-buscador input::-webkit-search-cancel-button { display: none; }
+
+.kiosco-buscador-limpiar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--k-text);
+  cursor: pointer;
+  touch-action: manipulation;
 }

@@ -450,7 +450,7 @@ const Dashboard = () => {
     {
       titulo: 'Consumos fuera de lo normal',
       valor: anomalias.length,
-      ayuda: anomalias.length === 1 ? 'trabajador a revisar este mes' : 'trabajadores a revisar este mes',
+      ayuda: anomalias.length === 1 ? 'trabajador a revisar (últimos 30 días)' : 'trabajadores a revisar (últimos 30 días)',
       estado: anomalias.length > 0 ? 'ambar' : 'verde',
       Icono: FaUserSecret,
     },
@@ -763,7 +763,7 @@ const Dashboard = () => {
           </div>
 
           {anomalias.length === 0 ? (
-            <Vacio>Todo en orden: nadie se sale del consumo habitual este mes.</Vacio>
+            <Vacio>Todo en orden: nadie se sale del consumo habitual en los últimos 30 días.</Vacio>
           ) : (
             <ul className="pg-personas">
               {anomalias.map((a) => (
@@ -775,7 +775,7 @@ const Dashboard = () => {
                       {a.cargo && <span className="pg-suave"> · {a.cargo}</span>}
                     </div>
                     <div className="pg-persona-detalle">
-                      <strong className="pg-num">{Math.round(a.cantidad_mes)}</strong> unidades este mes,
+                      <strong className="pg-num">{Math.round(a.cantidad_mes)}</strong> unidades en 30 días,
                       sobre todo <strong>{a.producto_nombre}</strong>.
                     </div>
                   </div>

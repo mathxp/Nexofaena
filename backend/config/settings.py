@@ -127,8 +127,10 @@ WSGI_APPLICATION = "config.wsgi.application"
 # BASE DE DATOS
 # ==========================================
 DATABASES = {
-    "default": dj_database_url.config(
-        default="postgresql://postgres:Maty04082002.@localhost:5432/nexofaena_db",
+    # La URL (con su contraseña) va en .env o en una variable de entorno del
+    # hosting (Render), nunca escrita aquí.
+    "default": dj_database_url.parse(
+        config("DATABASE_URL", default="postgresql://postgres@localhost:5432/nexofaena_db"),
         conn_max_age=600,
     )
 }

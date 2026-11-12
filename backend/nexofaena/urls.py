@@ -16,6 +16,7 @@ from .views.reporte_views import ReporteEppPorTurnoView, ReportePrestamosPendien
 from .views.telegram_views import TelegramEstadoVinculacionView, TelegramGenerarCodigoView
 from .views.telegram_webhook_views import telegram_webhook
 from .views.n8n_views import N8nResolverAlertaView
+from .views.salud_views import SaludView
 
 router = DefaultRouter()
 
@@ -33,6 +34,7 @@ router.register(r"auditorias-inventario", AuditoriaInventarioViewSet, basename="
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("salud/", SaludView.as_view(), name="salud"),
     path("dashboard/resumen/", DashboardResumenView.as_view(), name="dashboard_resumen"),
     path("dashboard/operativo/", DashboardOperativoView.as_view(), name="dashboard_operativo"),
     path("dashboard/ml-avanzado/", MLAnalyticsView.as_view(), name="dashboard_ml_avanzado"),

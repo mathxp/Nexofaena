@@ -368,10 +368,10 @@ class TelegramBotService:
     def _inusual():
         anomalias = _datos_panel().get("anomalias_consumo", [])
         if not anomalias:
-            return _con_menu("✅ <b>Todo en orden.</b> Nadie se sale del consumo habitual de su cargo este mes.")
+            return _con_menu("✅ <b>Todo en orden.</b> Nadie se sale del consumo habitual de su cargo en los últimos 30 días.")
 
         lineas = [
-            "👷 <b>Consumo fuera de lo normal este mes</b>",
+            "👷 <b>Consumo fuera de lo normal (últimos 30 días)</b>",
             "<i>Comparado con otros trabajadores del mismo cargo. Es una señal para revisar, no una acusación.</i>",
             "",
         ]
